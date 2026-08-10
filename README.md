@@ -86,6 +86,9 @@ Drainage overflow/blockage detection can be incorporated where the available vid
                         │
                         ▼
                       CLOSED
+
+```
+
 AI Pipeline
 1. Video Ingestion
 
