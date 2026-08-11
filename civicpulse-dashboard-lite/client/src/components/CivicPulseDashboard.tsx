@@ -16,20 +16,20 @@ const monsoonsData = [
   { month: 'Jul', incidents: 599, waterlogged: 257600 }
 ];
 
-// Root causes ordered by urgency: Red (Critical) -> Orange (High) -> Yellow (Moderate) -> Green (Safe/Minor)
+// Root causes ordered by urgency: Light Red (Critical) -> Light Orange (High) -> Light Amber (Moderate) -> Light Green (Safe/Minor)
 const rootCausesData = [
-  { name: 'Heavy Rainfall / Surface Runoff', value: 52, color: '#EF4444', urgency: 'Critical Urgency' },
-  { name: 'Drainage Overflow / Blockage', value: 23.6, color: '#F97316', urgency: 'High Urgency' },
-  { name: 'Road Surface Decay', value: 18.3, color: '#EAB308', urgency: 'Moderate' },
-  { name: 'Other Factors', value: 6.1, color: '#22C55E', urgency: 'Low / Safe' }
+  { name: 'Heavy Rainfall / Surface Runoff', value: 52, color: '#F87171', urgency: 'Critical Urgency' },
+  { name: 'Drainage Overflow / Blockage', value: 23.6, color: '#FB923C', urgency: 'High Urgency' },
+  { name: 'Road Surface Decay', value: 18.3, color: '#FBBF24', urgency: 'Moderate' },
+  { name: 'Other Factors', value: 6.1, color: '#4ADE80', urgency: 'Low / Safe' }
 ];
 
-// Infrastructure types with severity color mapping
+// Infrastructure types with lighter severity color mapping
 const infrastructureData = [
-  { name: 'Major Junctions & Corridors', value: 59, color: '#EF4444', level: 'Critical Impact' },
-  { name: 'Internal Campus Roads', value: 27, color: '#F97316', level: 'High Impact' },
-  { name: 'Pedestrian Footpaths', value: 10, color: '#EAB308', level: 'Moderate' },
-  { name: 'Other Civic Infrastructure', value: 4, color: '#22C55E', level: 'Safest' }
+  { name: 'Major Junctions & Corridors', value: 59, color: '#F87171', level: 'Critical Impact' },
+  { name: 'Internal Campus Roads', value: 27, color: '#FB923C', level: 'High Impact' },
+  { name: 'Pedestrian Footpaths', value: 10, color: '#FBBF24', level: 'Moderate' },
+  { name: 'Other Civic Infrastructure', value: 4, color: '#4ADE80', level: 'Safest' }
 ];
 
 // Lifecycle stages with dynamic urgency-to-resolved color mapping
@@ -296,7 +296,7 @@ const CivicPulseDashboard: React.FC = () => {
                       stroke="#64748B"
                       tickLine={false}
                       axisLine={{ stroke: '#E2E8F0' }}
-                      fontSize={12}
+                      tick={{ fontWeight: 700, fill: '#09090B', fontSize: 13 }}
                     />
                     <YAxis
                       yAxisId="left"
@@ -337,17 +337,17 @@ const CivicPulseDashboard: React.FC = () => {
                       yAxisId="left"
                       dataKey="incidents"
                       name="incidents"
-                      fill="#09090B"
-                      barSize={12}
-                      radius={[4, 4, 0, 0]}
+                      fill="#64748B"
+                      barSize={18}
+                      radius={[5, 5, 0, 0]}
                     />
                     <Bar
                       yAxisId="right"
                       dataKey="waterlogged"
                       name="waterlogged"
-                      fill="#64748B"
-                      barSize={12}
-                      radius={[4, 4, 0, 0]}
+                      fill="#CBD5E1"
+                      barSize={18}
+                      radius={[5, 5, 0, 0]}
                     />
                   </BarChart>
                 </ResponsiveContainer>
@@ -355,12 +355,12 @@ const CivicPulseDashboard: React.FC = () => {
 
               {/* Centered Legend */}
               <div className="mt-4 flex flex-wrap items-center justify-center gap-6 text-xs font-semibold">
-                <div className="flex items-center gap-2 text-zinc-800">
-                  <div className="w-3 h-3 rounded-sm bg-black"></div>
+                <div className="flex items-center gap-2 text-zinc-700">
+                  <div className="w-3 h-3 rounded-sm bg-slate-500"></div>
                   <span>Total Monthly Incidents</span>
                 </div>
                 <div className="flex items-center gap-2 text-zinc-600">
-                  <div className="w-3 h-3 rounded-sm bg-slate-500"></div>
+                  <div className="w-3 h-3 rounded-sm bg-slate-300"></div>
                   <span>Waterlogged Extent (m²)</span>
                 </div>
               </div>
