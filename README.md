@@ -210,6 +210,11 @@ This creates an **evidence-backed alert** rather than a detection-only output.
 
 ---
 
+# Dashboard Snapshot
+
+![Dashboard Screenshot](images/Dashboard_Image.png)
+
+
 # Incident Intelligence
 
 Each detected event is converted into a **structured civic incident**.
