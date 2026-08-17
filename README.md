@@ -73,8 +73,8 @@ Drainage overflow/blockage detection can be incorporated where the available vid
                        │
                        ▼
              ┌────────────────────┐
-             │ Temporal Association│
-             │ Tracking / Dedup    │
+             │Temporal Association│
+             │Tracking / Dedup    │ 
              └─────────┬──────────┘
                        │
                        ▼
