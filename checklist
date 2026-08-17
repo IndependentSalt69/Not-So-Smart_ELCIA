@@ -1,0 +1,84 @@
+AI
+
+ Dataset inspected
+ Train/val/test split created by video
+ Waterlogging baseline trained
+ Pothole baseline trained
+ Real video inference working
+ Segmentation overlays generated
+ Confidence recorded
+ Temporal association working
+ Duplicate suppression working
+ Incident generation working
+ Evidence frames generated
+ Severity calculation working
+ Priority calculation working
+ Failure cases tested
+ Precision/recall/F1/mAP measured
+ Incident-level metrics measured
+ Latency measured
+ Final model frozen
+
+Backend
+
+ /api/process
+ /api/process/{job_id}
+ /api/incidents
+ /api/incidents/{id}
+ Incident update endpoint
+ Database connected
+ Evidence storage working
+ CORS/configuration working
+ Error handling
+ Health endpoint
+ Production environment variables
+
+Dashboard
+
+ Real API data
+ No hard-coded incidents
+ No Traffic Congestion mock
+ Map markers
+ Incident queue
+ Evidence viewer
+ Confidence
+ Severity
+ Priority
+ "Why high priority?"
+ Verify
+ Reject
+ Assign
+ Status progression
+ Analytics
+ Responsive layout
+
+Deployment
+
+ Frontend deployed
+ Backend deployed
+ Model deployed
+ Database deployed
+ HTTPS
+ Environment variables
+ CORS
+ File upload limits
+ Logs
+ Health check
+ Restart recovery
+ Cold-start tested
+ Public demo URL tested
+ Local fallback tested
+
+Demo
+
+ One known-good video
+ One challenging video
+ Waterlogging case
+ Pothole case
+ False-positive example
+ Human verification
+ Assignment
+ Closure
+ 90-second demo flow
+ Backup local demo
+ Judges' likely questions prepared
