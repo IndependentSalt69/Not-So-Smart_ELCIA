@@ -55,42 +55,63 @@ Drainage overflow/blockage detection can be incorporated where the available vid
 # System Architecture
 
 ```text
-                    ROAD / AERIAL VIDEO
-                            │
-                            ▼
-                      FRAME SAMPLING
-                            │
-                            ▼
-                 AI DETECTION / SEGMENTATION
-                            │
-                            ▼
-                  TEMPORAL ASSOCIATION
-                            │
-                            ▼
-                     INCIDENT ENGINE
-                            │
-              ┌─────────────┼─────────────┐
-              ▼             ▼             ▼
-          EVIDENCE       SEVERITY       CONTEXT
-              │             │             │
-              └─────────────┼─────────────┘
-                            ▼
-                      PRIORITY ENGINE
-                            │
-                            ▼
-                   OPERATOR DASHBOARD
-                            │
-                            ▼
-                   ALERT / ASSIGNMENT
-                            │
-                            ▼
-                       CIVIC ACTION
-                            │
-                            ▼
-                      RE-INSPECTION
-                            │
-                            ▼
-                          CLOSED
+                    INPUT
+                      │
+              Road / Drone Video
+                      │
+                      ▼
+              ┌─────────────────┐
+              │ Frame Sampling  │
+              └────────┬────────┘
+                       │
+                       ▼
+             ┌────────────────────┐
+             │ AI Detection / Seg │
+             │ Waterlogging       │
+             │ Pothole            │
+             └─────────┬──────────┘
+                       │
+                       ▼
+             ┌────────────────────┐
+             │ Temporal Association│
+             │ Tracking / Dedup    │
+             └─────────┬──────────┘
+                       │
+                       ▼
+              ┌─────────────────┐
+              │ Incident Engine │
+              └────────┬────────┘
+                       │
+          ┌────────────┼────────────┐
+          ▼            ▼            ▼
+      Evidence      Severity     Context
+          │            │            │
+          └────────────┼────────────┘
+                       ▼
+               Priority Engine
+                       │
+                       ▼
+                 FastAPI API
+                       │
+              ┌────────┴────────┐
+              ▼                 ▼
+        React Dashboard      Database
+              │
+              ▼
+       Human Verification
+              │
+       ┌──────┼─────────┐
+       ▼      ▼         ▼
+    Reject  Assign   Modify
+                       │
+                       ▼
+                 In Progress
+                       │
+                       ▼
+                Re-inspection
+                       │
+                       ▼
+                    Closed
 ```
 
 ---
