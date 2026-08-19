@@ -18,11 +18,107 @@ import {
   MapPin,
   Radio,
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface IncidentMapViewProps {
   incidents: Incident[];
   onSelectIncident: (incident: Incident) => void;
+}
+
+// Reusable Sliding Glider Segmented Control
+function SlidingSegmentedControl<T extends string>({
+  items,
+  value,
+  onChange,
+  className,
+}: {
+  items: { id: T; label: string; icon?: React.ReactNode; color?: string; badge?: string | number }[];
+  value: T;
+  onChange: (val: T) => void;
+  className?: string;
+}) {
+  const buttonRefs = useRef<Record<string, HTMLButtonElement>>({});
+  const [indicator, setIndicator] = useState<{ left: number; width: number; opacity: number }>({
+    left: 0,
+    width: 0,
+    opacity: 0,
+  });
+
+  useEffect(() => {
+    const updateIndicator = () => {
+      const el = buttonRefs.current[value];
+      if (el) {
+        setIndicator({
+          left: el.offsetLeft,
+          width: el.offsetWidth,
+          opacity: 1,
+        });
+      }
+    };
+
+    updateIndicator();
+    const timeout = setTimeout(updateIndicator, 40);
+    window.addEventListener('resize', updateIndicator);
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('resize', updateIndicator);
+    };
+  }, [value, items]);
+
+  return (
+    <div
+      className={cn(
+        'relative flex items-center p-1 bg-zinc-100 dark:bg-zinc-800/90 rounded-2xl border border-zinc-200/80 dark:border-zinc-700/80 shadow-inner max-w-full overflow-x-auto',
+        className
+      )}
+    >
+      {/* Animated Sliding Glider Pill */}
+      <div
+        style={{
+          transform: `translateX(${indicator.left}px)`,
+          width: `${indicator.width}px`,
+          opacity: indicator.opacity,
+          transition:
+            'transform 280ms cubic-bezier(0.34, 1.25, 0.64, 1), width 280ms cubic-bezier(0.34, 1.25, 0.64, 1), opacity 150ms ease',
+        }}
+        className="absolute top-1 bottom-1 left-0 rounded-xl bg-white dark:bg-zinc-900 shadow-md shadow-zinc-900/10 dark:shadow-emerald-500/10 ring-1 ring-black/5 dark:ring-white/10 pointer-events-none z-0"
+      />
+
+      {items.map((item) => {
+        const isActive = value === item.id;
+        return (
+          <button
+            key={item.id}
+            ref={(el) => {
+              if (el) buttonRefs.current[item.id] = el;
+            }}
+            onClick={() => onChange(item.id)}
+            className={cn(
+              'relative z-10 px-3 py-1.5 text-xs font-bold rounded-xl transition-colors duration-200 whitespace-nowrap cursor-pointer select-none flex items-center gap-1.5',
+              isActive
+                ? 'text-zinc-950 dark:text-white'
+                : item.color || 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white'
+            )}
+          >
+            {item.icon}
+            <span>{item.label}</span>
+            {item.badge !== undefined && (
+              <span
+                className={cn(
+                  'text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold',
+                  isActive
+                    ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200'
+                    : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400'
+                )}
+              >
+                {item.badge}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 // Controller to smoothly pan & zoom map to any target coordinate
@@ -77,11 +173,16 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
   });
 
   const zones = [
-    { id: 'all', name: 'All Electronics City Zones', count: incidents.length },
-    { id: 'EC-01', name: 'EC-01: Phase 1 West / Hosur Arterial', count: incidents.filter((i) => i.zoneId === 'EC-01').length },
-    { id: 'EC-02', name: 'EC-02: Phase 1 East Commercial', count: incidents.filter((i) => i.zoneId === 'EC-02').length },
-    { id: 'EC-03', name: 'EC-03: Phase 2 Tech Park Boulevard', count: incidents.filter((i) => i.zoneId === 'EC-03').length },
-    { id: 'EC-04', name: 'EC-04: Main Junction Corridor', count: incidents.filter((i) => i.zoneId === 'EC-04').length },
+    { id: 'all', label: 'All Zones', badge: incidents.length },
+    { id: 'EC-01', label: 'EC-01: Phase 1 West', badge: incidents.filter((i) => i.zoneId === 'EC-01').length },
+    { id: 'EC-02', label: 'EC-02: Phase 1 East', badge: incidents.filter((i) => i.zoneId === 'EC-02').length },
+    { id: 'EC-03', label: 'EC-03: Phase 2 Tech Park', badge: incidents.filter((i) => i.zoneId === 'EC-03').length },
+    { id: 'EC-04', label: 'EC-04: Main Junction', badge: incidents.filter((i) => i.zoneId === 'EC-04').length },
+  ];
+
+  const layerItems: { id: 'hybrid' | 'roadmap'; label: string }[] = [
+    { id: 'hybrid', label: 'Satellite Hybrid' },
+    { id: 'roadmap', label: 'Street Road' },
   ];
 
   const displayedIncidents = selectedZone === 'all'
@@ -134,7 +235,7 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
           </p>
         </div>
 
-        {/* GPS Coordinate Feed & Quick Navigation Bar */}
+        {/* GPS Coordinate Feed & Sliding Layer Switcher */}
         <form onSubmit={handleFlyToCustomCoordinates} className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1 bg-zinc-50 dark:bg-zinc-800/60 p-1 rounded-2xl border border-zinc-200 dark:border-zinc-700 text-xs">
             <span className="text-[11px] font-bold text-zinc-400 pl-2">LAT:</span>
@@ -165,63 +266,22 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
             </Button>
           </div>
 
-          {/* Map Layer Switcher */}
-          <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 p-1 rounded-2xl border border-zinc-200/80 dark:border-zinc-700 gap-1 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => setMapType('hybrid')}
-              className={cn(
-                'px-2.5 py-1 rounded-xl transition-all cursor-pointer',
-                mapType === 'hybrid'
-                  ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-xs'
-                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-              )}
-            >
-              Satellite Hybrid
-            </button>
-            <button
-              type="button"
-              onClick={() => setMapType('roadmap')}
-              className={cn(
-                'px-2.5 py-1 rounded-xl transition-all cursor-pointer',
-                mapType === 'roadmap'
-                  ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-xs'
-                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-              )}
-            >
-              Street Road
-            </button>
-          </div>
+          {/* Animated Sliding Map Layer Switcher */}
+          <SlidingSegmentedControl
+            items={layerItems}
+            value={mapType}
+            onChange={setMapType}
+          />
         </form>
       </div>
 
-      {/* Zone Selector Filter Pills */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
-        {zones.map((z) => (
-          <button
-            key={z.id}
-            onClick={() => handleZoneSelect(z.id as any)}
-            className={cn(
-              'px-3.5 py-1.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 cursor-pointer shadow-2xs',
-              selectedZone === z.id
-                ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm'
-                : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300'
-            )}
-          >
-            <span>{z.id === 'all' ? 'All Zones' : z.id}</span>
-            <span
-              className={cn(
-                'text-[10px] px-2 py-0.5 rounded-full font-black',
-                selectedZone === z.id
-                  ? 'bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900'
-                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
-              )}
-            >
-              {z.count}
-            </span>
-          </button>
-        ))}
-      </div>
+      {/* Sliding Zone Selector Filter Pills */}
+      <SlidingSegmentedControl
+        items={zones as any}
+        value={selectedZone}
+        onChange={handleZoneSelect as any}
+        className="w-full"
+      />
 
       {/* Google Maps Viewport Container */}
       <div className="relative h-[calc(100vh-230px)] min-h-[600px] 2xl:min-h-[780px] rounded-3xl overflow-hidden border border-zinc-200/80 dark:border-zinc-800 shadow-xl flex items-center justify-center bg-slate-950">
