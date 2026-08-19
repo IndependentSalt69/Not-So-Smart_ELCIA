@@ -49,7 +49,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   const { kpis, trend, zoneMetrics, statusDistribution, priorityDistribution } = analytics;
 
-  const STATUS_COLORS = ['#E11D48', '#2563EB', '#D97706', '#059669', '#0891B2', '#64748B'];
+  const STATUS_COLORS = ['#E11D48', '#0D9488', '#D97706', '#059669', '#0891B2', '#64748B'];
   const PRIORITY_COLORS = ['#EF4444', '#F97316', '#F59E0B'];
 
   return (
@@ -57,7 +57,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       {/* Top Header */}
       <div>
         <h2 className="text-xl font-black text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
-          <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          <BarChart3 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           <span>Monsoon & Road Intelligence Analytics</span>
         </h2>
         <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
@@ -68,13 +68,13 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       {/* 4 Summary Highlight Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5 2xl:gap-6">
         <div className="p-4 xl:p-5 2xl:p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 xl:w-14 xl:h-14 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 xl:w-14 xl:h-14 rounded-xl bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
             <Waves className="w-6 h-6 xl:w-7 xl:h-7" />
           </div>
           <div>
             <div className="text-xs xl:text-sm font-semibold text-zinc-500 dark:text-zinc-400">Total Inundated Road Area</div>
             <div className="text-2xl xl:text-3xl 2xl:text-4xl font-black text-zinc-900 dark:text-white">{kpis.waterloggedAreaSqm} m²</div>
-            <div className="text-[11px] xl:text-xs text-blue-600 dark:text-blue-400 font-medium">Across Phase 1 & 2</div>
+            <div className="text-[11px] xl:text-xs text-teal-600 dark:text-teal-400 font-medium">Across Phase 1 & 2</div>
           </div>
         </div>
 
@@ -101,13 +101,13 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         </div>
 
         <div className="p-4 xl:p-5 2xl:p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 xl:w-14 xl:h-14 rounded-xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 xl:w-14 xl:h-14 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
             <ShieldCheck className="w-6 h-6 xl:w-7 xl:h-7" />
           </div>
           <div>
             <div className="text-xs xl:text-sm font-semibold text-zinc-500 dark:text-zinc-400">AI Detection Precision</div>
             <div className="text-2xl xl:text-3xl 2xl:text-4xl font-black text-zinc-900 dark:text-white">94.2%</div>
-            <div className="text-[11px] xl:text-xs text-indigo-600 dark:text-indigo-400 font-medium">Operator Verified Accuracy</div>
+            <div className="text-[11px] xl:text-xs text-emerald-600 dark:text-emerald-400 font-medium">Operator Verified Accuracy</div>
           </div>
         </div>
       </div>
@@ -124,14 +124,14 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             </p>
           </div>
           <div className="flex items-center gap-3 text-xs xl:text-sm font-semibold">
-            <span className="flex items-center gap-1.5 text-blue-600">
-              <span className="w-3 h-3 rounded-full bg-blue-500" /> Waterlogging
+            <span className="flex items-center gap-1.5 text-teal-600 dark:text-teal-400">
+              <span className="w-3 h-3 rounded-full bg-teal-500" /> Waterlogging
             </span>
             <span className="flex items-center gap-1.5 text-amber-600">
               <span className="w-3 h-3 rounded-full bg-amber-500" /> Potholes
             </span>
-            <span className="flex items-center gap-1.5 text-indigo-500">
-              <span className="w-3 h-3 rounded-full bg-indigo-300" /> Rainfall (mm)
+            <span className="flex items-center gap-1.5 text-slate-500">
+              <span className="w-3 h-3 rounded-full bg-slate-400" /> Rainfall (mm)
             </span>
           </div>
         </div>
@@ -141,8 +141,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             <AreaChart data={trend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="waterColor" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#0d9488" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#0d9488" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="potholeColor" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
@@ -161,7 +161,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                   fontSize: '12px',
                 }}
               />
-              <Area type="monotone" dataKey="waterlogging" stroke="#3b82f6" strokeWidth={2.5} fillOpacity={1} fill="url(#waterColor)" />
+              <Area type="monotone" dataKey="waterlogging" stroke="#0d9488" strokeWidth={2.5} fillOpacity={1} fill="url(#waterColor)" />
               <Area type="monotone" dataKey="potholes" stroke="#f59e0b" strokeWidth={2.5} fillOpacity={1} fill="url(#potholeColor)" />
             </AreaChart>
           </ResponsiveContainer>

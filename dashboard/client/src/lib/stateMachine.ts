@@ -35,11 +35,11 @@ export const STATUS_METADATA: Record<IncidentStatus, StatusMetadata> = {
   VERIFIED: {
     label: 'Verified',
     description: 'Confirmed genuine incident by drone operator, awaiting team assignment.',
-    colorClass: 'text-blue-600 dark:text-blue-400',
-    badgeBg: 'bg-blue-50 dark:bg-blue-950/40',
-    badgeBorder: 'border-blue-200 dark:border-blue-800/60',
-    badgeText: 'text-blue-700 dark:text-blue-300',
-    dotColor: 'bg-blue-500',
+    colorClass: 'text-teal-600 dark:text-teal-400',
+    badgeBg: 'bg-teal-50 dark:bg-teal-950/40',
+    badgeBorder: 'border-teal-200 dark:border-teal-800/60',
+    badgeText: 'text-teal-700 dark:text-teal-300',
+    dotColor: 'bg-teal-500',
     stepNumber: 2,
   },
   ASSIGNED: {

@@ -58,9 +58,9 @@ export const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     };
 
     return (
-      <div className="p-5 rounded-2xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 space-y-4">
-        <div className="flex items-center gap-2 text-xs font-bold text-blue-900 dark:text-blue-200 uppercase tracking-wide">
-          <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+      <div className="p-5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/60 space-y-4">
+        <div className="flex items-center gap-2 text-xs font-bold text-emerald-900 dark:text-emerald-200 uppercase tracking-wide">
+          <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           <span>Operational Dispatch & Mitigation Assignment</span>
         </div>
 
@@ -103,7 +103,7 @@ export const AssignmentSection: React.FC<AssignmentSectionProps> = ({
         <Button
           onClick={handleAssign}
           disabled={loading}
-          className="w-full h-9 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
+          className="w-full h-9 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
         >
           <Send className="w-3.5 h-3.5 mr-1.5" />
           <span>Assign & Dispatch Team</span>
@@ -117,7 +117,7 @@ export const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     return (
       <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-700/60 space-y-2.5">
         <div className="flex items-center gap-2 text-xs font-bold text-zinc-900 dark:text-zinc-100">
-          <Wrench className="w-3.5 h-3.5 text-blue-500" />
+          <Wrench className="w-3.5 h-3.5 text-emerald-500" />
           <span>Assigned Mitigation Unit</span>
         </div>
 

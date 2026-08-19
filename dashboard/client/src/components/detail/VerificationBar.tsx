@@ -127,7 +127,7 @@ export const VerificationBar: React.FC<VerificationBarProps> = ({
             onClick={handleVerify}
             disabled={loading}
             size="sm"
-            className="flex-1 h-9 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
+            className="flex-1 h-9 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
           >
             <CheckCircle2 className="w-4 h-4 mr-1.5" />
             <span>✓ Verify Incident</span>

@@ -25,7 +25,7 @@ export const MiniMapWidget: React.FC<MiniMapWidgetProps> = ({
     <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-xs flex flex-col h-full">
       <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800/60 mb-3">
         <div className="flex items-center gap-2">
-          <Compass className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <Compass className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
             Electronics City Zone Map Preview
           </h3>
@@ -34,7 +34,7 @@ export const MiniMapWidget: React.FC<MiniMapWidgetProps> = ({
           variant="ghost"
           size="sm"
           onClick={onOpenFullMap}
-          className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 h-8 px-2"
+          className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 h-8 px-2"
         >
           <span>Full Map</span>
           <ArrowUpRight className="w-3.5 h-3.5 ml-1" />
@@ -47,7 +47,7 @@ export const MiniMapWidget: React.FC<MiniMapWidgetProps> = ({
         className="relative flex-1 min-h-[220px] rounded-xl overflow-hidden bg-slate-900 border border-slate-800 flex items-center justify-center cursor-pointer group shadow-inner"
       >
         {/* Background Grid Pattern */}
-        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:16px_16px]" />
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px]" />
 
         {/* Electronics City Road Geometry Lines */}
         <svg className="absolute inset-0 w-full h-full stroke-slate-700/60 stroke-2" fill="none">
@@ -88,9 +88,9 @@ export const MiniMapWidget: React.FC<MiniMapWidgetProps> = ({
         })}
 
         {/* Overlay hover CTA */}
-        <div className="absolute inset-0 bg-blue-950/40 opacity-0 group-hover:opacity-100 backdrop-blur-[1px] transition-opacity flex items-center justify-center">
+        <div className="absolute inset-0 bg-emerald-950/40 opacity-0 group-hover:opacity-100 backdrop-blur-[1px] transition-opacity flex items-center justify-center">
           <span className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-xs font-bold shadow-lg flex items-center gap-1.5">
-            <Navigation className="w-3.5 h-3.5 text-blue-500" />
+            <Navigation className="w-3.5 h-3.5 text-emerald-500" />
             Launch Interactive Zone Map
           </span>
         </div>

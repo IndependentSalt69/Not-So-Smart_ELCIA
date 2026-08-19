@@ -18,9 +18,9 @@ export const SeverityExplainer: React.FC<SeverityExplainerProps> = ({ incident }
       score: severityFactors.waterExtent,
       label: severityFactors.waterExtentLabel || `${severityFactors.waterExtent * 10}% surface coverage`,
       icon: Droplets,
-      color: 'bg-blue-500',
-      textColor: 'text-blue-600 dark:text-blue-400',
-      bgColor: 'bg-blue-50 dark:bg-blue-950/40',
+      color: 'bg-teal-500',
+      textColor: 'text-teal-600 dark:text-teal-400',
+      bgColor: 'bg-teal-50 dark:bg-teal-950/40',
     },
     {
       id: 'persistence',
@@ -48,9 +48,9 @@ export const SeverityExplainer: React.FC<SeverityExplainerProps> = ({ incident }
       score: severityFactors.roadCriticality,
       label: severityFactors.roadCriticalityLabel || `Arterial factor ${severityFactors.roadCriticality}/10`,
       icon: Route,
-      color: 'bg-indigo-500',
-      textColor: 'text-indigo-600 dark:text-indigo-400',
-      bgColor: 'bg-indigo-50 dark:bg-indigo-950/40',
+      color: 'bg-emerald-500',
+      textColor: 'text-emerald-600 dark:text-emerald-400',
+      bgColor: 'bg-emerald-50 dark:bg-emerald-950/40',
     },
   ];
 
@@ -59,7 +59,7 @@ export const SeverityExplainer: React.FC<SeverityExplainerProps> = ({ incident }
       {/* Header with Overall Score & Priority */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-100 dark:border-zinc-800/60">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
@@ -128,13 +128,13 @@ export const SeverityExplainer: React.FC<SeverityExplainerProps> = ({ incident }
       {severityFactors.explanation && severityFactors.explanation.length > 0 && (
         <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800/60 space-y-2">
           <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-800 dark:text-zinc-200">
-            <Info className="w-3.5 h-3.5 text-blue-500" />
+            <Info className="w-3.5 h-3.5 text-emerald-500" />
             <span>Operational Reasoning Summary</span>
           </div>
           <ul className="space-y-1.5 pl-1">
             {severityFactors.explanation.map((exp, idx) => (
               <li key={idx} className="flex items-start gap-2 text-xs text-zinc-600 dark:text-zinc-400">
-                <span className="text-blue-500 font-bold mt-0.5">•</span>
+                <span className="text-emerald-500 font-bold mt-0.5">•</span>
                 <span>{exp}</span>
               </li>
             ))}

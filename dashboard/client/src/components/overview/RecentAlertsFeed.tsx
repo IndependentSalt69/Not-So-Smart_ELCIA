@@ -45,7 +45,7 @@ export const RecentAlertsFeed: React.FC<RecentAlertsFeedProps> = ({
           variant="ghost"
           size="sm"
           onClick={onViewAllClick}
-          className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 h-8 px-2"
+          className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 h-8 px-2"
         >
           <span>View Queue</span>
           <ArrowRight className="w-3.5 h-3.5 ml-1" />
@@ -65,7 +65,7 @@ export const RecentAlertsFeed: React.FC<RecentAlertsFeedProps> = ({
                 <div
                   className={`w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0 shadow-xs mt-0.5 ${
                     isWater
-                      ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/50'
+                      ? 'bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 border border-teal-100 dark:border-teal-900/50'
                       : 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50'
                   }`}
                 >

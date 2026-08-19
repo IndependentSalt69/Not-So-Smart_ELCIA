@@ -69,7 +69,7 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-black text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
-            <Compass className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <Compass className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             <span>Electronics City Spatial Operations Map</span>
           </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
@@ -109,7 +109,7 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
       {/* Map Container Viewport */}
       <div className="relative h-[calc(100vh-220px)] min-h-[600px] 2xl:min-h-[780px] rounded-3xl overflow-hidden bg-slate-950 border border-slate-800 shadow-xl flex items-center justify-center select-none">
         {/* Background Grid Pattern */}
-        <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#38bdf8_1.5px,transparent_1.5px)] [background-size:24px_24px]" />
+        <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#10b981_1.5px,transparent_1.5px)] [background-size:24px_24px]" />
 
         {/* SVG Roads and Zone Geometries */}
         <svg
@@ -120,8 +120,8 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
         >
           <defs>
             <linearGradient id="roadGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#6366f1" stopOpacity="0.1" />
+              <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#0d9488" stopOpacity="0.1" />
             </linearGradient>
           </defs>
 
@@ -158,7 +158,7 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
           <path
             d="M 120 120 L 500 280 L 880 460"
             fill="none"
-            stroke="#6366f1"
+            stroke="#0d9488"
             strokeWidth="4"
             strokeOpacity="0.6"
           />
@@ -224,7 +224,7 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
                 </div>
 
                 {/* Pin Label Tag */}
-                <div className="absolute top-9 left-1/2 -translate-x-1/2 bg-slate-950/90 text-white text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border border-slate-700 whitespace-nowrap shadow-md group-hover:border-blue-400">
+                <div className="absolute top-9 left-1/2 -translate-x-1/2 bg-slate-950/90 text-white text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border border-slate-700 whitespace-nowrap shadow-md group-hover:border-emerald-400">
                   {incident.id}
                 </div>
               </div>
@@ -239,7 +239,7 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
             onClick={() => onSelectIncident(hoveredIncident)}
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="font-mono text-xs font-bold text-blue-400">
+              <span className="font-mono text-xs font-bold text-emerald-400">
                 {hoveredIncident.id}
               </span>
               <PriorityBadge priority={hoveredIncident.priority} />
@@ -254,7 +254,7 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
               <StatusBadge status={hoveredIncident.status} />
             </div>
 
-            <div className="mt-3 text-[10px] text-blue-400 font-bold flex items-center justify-center gap-1 bg-blue-950/60 py-1 rounded-lg border border-blue-800/60">
+            <div className="mt-3 text-[10px] text-emerald-400 font-bold flex items-center justify-center gap-1 bg-emerald-950/60 py-1 rounded-lg border border-emerald-800/60">
               <Eye className="w-3 h-3" />
               Click marker to inspect evidence & triage
             </div>

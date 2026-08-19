@@ -65,7 +65,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
       {/* Top Header Controls Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-zinc-900/90 border-b border-zinc-800">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
             {viewMode === 'image' ? <Camera className="w-4 h-4" /> : <Video className="w-4 h-4" />}
           </div>
           <div className="text-xs font-bold text-zinc-200">
@@ -77,12 +77,12 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
         <div className="flex items-center gap-4">
           {viewMode === 'image' && (
             <div className="flex items-center gap-2 bg-zinc-800/80 px-2.5 py-1 rounded-lg border border-zinc-700/60">
-              <Sparkles className={cn('w-3.5 h-3.5', showOverlay ? 'text-blue-400' : 'text-zinc-400')} />
+              <Sparkles className={cn('w-3.5 h-3.5', showOverlay ? 'text-emerald-400' : 'text-zinc-400')} />
               <span className="text-[11px] font-semibold text-zinc-300 select-none">AI Overlay</span>
               <Switch
                 checked={showOverlay}
                 onCheckedChange={setShowOverlay}
-                className="scale-75 data-[state=checked]:bg-blue-600"
+                className="scale-75 data-[state=checked]:bg-emerald-600"
               />
             </div>
           )}
@@ -213,7 +213,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
           <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
             <div
               style={{ width: `${(currentFrame / totalFrames) * 100}%` }}
-              className="h-full bg-blue-500 rounded-full transition-all"
+              className="h-full bg-emerald-500 rounded-full transition-all"
             />
           </div>
         </div>

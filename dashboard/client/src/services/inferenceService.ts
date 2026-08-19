@@ -10,8 +10,8 @@ const generateInferenceOverlaySvg = (
 ) => {
   const isWater = type === 'waterlogging';
   const isPothole = type === 'pothole';
-  const strokeColor = isWater ? '#3b82f6' : isPothole ? '#ef4444' : '#10b981';
-  const fillColor = isWater ? 'rgba(59, 130, 246, 0.45)' : isPothole ? 'rgba(239, 68, 68, 0.45)' : 'none';
+  const strokeColor = isWater ? '#0d9488' : isPothole ? '#ef4444' : '#10b981';
+  const fillColor = isWater ? 'rgba(13, 148, 136, 0.45)' : isPothole ? 'rgba(239, 68, 68, 0.45)' : 'none';
   const label = isWater
     ? `YOLOv8 + SAM: WATERLOGGING (${Math.round(confidence * 100)}% CONFIDENCE)`
     : isPothole

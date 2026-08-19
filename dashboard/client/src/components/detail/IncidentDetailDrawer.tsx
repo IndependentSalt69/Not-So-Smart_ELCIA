@@ -74,7 +74,7 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
           {/* Location Summary Header */}
           <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
             <div className="space-y-1 min-w-0">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                 <MapPin className="w-3.5 h-3.5" />
                 <span>
                   {incident.zoneId} — {incident.zone}
@@ -121,14 +121,14 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
           {incident.history && incident.history.length > 0 && (
             <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-xs space-y-3">
               <div className="flex items-center gap-2 text-xs font-bold text-zinc-900 dark:text-white">
-                <History className="w-4 h-4 text-blue-500" />
+                <History className="w-4 h-4 text-emerald-500" />
                 <span>Verification & Operations Audit Trail</span>
               </div>
 
               <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60 pl-2">
                 {incident.history.map((entry, idx) => (
                   <div key={idx} className="py-2.5 flex items-start gap-3 text-xs">
-                    <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
                     <div className="flex-1 space-y-0.5">
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <span className="font-bold text-zinc-800 dark:text-zinc-200">

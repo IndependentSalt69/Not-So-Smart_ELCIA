@@ -158,7 +158,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <Menu className="w-5 h-5" />
               </button>
 
-              <div className="w-10 h-10 xl:w-11 xl:h-11 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-400 flex items-center justify-center text-white shadow-lg shadow-blue-500/25 ring-2 ring-blue-500/20 shrink-0 hover:scale-105 transition-transform duration-300">
+              <div className="w-10 h-10 xl:w-11 xl:h-11 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/25 ring-2 ring-emerald-500/20 shrink-0 hover:scale-105 transition-transform duration-300">
                 <Radio className="w-5 h-5 xl:w-5.5 xl:h-5.5 animate-pulse" />
               </div>
 
@@ -167,7 +167,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span className="font-black text-lg xl:text-xl tracking-tight text-zinc-900 dark:text-white">
                     CivicPulse
                   </span>
-                  <span className="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full bg-blue-100/90 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200 border border-blue-200/80 dark:border-blue-700/80 shadow-2xs">
+                  <span className="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full bg-emerald-50/90 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200 border border-emerald-200/80 dark:border-emerald-700/80 shadow-2xs">
                     ELCIA 2026
                   </span>
                 </div>
@@ -187,7 +187,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   opacity: indicatorStyle.opacity,
                   transition: 'transform 320ms cubic-bezier(0.34, 1.25, 0.64, 1), width 320ms cubic-bezier(0.34, 1.25, 0.64, 1), opacity 200ms ease',
                 }}
-                className="absolute top-1.5 bottom-1.5 left-0 rounded-xl bg-white dark:bg-zinc-800 shadow-md shadow-zinc-900/10 dark:shadow-blue-500/15 ring-1 ring-zinc-950/5 dark:ring-white/10 pointer-events-none z-0"
+                className="absolute top-1.5 bottom-1.5 left-0 rounded-xl bg-white dark:bg-zinc-800 shadow-md shadow-zinc-900/10 dark:shadow-emerald-500/15 ring-1 ring-zinc-950/5 dark:ring-white/10 pointer-events-none z-0"
               />
 
               {navItems.map((item) => {
@@ -212,8 +212,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                       className={cn(
                         'w-4 h-4 transition-all duration-300',
                         isActive
-                          ? 'text-blue-600 dark:text-blue-400 scale-110'
-                          : 'text-zinc-400 dark:text-zinc-500 group-hover:text-blue-500'
+                          ? 'text-emerald-600 dark:text-emerald-400 scale-110'
+                          : 'text-zinc-400 dark:text-zinc-500 group-hover:text-emerald-500'
                       )}
                     />
                     <span>{item.label}</span>
@@ -224,9 +224,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                           item.id === 'map'
                             ? 'bg-red-500 text-white shadow-sm shadow-red-500/40 animate-pulse'
                             : item.id === 'ingest'
-                            ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
+                            ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
                             : isActive
-                            ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
+                            ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
                             : 'bg-zinc-200/80 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
                         )}
                       >
@@ -247,7 +247,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
 
               <div className="hidden lg:flex items-center gap-2 text-xs font-mono font-bold text-zinc-700 dark:text-zinc-300 bg-zinc-100/90 dark:bg-zinc-900/90 px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs">
-                <Clock className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+                <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>{timeStr || '00:00:00 IST'}</span>
               </div>
             </div>
@@ -282,14 +282,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div>
             <div className="p-5 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-md shadow-blue-500/25">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white shadow-md shadow-emerald-500/25">
                   <Radio className="w-4 h-4 animate-pulse" />
                 </div>
                 <div>
                   <div className="font-black text-sm tracking-tight text-zinc-900 dark:text-white">
                     CivicPulse Command
                   </div>
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">
                     ELCIA City Grid
                   </span>
                 </div>
@@ -330,7 +330,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                           'w-9 h-9 rounded-xl flex items-center justify-center shrink-0',
                           isActive
                             ? 'bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900'
-                            : 'bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 group-hover:text-blue-500'
+                            : 'bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 group-hover:text-emerald-500'
                         )}
                       >
                         <Icon className="w-4 h-4" />
@@ -360,9 +360,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                             'text-[10px] px-2 py-0.5 rounded-full font-bold',
                             item.id === 'map'
                               ? 'bg-red-500 text-white'
+                              : item.id === 'ingest'
+                              ? 'bg-emerald-600 text-white'
                               : isActive
                               ? 'bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900'
-                              : 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
+                              : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
                           )}
                         >
                           {item.badge}

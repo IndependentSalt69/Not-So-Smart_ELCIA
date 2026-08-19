@@ -46,7 +46,7 @@
 
   /* Status Colors */
   --color-status-detected: #E11D48;
-  --color-status-verified: #2563EB;
+  --color-status-verified: #0D9488;
   --color-status-assigned: #D97706;
   --color-status-inprogress: #059669;
   --color-status-reinspection: #0891B2;
@@ -74,7 +74,7 @@
   --destructive-foreground: #FFFFFF;
   --border: #E2E8F0;
   --input: #E2E8F0;
-  --ring: #3B82F6;
+  --ring: #10B981;
 }
 
 .dark {
@@ -96,7 +96,7 @@
   --destructive-foreground: #FFFFFF;
   --border: #1F2937;
   --input: #1F2937;
-  --ring: #3B82F6;
+  --ring: #10B981;
 }
 
 @layer base {
@@ -105,7 +105,7 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased selection:bg-blue-500/20 selection:text-blue-700;
+    @apply bg-background text-foreground antialiased selection:bg-emerald-500/20 selection:text-emerald-900;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 

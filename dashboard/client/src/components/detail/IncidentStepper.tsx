@@ -86,7 +86,7 @@ export const IncidentStepper: React.FC<IncidentStepperProps> = ({
                 <div
                   className={cn(
                     'absolute top-4 left-1/2 right-0 w-full h-0.5 -z-0 transition-colors',
-                    isCompleted ? 'bg-blue-500' : 'bg-zinc-200 dark:bg-zinc-800'
+                    isCompleted ? 'bg-emerald-500' : 'bg-zinc-200 dark:bg-zinc-800'
                   )}
                 />
               )}
@@ -96,9 +96,9 @@ export const IncidentStepper: React.FC<IncidentStepperProps> = ({
                 className={cn(
                   'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all relative z-10',
                   isCompleted
-                    ? 'bg-blue-600 text-white shadow-xs'
+                    ? 'bg-emerald-600 text-white shadow-xs'
                     : isCurrent
-                    ? cn('bg-white dark:bg-zinc-900 border-2 shadow-md ring-4 ring-blue-500/20', meta.colorClass)
+                    ? cn('bg-white dark:bg-zinc-900 border-2 shadow-md ring-4 ring-emerald-500/20', meta.colorClass)
                     : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 border border-zinc-300 dark:border-zinc-700'
                 )}
               >
@@ -116,7 +116,7 @@ export const IncidentStepper: React.FC<IncidentStepperProps> = ({
                   isCurrent
                     ? 'text-zinc-900 dark:text-white font-bold'
                     : isCompleted
-                    ? 'text-blue-600 dark:text-blue-400'
+                    ? 'text-emerald-600 dark:text-emerald-400'
                     : 'text-zinc-400 dark:text-zinc-500'
                 )}
               >

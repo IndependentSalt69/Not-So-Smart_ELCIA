@@ -3,8 +3,8 @@ import { Incident } from '@/types/incident';
 // Realistic SVG inline frames for visual evidence and segmentation overlay
 const generateSvgFrame = (title: string, sub: string, isOverlay: boolean = false, isWater: boolean = true) => {
   const bgColor = isOverlay ? '#0f172a' : '#1e293b';
-  const overlayColor = isWater ? 'rgba(59, 130, 246, 0.45)' : 'rgba(239, 68, 68, 0.45)';
-  const strokeColor = isWater ? '#3b82f6' : '#ef4444';
+  const overlayColor = isWater ? 'rgba(13, 148, 136, 0.45)' : 'rgba(239, 68, 68, 0.45)';
+  const strokeColor = isWater ? '#0d9488' : '#ef4444';
   const label = isWater ? 'AI SEGMENTATION: WATERLOGGING (82% CONFIDENCE)' : 'AI BOUNDING BOX: POTHOLE (94% CONFIDENCE)';
 
   const rawSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">
