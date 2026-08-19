@@ -282,18 +282,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
             </p>
           </div>
 
-          {/* Donut Chart with Center Metric Counter */}
+          {/* Donut Chart with Exact Centered Metric Counter */}
           <div className="relative h-72 xl:h-80 2xl:h-96 w-full flex items-center justify-center">
-            {/* Center Summary Counter inside Donut Ring */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none pb-8">
-              <span className="text-3xl xl:text-4xl font-black font-mono text-zinc-900 dark:text-white tracking-tight">
-                {totalStatusCount}
-              </span>
-              <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
-                Total Events
-              </span>
-            </div>
-
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -315,6 +305,25 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
                   ))}
                 </Pie>
                 <Tooltip content={<CustomDonutTooltip />} />
+                {/* Geometrically centered SVG text locked to Pie center (50%, 45%) */}
+                <text
+                  x="50%"
+                  y="42%"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="fill-zinc-900 dark:fill-white font-black font-mono text-3xl xl:text-4xl select-none"
+                >
+                  {totalStatusCount}
+                </text>
+                <text
+                  x="50%"
+                  y="50%"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="fill-zinc-400 dark:fill-zinc-500 font-bold uppercase text-[10px] tracking-widest select-none"
+                >
+                  Total Events
+                </text>
                 <Legend
                   wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
                   iconType="circle"
