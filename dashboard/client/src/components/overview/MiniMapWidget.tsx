@@ -74,6 +74,14 @@ export const MiniMapWidget: React.FC<MiniMapWidgetProps> = ({
           </Map>
         </APIProvider>
 
+        {/* Top-Left: Clean Development Purpose Badge with ! Sign */}
+        <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 bg-slate-950/85 backdrop-blur-md border border-amber-500/40 px-2.5 py-1 rounded-xl text-[10px] text-amber-300 shadow-md pointer-events-none select-none">
+          <div className="w-3.5 h-3.5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center font-black text-[9px] shrink-0">
+            !
+          </div>
+          <span className="font-semibold tracking-tight">For development purposes only</span>
+        </div>
+
         {/* Overlay hover CTA to switch to full interactive view */}
         <div
           onClick={onOpenFullMap}

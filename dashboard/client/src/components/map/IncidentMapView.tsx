@@ -348,6 +348,14 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
           </Map>
         </APIProvider>
 
+        {/* Top-Left: Clean Development Purpose Badge with ! Sign */}
+        <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-slate-950/85 backdrop-blur-md border border-amber-500/40 px-3.5 py-1.5 rounded-2xl text-xs text-amber-300 shadow-xl pointer-events-none select-none">
+          <div className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center font-black text-[11px] shrink-0">
+            !
+          </div>
+          <span className="font-semibold tracking-tight">For development purposes only</span>
+        </div>
+
         {/* HUD Quick Summary in Corner */}
         <div className="absolute top-4 right-4 z-20 hidden md:flex items-center gap-3 bg-slate-950/85 backdrop-blur-md border border-slate-700/80 px-4 py-2 rounded-2xl text-xs text-white shadow-xl">
           <div className="flex items-center gap-2">

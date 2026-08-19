@@ -225,3 +225,23 @@
 .dark ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
+/* Suppress Google Maps intrusive center dev watermark & backdrop */
+.gm-style-pbc {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  display: none !important;
+}
+
+.gm-style div[style*="z-index: 1000001"],
+.gm-style div[style*="z-index: 1000000"],
+.gm-style div[style*="background-color: rgba(0, 0, 0, 0.5)"],
+.gm-err-container,
+.gm-err-autocomplete,
+.dismissButton {
+  display: none !important;
+}
+
+.gm-style-cc {
+  opacity: 0.7;
+}
