@@ -137,8 +137,8 @@ export const IncidentQueueView: React.FC<IncidentQueueViewProps> = ({
 
       {/* Grid or List Display */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5 xl:gap-6">
+          {Array.from({ length: 8 }).map((_, i) => (
             <IncidentCardSkeleton key={i} />
           ))}
         </div>
@@ -149,7 +149,7 @@ export const IncidentQueueView: React.FC<IncidentQueueViewProps> = ({
           onResetFilters={onResetFilters}
         />
       ) : layoutMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5 xl:gap-6">
           {sortedIncidents.map((incident) => (
             <IncidentCard
               key={incident.id}

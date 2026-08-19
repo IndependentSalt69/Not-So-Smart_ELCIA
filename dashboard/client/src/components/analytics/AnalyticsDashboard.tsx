@@ -66,64 +66,64 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       </div>
 
       {/* 4 Summary Highlight Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-            <Waves className="w-6 h-6" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5 2xl:gap-6">
+        <div className="p-4 xl:p-5 2xl:p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
+          <div className="w-12 h-12 xl:w-14 xl:h-14 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <Waves className="w-6 h-6 xl:w-7 xl:h-7" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Total Inundated Road Area</div>
-            <div className="text-2xl font-black text-zinc-900 dark:text-white">{kpis.waterloggedAreaSqm} m²</div>
-            <div className="text-[11px] text-blue-600 dark:text-blue-400 font-medium">Across Phase 1 & 2</div>
+            <div className="text-xs xl:text-sm font-semibold text-zinc-500 dark:text-zinc-400">Total Inundated Road Area</div>
+            <div className="text-2xl xl:text-3xl 2xl:text-4xl font-black text-zinc-900 dark:text-white">{kpis.waterloggedAreaSqm} m²</div>
+            <div className="text-[11px] xl:text-xs text-blue-600 dark:text-blue-400 font-medium">Across Phase 1 & 2</div>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-            <Clock className="w-6 h-6" />
+        <div className="p-4 xl:p-5 2xl:p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
+          <div className="w-12 h-12 xl:w-14 xl:h-14 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <Clock className="w-6 h-6 xl:w-7 xl:h-7" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Mean Time to Resolution</div>
-            <div className="text-2xl font-black text-zinc-900 dark:text-white">{kpis.meanTimeToResolutionHours} hrs</div>
-            <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">From Detection to Clear</div>
+            <div className="text-xs xl:text-sm font-semibold text-zinc-500 dark:text-zinc-400">Mean Time to Resolution</div>
+            <div className="text-2xl xl:text-3xl 2xl:text-4xl font-black text-zinc-900 dark:text-white">{kpis.meanTimeToResolutionHours} hrs</div>
+            <div className="text-[11px] xl:text-xs text-emerald-600 dark:text-emerald-400 font-medium">From Detection to Clear</div>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
-            <TrendingUp className="w-6 h-6" />
+        <div className="p-4 xl:p-5 2xl:p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
+          <div className="w-12 h-12 xl:w-14 xl:h-14 rounded-xl bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
+            <TrendingUp className="w-6 h-6 xl:w-7 xl:h-7" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">P1 Critical Hotspots</div>
-            <div className="text-2xl font-black text-zinc-900 dark:text-white">{kpis.criticalP1Count}</div>
-            <div className="text-[11px] text-red-600 dark:text-red-400 font-medium">High priority triage</div>
+            <div className="text-xs xl:text-sm font-semibold text-zinc-500 dark:text-zinc-400">P1 Critical Hotspots</div>
+            <div className="text-2xl xl:text-3xl 2xl:text-4xl font-black text-zinc-900 dark:text-white">{kpis.criticalP1Count}</div>
+            <div className="text-[11px] xl:text-xs text-red-600 dark:text-red-400 font-medium">High priority triage</div>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-6 h-6" />
+        <div className="p-4 xl:p-5 2xl:p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
+          <div className="w-12 h-12 xl:w-14 xl:h-14 rounded-xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-6 h-6 xl:w-7 xl:h-7" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">AI Detection Precision</div>
-            <div className="text-2xl font-black text-zinc-900 dark:text-white">94.2%</div>
-            <div className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium">Operator Verified Accuracy</div>
+            <div className="text-xs xl:text-sm font-semibold text-zinc-500 dark:text-zinc-400">AI Detection Precision</div>
+            <div className="text-2xl xl:text-3xl 2xl:text-4xl font-black text-zinc-900 dark:text-white">94.2%</div>
+            <div className="text-[11px] xl:text-xs text-indigo-600 dark:text-indigo-400 font-medium">Operator Verified Accuracy</div>
           </div>
         </div>
       </div>
 
       {/* Row 1: Monsoon Rainfall vs Detection Volume Trend */}
-      <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 shadow-xs space-y-4">
+      <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 xl:p-8 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h3 className="text-base font-bold text-zinc-900 dark:text-white tracking-tight">
+            <h3 className="text-base xl:text-lg font-bold text-zinc-900 dark:text-white tracking-tight">
               Precipitation vs. Incident Surge Trend (7-Day Rolling)
             </h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+            <p className="text-xs xl:text-sm text-zinc-500 dark:text-zinc-400 font-medium">
               Correlation between millimeter rainfall volume and autonomous waterlogging / pothole alerts.
             </p>
           </div>
-          <div className="flex items-center gap-3 text-xs font-semibold">
+          <div className="flex items-center gap-3 text-xs xl:text-sm font-semibold">
             <span className="flex items-center gap-1.5 text-blue-600">
               <span className="w-3 h-3 rounded-full bg-blue-500" /> Waterlogging
             </span>
@@ -136,7 +136,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           </div>
         </div>
 
-        <div className="h-72 w-full">
+        <div className="h-72 xl:h-96 2xl:h-[420px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={trend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
@@ -150,8 +150,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.6} />
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#94a3b8" />
-              <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#94a3b8" />
+              <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
               <Tooltip
                 contentStyle={{
                   backgroundColor: '#0f172a',
@@ -161,8 +161,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                   fontSize: '12px',
                 }}
               />
-              <Area type="monotone" dataKey="waterlogging" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#waterColor)" />
-              <Area type="monotone" dataKey="potholes" stroke="#f59e0b" strokeWidth={2} fillOpacity={1} fill="url(#potholeColor)" />
+              <Area type="monotone" dataKey="waterlogging" stroke="#3b82f6" strokeWidth={2.5} fillOpacity={1} fill="url(#waterColor)" />
+              <Area type="monotone" dataKey="potholes" stroke="#f59e0b" strokeWidth={2.5} fillOpacity={1} fill="url(#potholeColor)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -171,22 +171,22 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       {/* Row 2: Zone Breakdown & Status Funnel */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Zone Priority Distribution Bar Chart */}
-        <div className="lg:col-span-7 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 shadow-xs space-y-4">
+        <div className="lg:col-span-7 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 xl:p-8 shadow-xs space-y-4">
           <div>
-            <h3 className="text-base font-bold text-zinc-900 dark:text-white tracking-tight">
+            <h3 className="text-base xl:text-lg font-bold text-zinc-900 dark:text-white tracking-tight">
               Zone Vulnerability & Priority Breakdown
             </h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+            <p className="text-xs xl:text-sm text-zinc-500 dark:text-zinc-400 font-medium">
               Incident count categorized by P1, P2, P3 across Electronics City zones.
             </p>
           </div>
 
-          <div className="h-64 w-full">
+          <div className="h-64 xl:h-80 2xl:h-96 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={zoneMetrics} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.6} />
-                <XAxis dataKey="zoneId" tick={{ fontSize: 11 }} stroke="#94a3b8" />
-                <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                <XAxis dataKey="zoneId" tick={{ fontSize: 12 }} stroke="#94a3b8" />
+                <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#0f172a',
@@ -196,7 +196,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                     fontSize: '12px',
                   }}
                 />
-                <Legend wrapperStyle={{ fontSize: '11px' }} />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
                 <Bar dataKey="p1Count" name="P1 Critical" fill="#EF4444" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="p2Count" name="P2 High" fill="#F97316" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="p3Count" name="P3 Routine" fill="#F59E0B" radius={[4, 4, 0, 0]} />
@@ -206,25 +206,25 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         </div>
 
         {/* Lifecycle Status Distribution Donut Chart */}
-        <div className="lg:col-span-5 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 shadow-xs space-y-4">
+        <div className="lg:col-span-5 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 xl:p-8 shadow-xs space-y-4">
           <div>
-            <h3 className="text-base font-bold text-zinc-900 dark:text-white tracking-tight">
+            <h3 className="text-base xl:text-lg font-bold text-zinc-900 dark:text-white tracking-tight">
               Operational Status Distribution
             </h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+            <p className="text-xs xl:text-sm text-zinc-500 dark:text-zinc-400 font-medium">
               Current state machine breakdown of active incidents.
             </p>
           </div>
 
-          <div className="h-64 w-full flex items-center justify-center">
+          <div className="h-64 xl:h-80 2xl:h-96 w-full flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={statusDistribution}
                   cx="50%"
                   cy="50%"
-                  innerRadius={55}
-                  outerRadius={85}
+                  innerRadius={65}
+                  outerRadius={100}
                   paddingAngle={4}
                   dataKey="count"
                   nameKey="status"
@@ -242,7 +242,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                     fontSize: '12px',
                   }}
                 />
-                <Legend wrapperStyle={{ fontSize: '11px' }} />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>

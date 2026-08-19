@@ -41,7 +41,7 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto p-0 rounded-3xl bg-slate-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-2xl">
+      <DialogContent className="max-w-4xl xl:max-w-5xl 2xl:max-w-6xl max-h-[92vh] overflow-y-auto p-0 rounded-3xl bg-slate-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-2xl">
         {/* Header Bar */}
         <div className="sticky top-0 z-30 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-wrap">

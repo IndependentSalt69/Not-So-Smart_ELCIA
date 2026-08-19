@@ -16,7 +16,7 @@ export const RecentAlertsFeed: React.FC<RecentAlertsFeedProps> = ({
   onSelectIncident,
   onViewAllClick,
 }) => {
-  const recentList = incidents.slice(0, 5);
+  const recentList = incidents.slice(0, 8);
 
   const formatTimeAgo = (dateStr: string) => {
     try {

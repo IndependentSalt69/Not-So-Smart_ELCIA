@@ -107,7 +107,7 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
       </div>
 
       {/* Map Container Viewport */}
-      <div className="relative h-[620px] rounded-3xl overflow-hidden bg-slate-950 border border-slate-800 shadow-xl flex items-center justify-center select-none">
+      <div className="relative h-[calc(100vh-220px)] min-h-[600px] 2xl:min-h-[780px] rounded-3xl overflow-hidden bg-slate-950 border border-slate-800 shadow-xl flex items-center justify-center select-none">
         {/* Background Grid Pattern */}
         <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#38bdf8_1.5px,transparent_1.5px)] [background-size:24px_24px]" />
 

@@ -112,7 +112,7 @@ export default function CivicPulseDashboard() {
       />
 
       {/* Main Content View Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-16 py-6 sm:py-8 xl:py-10">
         {activeView === 'overview' && (
           <OverviewTab
             incidents={incidents}

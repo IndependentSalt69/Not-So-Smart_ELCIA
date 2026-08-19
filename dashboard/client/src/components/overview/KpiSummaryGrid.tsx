@@ -88,34 +88,34 @@ export const KpiSummaryGrid: React.FC<KpiSummaryGridProps> = ({ kpis, onFilterCl
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 xl:gap-5 2xl:gap-6">
       {cards.map((card) => {
         const Icon = card.icon;
         return (
           <div
             key={card.id}
             onClick={() => onFilterClick && onFilterClick(card.filterType, card.filterValue)}
-            className={`relative p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group flex flex-col justify-between ${card.borderColor}`}
+            className={`relative p-4 xl:p-5 2xl:p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group flex flex-col justify-between ${card.borderColor}`}
           >
             <div>
               <div className="flex items-center justify-between mb-3">
-                <div className={`w-9 h-9 rounded-xl ${card.iconBg} flex items-center justify-center ${card.iconColor} transition-transform group-hover:scale-110`}>
-                  <Icon className="w-5 h-5" />
+                <div className={`w-10 h-10 xl:w-12 xl:h-12 rounded-xl ${card.iconBg} flex items-center justify-center ${card.iconColor} transition-transform group-hover:scale-110`}>
+                  <Icon className="w-5 h-5 xl:w-6 xl:h-6" />
                 </div>
                 {card.badge && (
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${card.badgeClass}`}>
+                  <span className={`text-[10px] xl:text-xs font-bold px-2.5 py-0.5 rounded-full ${card.badgeClass}`}>
                     {card.badge}
                   </span>
                 )}
               </div>
-              <div className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white mb-1">
+              <div className="text-2xl xl:text-3xl 2xl:text-4xl font-black tracking-tight text-zinc-900 dark:text-white mb-1">
                 {card.value}
               </div>
-              <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 line-clamp-1">
+              <div className="text-xs xl:text-sm font-semibold text-zinc-700 dark:text-zinc-300 line-clamp-1">
                 {card.title}
               </div>
             </div>
-            <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-2 font-medium line-clamp-1">
+            <div className="text-[11px] xl:text-xs text-zinc-500 dark:text-zinc-400 mt-2 font-medium line-clamp-1">
               {card.subtext}
             </div>
           </div>
