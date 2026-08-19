@@ -7,7 +7,7 @@ const generateSvgFrame = (title: string, sub: string, isOverlay: boolean = false
   const strokeColor = isWater ? '#3b82f6' : '#ef4444';
   const label = isWater ? 'AI SEGMENTATION: WATERLOGGING (82% CONFIDENCE)' : 'AI BOUNDING BOX: POTHOLE (94% CONFIDENCE)';
 
-  return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">
+  const rawSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">
     <rect width="800" height="450" fill="${bgColor}"/>
     <!-- Road Perspective -->
     <polygon points="100,450 700,450 450,150 350,150" fill="#334155"/>
@@ -38,6 +38,8 @@ const generateSvgFrame = (title: string, sub: string, isOverlay: boolean = false
     <text x="35" y="415" fill="#94a3b8" font-family="monospace" font-size="13">CAM-04 | ALT: 45m | SPEED: 12m/s | GPS: ${title}</text>
     <text x="680" y="415" fill="#38bdf8" font-family="monospace" font-size="13">1080p 60FPS</text>
   </svg>`;
+
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(rawSvg)}`;
 };
 
 export const INITIAL_MOCK_INCIDENTS: Incident[] = [

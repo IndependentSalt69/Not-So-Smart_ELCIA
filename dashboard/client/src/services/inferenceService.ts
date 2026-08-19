@@ -18,7 +18,7 @@ const generateInferenceOverlaySvg = (
     ? `YOLOv8: DEEP CRATER POTHOLE (${Math.round(confidence * 100)}% CONFIDENCE)`
     : `YOLOv8: ROAD SURFACE CLEAR (0 HAZARDS DETECTED)`;
 
-  return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">
+  const rawSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">
     <rect width="800" height="450" fill="#0f172a"/>
     <!-- Road Surface Geometry -->
     <polygon points="80,450 720,450 460,140 340,140" fill="#1e293b"/>
@@ -47,6 +47,8 @@ const generateInferenceOverlaySvg = (
     <text x="40" y="419" fill="#94a3b8" font-family="monospace" font-size="12">DRONE: ${telemetry.droneId} | ALT: ${telemetry.altitudeMeters}m | ZONE: ${telemetry.zoneId} | GPS: ${telemetry.coordinates.lat.toFixed(4)}N, ${telemetry.coordinates.lng.toFixed(4)}E</text>
     <text x="690" y="419" fill="#38bdf8" font-family="monospace" font-size="12">AI v8.4.1</text>
   </svg>`;
+
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(rawSvg)}`;
 };
 
 export const SAMPLE_PRESETS: SampleFootagePreset[] = [

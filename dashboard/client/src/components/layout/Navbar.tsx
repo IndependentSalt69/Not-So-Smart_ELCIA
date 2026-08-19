@@ -78,8 +78,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Navigation View Switcher Tabs */}
-          <nav className="flex items-center p-1 bg-zinc-100 dark:bg-zinc-900/80 rounded-xl border border-zinc-200/80 dark:border-zinc-800">
+          {/* Desktop Navigation Switcher Tabs */}
+          <nav className="hidden md:flex items-center p-1 bg-zinc-100 dark:bg-zinc-900/80 rounded-xl border border-zinc-200/80 dark:border-zinc-800">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeView === item.id;
@@ -88,7 +88,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   key={item.id}
                   onClick={() => onViewChange(item.id as DashboardView)}
                   className={cn(
-                    'relative flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 select-none',
+                    'relative flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 select-none cursor-pointer',
                     isActive
                       ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-xs'
                       : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-zinc-800/40'
@@ -113,18 +113,56 @@ export const Navbar: React.FC<NavbarProps> = ({
             })}
           </nav>
 
-          {/* Telemetry & Live Clock */}
-          <div className="hidden lg:flex items-center gap-4">
-            <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300 text-xs font-medium">
+          {/* Telemetry & Live Clock (Desktop & Mobile Status) */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300 text-[11px] sm:text-xs font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-              <span>Drone Swarm Active (4/4)</span>
+              <span className="hidden sm:inline">Drone Swarm Active (4/4)</span>
+              <span className="sm:hidden font-mono font-bold">4/4 Swarm</span>
             </div>
 
-            <div className="flex items-center gap-1.5 text-xs font-mono font-medium text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-zinc-800">
+            <div className="hidden lg:flex items-center gap-1.5 text-xs font-mono font-medium text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-zinc-800">
               <Clock className="w-3.5 h-3.5 text-zinc-400" />
               <span>{timeStr || '00:00:00 IST'}</span>
             </div>
           </div>
+        </div>
+
+        {/* Mobile Horizontal Scrollable Tab Bar */}
+        <div className="md:hidden flex items-center gap-1.5 overflow-x-auto no-scrollbar py-2 border-t border-zinc-100 dark:border-zinc-800/60 -mx-4 px-4 bg-white/95 dark:bg-zinc-950/95">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeView === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onViewChange(item.id as DashboardView)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-150 shrink-0 border select-none cursor-pointer',
+                  isActive
+                    ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-xs'
+                    : 'bg-zinc-100/80 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800'
+                )}
+              >
+                <Icon className={cn('w-3.5 h-3.5', isActive ? 'text-blue-400 dark:text-blue-600' : '')} />
+                <span>{item.label}</span>
+                {item.badge && (
+                  <span
+                    className={cn(
+                      'text-[9px] px-1.5 py-0.2 rounded-full font-bold',
+                      item.id === 'map'
+                        ? 'bg-red-500 text-white'
+                        : isActive
+                        ? 'bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900'
+                        : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+                    )}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
     </header>

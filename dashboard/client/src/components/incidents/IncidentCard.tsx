@@ -46,6 +46,9 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
             <img
               src={incident.evidenceFrame}
               alt={incident.id}
+              onError={(e) => {
+                e.currentTarget.style.opacity = '0';
+              }}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
             <div className="absolute top-1 left-1 px-1 py-0.2 rounded text-[9px] font-bold bg-black/70 text-white backdrop-blur-xs">
@@ -125,6 +128,10 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
         <img
           src={incident.evidenceFrame}
           alt={incident.id}
+          onError={(e) => {
+            // Fallback to dark canvas if image load fails
+            e.currentTarget.style.opacity = '0';
+          }}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
 
