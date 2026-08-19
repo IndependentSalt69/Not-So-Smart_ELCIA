@@ -1,7 +1,6 @@
 import { PriorityBadge } from '@/components/common/PriorityBadge';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Incident, PriorityLevel, ZoneId } from '@/types/incident';
 import {
@@ -17,14 +16,7 @@ import {
   Eye,
   Layers,
   MapPin,
-  Maximize2,
-  Navigation,
   Radio,
-  RotateCcw,
-  Search,
-  Send,
-  Sparkles,
-  Zap,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
@@ -68,9 +60,8 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
   onSelectIncident,
 }) => {
   const [selectedZone, setSelectedZone] = useState<ZoneId | 'all'>('all');
-  const [hoveredIncident, setHoveredIncident] = useState<Incident | null>(null);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
-  const [mapType, setMapType] = useState<'hybrid' | 'roadmap' | 'satellite'>('hybrid');
+  const [mapType, setMapType] = useState<'hybrid' | 'roadmap'>('hybrid');
   const [targetCoords, setTargetCoords] = useState<{ lat: number; lng: number } | null>(ELCIA_CENTER);
   const [targetZoom, setTargetZoom] = useState<number>(14);
 
@@ -79,13 +70,11 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
   const [customLng, setCustomLng] = useState<string>('77.6638');
   const [customPin, setCustomPin] = useState<{ lat: number; lng: number; label: string } | null>(null);
 
-  // API Key management (from .env or localStorage with demo fallback)
+  // API Key management (from .env or localStorage)
   const envKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
-  const [apiKey, setApiKey] = useState<string>(() => {
+  const [apiKey] = useState<string>(() => {
     return localStorage.getItem('civicpulse_gmaps_key') || envKey;
   });
-  const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
-  const [tempKey, setTempKey] = useState<string>(apiKey);
 
   const zones = [
     { id: 'all', name: 'All Electronics City Zones', count: incidents.length },
@@ -124,12 +113,6 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
     setSelectedIncident(incident);
     setTargetCoords({ lat: incident.coordinates.lat, lng: incident.coordinates.lng });
     setTargetZoom(17);
-  };
-
-  const handleSaveApiKey = () => {
-    setApiKey(tempKey.trim());
-    localStorage.setItem('civicpulse_gmaps_key', tempKey.trim());
-    setShowKeyInput(false);
   };
 
   return (

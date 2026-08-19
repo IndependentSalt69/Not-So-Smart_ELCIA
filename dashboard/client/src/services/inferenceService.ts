@@ -10,13 +10,13 @@ const generateInferenceOverlaySvg = (
 ) => {
   const isWater = type === 'waterlogging';
   const isPothole = type === 'pothole';
-  const strokeColor = isWater ? '#0d9488' : isPothole ? '#ef4444' : '#10b981';
-  const fillColor = isWater ? 'rgba(13, 148, 136, 0.45)' : isPothole ? 'rgba(239, 68, 68, 0.45)' : 'none';
+  const strokeColor = isWater ? '#3b82f6' : isPothole ? '#ef4444' : '#10b981';
+  const fillColor = isWater ? 'rgba(59, 130, 246, 0.45)' : isPothole ? 'rgba(239, 68, 68, 0.45)' : 'none';
   const label = isWater
     ? `YOLOv8 + SAM: WATERLOGGING (${Math.round(confidence * 100)}% CONFIDENCE)`
     : isPothole
-    ? `YOLOv8: DEEP CRATER POTHOLE (${Math.round(confidence * 100)}% CONFIDENCE)`
-    : `YOLOv8: ROAD SURFACE CLEAR (0 HAZARDS DETECTED)`;
+      ? `YOLOv8: DEEP CRATER POTHOLE (${Math.round(confidence * 100)}% CONFIDENCE)`
+      : `YOLOv8: ROAD SURFACE CLEAR (0 HAZARDS DETECTED)`;
 
   const rawSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">
     <rect width="800" height="450" fill="#0f172a"/>
@@ -24,12 +24,11 @@ const generateInferenceOverlaySvg = (
     <polygon points="80,450 720,450 460,140 340,140" fill="#1e293b"/>
     <line x1="400" y1="140" x2="400" y2="450" stroke="#f8fafc" stroke-width="4" stroke-dasharray="20,15"/>
     
-    ${
-      isWater
-        ? `<!-- Segmented Water Surface -->
+    ${isWater
+      ? `<!-- Segmented Water Surface -->
            <path d="M 200 310 Q 400 280 600 330 Q 540 430 240 420 Z" fill="${fillColor}" stroke="${strokeColor}" stroke-width="3.5"/>
            <rect x="180" y="270" width="440" height="170" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-dasharray="6,4"/>`
-        : isPothole
+      : isPothole
         ? `<!-- Pothole Bounding Box & Crater -->
            <ellipse cx="430" cy="340" rx="95" ry="48" fill="${fillColor}" stroke="${strokeColor}" stroke-width="3.5"/>
            <rect x="310" y="280" width="240" height="120" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-dasharray="6,4"/>`
@@ -247,23 +246,23 @@ export const inferenceService = {
         roadCriticalityLabel: `${telemetry.zoneId} — ${telemetry.locationDescription}`,
         explanation: isWater
           ? [
-              'AI segmentation confirmed standing water depth exceeding 15cm across 380m².',
-              'High traffic arterial junction connecting Phase 1 & Hosur Highway.',
-              'Immediate sump pump de-watering deployment recommended.',
-            ]
+            'AI segmentation confirmed standing water depth exceeding 15cm across 380m².',
+            'High traffic arterial junction connecting Phase 1 & Hosur Highway.',
+            'Immediate sump pump de-watering deployment recommended.',
+          ]
           : isPothole
-          ? [
+            ? [
               'Deep asphalt structural collapse with sharp edge failure.',
               'Immediate hazard for high-speed two-wheelers and shuttle buses.',
               'Cold-mix bitumen patch dispatch required.',
             ]
-          : ['No structural or flooding hazards detected across scanned frame.'],
+            : ['No structural or flooding hazards detected across scanned frame.'],
       },
       recommendedAction: isWater
         ? 'Deploy high-capacity mobile de-watering sump pumps & unblock storm drain grates'
         : isPothole
-        ? 'Deploy Cold-Mix Bitumen Patching & Place High-Visibility Hazard Barricades'
-        : 'No mitigation required — Baseline verified clear',
+          ? 'Deploy Cold-Mix Bitumen Patching & Place High-Visibility Hazard Barricades'
+          : 'No mitigation required — Baseline verified clear',
       analysisDurationMs: Date.now() - startTime,
     };
 

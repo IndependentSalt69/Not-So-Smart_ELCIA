@@ -63,11 +63,10 @@ export const RecentAlertsFeed: React.FC<RecentAlertsFeedProps> = ({
             >
               <div className="flex items-start gap-3 min-w-0">
                 <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0 shadow-xs mt-0.5 ${
-                    isWater
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0 shadow-xs mt-0.5 ${isWater
                       ? 'bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 border border-teal-100 dark:border-teal-900/50'
                       : 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50'
-                  }`}
+                    }`}
                 >
                   {isWater ? '🌊' : '⚠️'}
                 </div>
