@@ -210,6 +210,17 @@ export const incidentService = {
   },
 
   /**
+   * Add a newly detected/inferred incident to the active list
+   */
+  async createIncident(incident: Incident): Promise<Incident> {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    // Prepend to top of incidents list
+    incidentsState = [incident, ...incidentsState.filter((i) => i.id !== incident.id)];
+    persist();
+    return incident;
+  },
+
+  /**
    * Reset mock data to original default fixtures
    */
   resetToMockData(): void {

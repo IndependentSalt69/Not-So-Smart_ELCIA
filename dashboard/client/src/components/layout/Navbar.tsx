@@ -1,10 +1,10 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Activity, BarChart3, Clock, Layers, MapPin, Radio, ShieldAlert } from 'lucide-react';
+import { Activity, BarChart3, Clock, Layers, MapPin, Radio, ShieldAlert, Sparkles } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
-export type DashboardView = 'overview' | 'queue' | 'map' | 'analytics';
+export type DashboardView = 'overview' | 'queue' | 'map' | 'analytics' | 'ingest';
 
 interface NavbarProps {
   activeView: DashboardView;
@@ -50,6 +50,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'overview', label: 'Overview', icon: Activity },
     { id: 'queue', label: 'Incidents Queue', icon: Layers, badge: pendingCount > 0 ? pendingCount : undefined },
     { id: 'map', label: 'Incident Map', icon: MapPin, badge: criticalCount > 0 ? `${criticalCount} P1` : undefined },
+    { id: 'ingest', label: 'AI Ingest Studio', icon: Sparkles },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   ];
 

@@ -1,5 +1,6 @@
 import { AnalyticsDashboard } from '@/components/analytics/AnalyticsDashboard';
 import { IncidentDetailDrawer } from '@/components/detail/IncidentDetailDrawer';
+import { DroneIngestionStudio } from '@/components/ingestion/DroneIngestionStudio';
 import { IncidentQueueView } from '@/components/incidents/IncidentQueueView';
 import { DashboardView, Navbar } from '@/components/layout/Navbar';
 import { IncidentMapView } from '@/components/map/IncidentMapView';
@@ -50,6 +51,14 @@ export default function CivicPulseDashboard() {
   const handleResetFilters = () => {
     setFilters({});
     toast.info('All filters have been reset.');
+  };
+
+  const handleIncidentPublished = (incidentId: string) => {
+    const published = incidents.find((i) => i.id === incidentId);
+    if (published) {
+      setSelectedIncident(published);
+      setIsDrawerOpen(true);
+    }
   };
 
   // Operations Lifecycle Handlers
@@ -139,6 +148,12 @@ export default function CivicPulseDashboard() {
           <IncidentMapView
             incidents={incidents}
             onSelectIncident={handleSelectIncident}
+          />
+        )}
+
+        {activeView === 'ingest' && (
+          <DroneIngestionStudio
+            onIncidentPublished={handleIncidentPublished}
           />
         )}
 
