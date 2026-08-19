@@ -115,41 +115,41 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md shadow-xs">
+      <header className="sticky top-0 z-40 w-full border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-xl shadow-xs transition-colors duration-300">
         <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-16">
-          <div className="flex items-center justify-between h-16 xl:h-18">
+          <div className="flex items-center justify-between h-16 xl:h-20">
             {/* Brand and ELCIA Badge */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3.5">
               {/* Mobile Hamburger Trigger Button */}
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="md:hidden p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="md:hidden p-2.5 rounded-2xl bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 border border-zinc-200/80 dark:border-zinc-800 hover:bg-zinc-200/80 dark:hover:bg-zinc-800 transition-all active:scale-95 cursor-pointer shadow-xs"
                 aria-label="Open Navigation Menu"
               >
                 <Menu className="w-5 h-5" />
               </button>
 
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-900 flex items-center justify-center text-white shadow-md shadow-blue-500/20 ring-1 ring-white/20 shrink-0">
-                <Radio className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
+              <div className="w-10 h-10 xl:w-11 xl:h-11 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-400 flex items-center justify-center text-white shadow-lg shadow-blue-500/25 ring-2 ring-blue-500/20 shrink-0 hover:scale-105 transition-transform duration-300">
+                <Radio className="w-5 h-5 xl:w-5.5 xl:h-5.5 animate-pulse" />
               </div>
 
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-base sm:text-lg tracking-tight text-zinc-900 dark:text-white">
+                <div className="flex items-center gap-2.5">
+                  <span className="font-black text-lg xl:text-xl tracking-tight text-zinc-900 dark:text-white">
                     CivicPulse
                   </span>
-                  <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200 border border-blue-200 dark:border-blue-700">
+                  <span className="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full bg-blue-100/90 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200 border border-blue-200/80 dark:border-blue-700/80 shadow-2xs">
                     ELCIA 2026
                   </span>
                 </div>
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium hidden sm:block">
-                  Monsoon & Road Intelligence • Electronics City
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 font-semibold hidden sm:block tracking-tight">
+                  Autonomous Aerial Monsoon & Road Intelligence
                 </p>
               </div>
             </div>
 
             {/* Desktop Navigation Switcher Tabs */}
-            <nav className="hidden md:flex items-center p-1 bg-zinc-100 dark:bg-zinc-900/80 rounded-xl border border-zinc-200/80 dark:border-zinc-800">
+            <nav className="hidden md:flex items-center p-1.5 bg-zinc-100/90 dark:bg-zinc-900/90 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-inner backdrop-blur-md gap-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeView === item.id;
@@ -158,21 +158,32 @@ export const Navbar: React.FC<NavbarProps> = ({
                     key={item.id}
                     onClick={() => handleNavClick(item.id)}
                     className={cn(
-                      'relative flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 select-none cursor-pointer',
+                      'relative flex items-center gap-2 px-4 py-2 rounded-xl text-xs xl:text-sm font-bold transition-all duration-200 select-none cursor-pointer group',
                       isActive
-                        ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-xs'
-                        : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-zinc-800/40'
+                        ? 'bg-white dark:bg-zinc-800 text-zinc-950 dark:text-white shadow-md shadow-zinc-900/5 dark:shadow-blue-500/10 scale-[1.02] ring-1 ring-zinc-950/5 dark:ring-white/10'
+                        : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:bg-white/60 dark:hover:bg-zinc-800/50 hover:-translate-y-0.5'
                     )}
                   >
-                    <Icon className={cn('w-3.5 h-3.5', isActive ? 'text-blue-600 dark:text-blue-400' : '')} />
+                    <Icon
+                      className={cn(
+                        'w-4 h-4 transition-all duration-200',
+                        isActive
+                          ? 'text-blue-600 dark:text-blue-400 scale-110'
+                          : 'text-zinc-400 dark:text-zinc-500 group-hover:text-blue-500'
+                      )}
+                    />
                     <span>{item.label}</span>
                     {item.badge && (
                       <span
                         className={cn(
-                          'text-[10px] px-1.5 py-0.2 rounded-full font-bold',
+                          'text-[10px] px-2 py-0.5 rounded-full font-black tracking-tight transition-transform duration-200 group-hover:scale-105',
                           item.id === 'map'
-                            ? 'bg-red-500 text-white animate-pulse'
-                            : 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
+                            ? 'bg-red-500 text-white shadow-sm shadow-red-500/40 animate-pulse'
+                            : item.id === 'ingest'
+                            ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
+                            : isActive
+                            ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
+                            : 'bg-zinc-200/80 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
                         )}
                       >
                         {item.badge}
@@ -184,15 +195,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             </nav>
 
             {/* Telemetry & Live Clock */}
-            <div className="flex items-center gap-2 sm:gap-4">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300 text-xs font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                <span className="hidden sm:inline">Drone Swarm Active (4/4)</span>
-                <span className="sm:hidden font-mono font-bold">4/4</span>
+            <div className="flex items-center gap-2 sm:gap-3.5">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/50 border border-emerald-200/90 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold shadow-2xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                <span className="hidden sm:inline tracking-tight">Drone Swarm Active (4/4)</span>
+                <span className="sm:hidden font-mono font-bold">4/4 Swarm</span>
               </div>
 
-              <div className="hidden lg:flex items-center gap-1.5 text-xs font-mono font-medium text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                <Clock className="w-3.5 h-3.5 text-zinc-400" />
+              <div className="hidden lg:flex items-center gap-2 text-xs font-mono font-bold text-zinc-700 dark:text-zinc-300 bg-zinc-100/90 dark:bg-zinc-900/90 px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs">
+                <Clock className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                 <span>{timeStr || '00:00:00 IST'}</span>
               </div>
             </div>
