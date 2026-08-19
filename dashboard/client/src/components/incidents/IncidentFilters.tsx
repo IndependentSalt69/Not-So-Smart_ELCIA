@@ -81,7 +81,7 @@ function SlidingSegmentedControl<T extends string>({
             }}
             onClick={() => onChange(item.id)}
             className={cn(
-              'relative z-10 px-3 py-1.5 text-xs font-bold rounded-xl transition-colors duration-200 whitespace-nowrap cursor-pointer select-none flex items-center gap-1.5',
+              'relative z-10 px-3.5 py-2 text-xs xl:text-sm font-bold rounded-xl transition-colors duration-200 whitespace-nowrap cursor-pointer select-none flex items-center gap-1.5',
               isActive
                 ? 'text-zinc-950 dark:text-white'
                 : item.color || 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white'
@@ -92,7 +92,7 @@ function SlidingSegmentedControl<T extends string>({
             {item.badge !== undefined && (
               <span
                 className={cn(
-                  'text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold',
+                  'text-xs px-2 py-0.5 rounded-full font-mono font-bold',
                   isActive
                     ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200'
                     : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400'
@@ -158,7 +158,7 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
   ];
 
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-4 xl:p-5 shadow-xs space-y-3">
+    <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-4 xl:p-5 shadow-xs space-y-3.5">
       {/* Top row: Search and sliding filter switchers */}
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
         {/* Search Bar */}
@@ -168,14 +168,14 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
             placeholder="Search by ID (e.g. EC-0142), road name, or description..."
             value={filters.searchQuery || ''}
             onChange={handleSearchChange}
-            className="pl-10 pr-9 h-10 rounded-2xl text-xs bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 w-full font-medium"
+            className="pl-10 pr-9 h-11 rounded-2xl text-sm bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 w-full font-medium"
           />
           {filters.searchQuery && (
             <button
               onClick={clearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer p-1"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -199,39 +199,39 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
       </div>
 
       {/* Bottom row: Zone and Status Dropdowns + Reset */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-zinc-100 dark:border-zinc-800/60">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
           {/* Zone Selector */}
-          <div className="w-full sm:w-56">
+          <div className="w-full sm:w-60">
             <Select value={filters.zoneId || 'all'} onValueChange={handleZoneChange}>
-              <SelectTrigger className="h-9 rounded-xl text-xs font-semibold border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 w-full">
+              <SelectTrigger className="h-10 rounded-xl text-sm font-semibold border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 w-full">
                 <SelectValue placeholder="All Zones" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Zones</SelectItem>
-                <SelectItem value="EC-01">EC-01: Phase 1 West / Arterial</SelectItem>
-                <SelectItem value="EC-02">EC-02: Phase 1 East Commercial</SelectItem>
-                <SelectItem value="EC-03">EC-03: Phase 2 Tech Park</SelectItem>
-                <SelectItem value="EC-04">EC-04: Main Junction Corridor</SelectItem>
+                <SelectItem value="all" className="text-sm">All Zones</SelectItem>
+                <SelectItem value="EC-01" className="text-sm">EC-01: Phase 1 West / Arterial</SelectItem>
+                <SelectItem value="EC-02" className="text-sm">EC-02: Phase 1 East Commercial</SelectItem>
+                <SelectItem value="EC-03" className="text-sm">EC-03: Phase 2 Tech Park</SelectItem>
+                <SelectItem value="EC-04" className="text-sm">EC-04: Main Junction Corridor</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Status Selector */}
-          <div className="w-full sm:w-56">
+          <div className="w-full sm:w-60">
             <Select value={filters.status || 'all'} onValueChange={handleStatusChange}>
-              <SelectTrigger className="h-9 rounded-xl text-xs font-semibold border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 w-full">
+              <SelectTrigger className="h-10 rounded-xl text-sm font-semibold border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 w-full">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="DETECTED">🚨 Detected (Unverified)</SelectItem>
-                <SelectItem value="VERIFIED">✓ Verified</SelectItem>
-                <SelectItem value="ASSIGNED">📋 Assigned</SelectItem>
-                <SelectItem value="IN_PROGRESS">⚡ In Progress</SelectItem>
-                <SelectItem value="RE_INSPECTION">🔍 Re-inspection</SelectItem>
-                <SelectItem value="CLOSED">✅ Closed</SelectItem>
-                <SelectItem value="REJECTED">✕ Rejected (False Pos)</SelectItem>
+                <SelectItem value="all" className="text-sm">All Statuses</SelectItem>
+                <SelectItem value="DETECTED" className="text-sm">🚨 Detected (Unverified)</SelectItem>
+                <SelectItem value="VERIFIED" className="text-sm">✓ Verified</SelectItem>
+                <SelectItem value="ASSIGNED" className="text-sm">📋 Assigned</SelectItem>
+                <SelectItem value="IN_PROGRESS" className="text-sm">⚡ In Progress</SelectItem>
+                <SelectItem value="RE_INSPECTION" className="text-sm">🔍 Re-inspection</SelectItem>
+                <SelectItem value="CLOSED" className="text-sm">✅ Closed</SelectItem>
+                <SelectItem value="REJECTED" className="text-sm">✕ Rejected (False Pos)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -243,9 +243,9 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
             variant="ghost"
             size="sm"
             onClick={onReset}
-            className="h-9 px-3 text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl cursor-pointer"
+            className="h-10 px-3.5 text-sm font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl cursor-pointer"
           >
-            <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+            <RotateCcw className="w-4 h-4 mr-1.5" />
             Reset Filters
           </Button>
         )}

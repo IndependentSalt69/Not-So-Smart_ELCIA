@@ -148,18 +148,18 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
         )}
 
         {/* HUD Stamp Over Canvas */}
-        <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between text-[10px] font-mono text-zinc-400 bg-black/70 px-3 py-1.5 rounded-lg backdrop-blur-xs border border-zinc-800">
-          <div className="flex items-center gap-3">
+        <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between text-xs font-mono text-zinc-300 bg-black/80 px-3.5 py-2 rounded-xl backdrop-blur-md border border-zinc-800">
+          <div className="flex items-center gap-3 font-semibold">
             <span>SENSOR: DRONE-ALPHA-CAM4</span>
-            <span>•</span>
-            <span>
+            <span className="text-zinc-600">•</span>
+            <span className="text-emerald-400">
               GPS: {incident.coordinates.lat.toFixed(4)}°N, {incident.coordinates.lng.toFixed(4)}°E
             </span>
           </div>
-          <div className="flex items-center gap-2 text-zinc-300">
+          <div className="flex items-center gap-2.5 text-zinc-300 font-semibold">
             <span>FRAME: #{currentFrame} / {totalFrames}</span>
-            <span>•</span>
-            <span className="text-emerald-400">1080p 60FPS</span>
+            <span className="text-zinc-600">•</span>
+            <span className="text-emerald-400 font-bold">1080p 60FPS</span>
           </div>
         </div>
       </div>

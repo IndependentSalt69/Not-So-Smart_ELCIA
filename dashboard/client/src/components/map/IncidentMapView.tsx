@@ -94,7 +94,7 @@ function SlidingSegmentedControl<T extends string>({
             }}
             onClick={() => onChange(item.id)}
             className={cn(
-              'relative z-10 px-3 py-1.5 text-xs font-bold rounded-xl transition-colors duration-200 whitespace-nowrap cursor-pointer select-none flex items-center gap-1.5',
+              'relative z-10 px-3.5 py-2 text-xs xl:text-sm font-bold rounded-xl transition-colors duration-200 whitespace-nowrap cursor-pointer select-none flex items-center gap-1.5',
               isActive
                 ? 'text-zinc-950 dark:text-white'
                 : item.color || 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white'
@@ -105,7 +105,7 @@ function SlidingSegmentedControl<T extends string>({
             {item.badge !== undefined && (
               <span
                 className={cn(
-                  'text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold',
+                  'text-xs px-2 py-0.5 rounded-full font-mono font-bold',
                   isActive
                     ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200'
                     : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400'
@@ -219,49 +219,49 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
   return (
     <div className="space-y-4">
       {/* Map Control Header & Coordinate Input Feed */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white dark:bg-zinc-900 p-4 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white dark:bg-zinc-900 p-4 xl:p-5 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Compass className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          <div className="flex items-center gap-2.5">
+            <Compass className="w-5 h-5 xl:w-6 xl:h-6 text-emerald-600 dark:text-emerald-400" />
             <h2 className="text-lg xl:text-xl font-black text-zinc-900 dark:text-white tracking-tight">
               Google Maps Spatial Operations Center
             </h2>
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+            <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
               Live Satellite Aerial
             </span>
           </div>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">
             Real GPS coordinate surveillance across Electronics City Phase 1 & 2 corridors.
           </p>
         </div>
 
         {/* GPS Coordinate Feed & Sliding Layer Switcher */}
-        <form onSubmit={handleFlyToCustomCoordinates} className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1 bg-zinc-50 dark:bg-zinc-800/60 p-1 rounded-2xl border border-zinc-200 dark:border-zinc-700 text-xs">
-            <span className="text-[11px] font-bold text-zinc-400 pl-2">LAT:</span>
+        <form onSubmit={handleFlyToCustomCoordinates} className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-800/60 px-2 py-1.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 text-xs xl:text-sm">
+            <span className="text-xs font-bold text-zinc-400 pl-1">LAT:</span>
             <input
               type="number"
               step="0.0001"
               value={customLat}
               onChange={(e) => setCustomLat(e.target.value)}
-              className="w-20 px-1.5 py-1 text-xs font-mono font-bold bg-transparent text-zinc-900 dark:text-white border-0 outline-none"
+              className="w-24 px-1.5 py-0.5 text-xs xl:text-sm font-mono font-bold bg-transparent text-zinc-900 dark:text-white border-0 outline-none"
               placeholder="12.8450"
             />
-            <span className="text-[11px] font-bold text-zinc-400 pl-1">LNG:</span>
+            <span className="text-xs font-bold text-zinc-400 pl-1">LNG:</span>
             <input
               type="number"
               step="0.0001"
               value={customLng}
               onChange={(e) => setCustomLng(e.target.value)}
-              className="w-20 px-1.5 py-1 text-xs font-mono font-bold bg-transparent text-zinc-900 dark:text-white border-0 outline-none"
+              className="w-24 px-1.5 py-0.5 text-xs xl:text-sm font-mono font-bold bg-transparent text-zinc-900 dark:text-white border-0 outline-none"
               placeholder="77.6650"
             />
             <Button
               type="submit"
               size="sm"
-              className="h-7 px-3 rounded-xl text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs cursor-pointer"
+              className="h-8 px-3.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs cursor-pointer"
             >
-              <Crosshair className="w-3.5 h-3.5 mr-1" />
+              <Crosshair className="w-4 h-4 mr-1" />
               <span>Fly to Coords</span>
             </Button>
           </div>

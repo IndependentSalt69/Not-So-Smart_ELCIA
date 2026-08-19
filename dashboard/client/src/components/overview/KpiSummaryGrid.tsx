@@ -103,19 +103,19 @@ export const KpiSummaryGrid: React.FC<KpiSummaryGridProps> = ({ kpis, onFilterCl
                   <Icon className="w-5 h-5 xl:w-6 xl:h-6" />
                 </div>
                 {card.badge && (
-                  <span className={`text-[10px] xl:text-xs font-bold px-2.5 py-0.5 rounded-full ${card.badgeClass}`}>
+                  <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${card.badgeClass}`}>
                     {card.badge}
                   </span>
                 )}
               </div>
-              <div className="text-2xl xl:text-3xl 2xl:text-4xl font-black tracking-tight text-zinc-900 dark:text-white mb-1">
+              <div className="text-2xl xl:text-3xl 2xl:text-4xl font-black tracking-tight text-zinc-900 dark:text-white mb-1.5">
                 {card.value}
               </div>
-              <div className="text-xs xl:text-sm font-semibold text-zinc-700 dark:text-zinc-300 line-clamp-1">
+              <div className="text-sm xl:text-base font-bold text-zinc-800 dark:text-zinc-200 line-clamp-1">
                 {card.title}
               </div>
             </div>
-            <div className="text-[11px] xl:text-xs text-zinc-500 dark:text-zinc-400 mt-2 font-medium line-clamp-1">
+            <div className="text-xs xl:text-sm text-zinc-500 dark:text-zinc-400 mt-2 font-medium line-clamp-1">
               {card.subtext}
             </div>
           </div>

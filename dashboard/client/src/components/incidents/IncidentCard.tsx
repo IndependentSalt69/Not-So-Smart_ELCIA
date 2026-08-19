@@ -146,56 +146,56 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
         </div>
 
         {/* Bottom Bar on Frame */}
-        <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between text-[11px] font-mono text-white/90 bg-black/60 px-2 py-1 rounded-md backdrop-blur-xs">
-          <span className="flex items-center gap-1">
-            <MapPin className="w-3 h-3 text-sky-400" />
+        <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between text-xs font-mono text-white/95 bg-black/70 px-2.5 py-1 rounded-lg backdrop-blur-xs">
+          <span className="flex items-center gap-1.5 font-bold">
+            <MapPin className="w-3.5 h-3.5 text-sky-400" />
             {incident.zoneId}
           </span>
-          <span className="flex items-center gap-1 text-emerald-300 font-semibold">
-            <Sparkles className="w-3 h-3" />
+          <span className="flex items-center gap-1.5 text-emerald-300 font-bold">
+            <Sparkles className="w-3.5 h-3.5" />
             {confidencePct}% Conf
           </span>
         </div>
       </div>
 
       {/* Card Content Body */}
-      <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+      <div className="p-4 xl:p-5 flex-1 flex flex-col justify-between space-y-3">
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <span className="font-mono text-sm font-black text-zinc-900 dark:text-zinc-100">
+            <span className="font-mono text-base font-black text-zinc-900 dark:text-zinc-100">
               {incident.id}
             </span>
             <StatusBadge status={incident.status} />
           </div>
 
-          <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 line-clamp-2 leading-relaxed">
+          <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 line-clamp-2 leading-relaxed">
             {incident.locationDescription}
           </p>
         </div>
 
         {/* Severity Progress Bar & Persistence */}
-        <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/60">
-          <div className="flex items-center justify-between text-xs font-medium">
-            <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
-              <Gauge className="w-3.5 h-3.5" />
+        <div className="space-y-2 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60">
+          <div className="flex items-center justify-between text-xs xl:text-sm font-medium">
+            <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 font-semibold">
+              <Gauge className="w-4 h-4" />
               AI Severity Score
             </span>
-            <span className="font-bold text-zinc-900 dark:text-zinc-100">
+            <span className="font-mono font-bold text-zinc-900 dark:text-zinc-100">
               {incident.severity.toFixed(1)} / 10
             </span>
           </div>
 
           {/* Progress bar */}
-          <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
             <div
               style={{ width: `${(incident.severity / 10) * 100}%` }}
               className={cn('h-full rounded-full transition-all duration-300', severityColor.split(' ')[2])}
             />
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">
-            <span className="flex items-center gap-1">
-              <Timer className="w-3 h-3 text-zinc-400" />
+          <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 font-mono font-medium">
+            <span className="flex items-center gap-1.5">
+              <Timer className="w-3.5 h-3.5 text-zinc-400" />
               Persistence: {incident.durationSeconds}s
             </span>
             <span>{incident.zone}</span>

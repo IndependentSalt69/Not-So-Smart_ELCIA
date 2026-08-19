@@ -42,19 +42,19 @@ const CustomDonutTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0];
     return (
-      <div className="bg-slate-950/95 border border-slate-700/80 px-3.5 py-2.5 rounded-2xl shadow-2xl backdrop-blur-md text-white text-xs space-y-1 z-50">
-        <div className="flex items-center gap-2 font-bold">
+      <div className="bg-slate-950/95 border border-slate-700/80 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-md text-white text-sm space-y-1.5 z-50">
+        <div className="flex items-center gap-2.5 font-bold">
           <span
-            className="w-3 h-3 rounded-full shrink-0 shadow-xs"
+            className="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs"
             style={{ backgroundColor: data.payload.fill || data.color }}
           />
-          <span className="text-slate-200 font-semibold">{data.name || data.payload.status}:</span>
-          <span className="font-mono font-black text-emerald-400 text-sm ml-auto">
+          <span className="text-slate-200 font-bold">{data.name || data.payload.status}:</span>
+          <span className="font-mono font-black text-emerald-400 text-base ml-auto">
             {data.value}
           </span>
         </div>
         {data.payload.percentage && (
-          <div className="text-[10px] text-slate-400 font-mono pl-5">
+          <div className="text-xs text-slate-300 font-mono pl-6">
             {data.payload.percentage}% of active lifecycle
           </div>
         )}
@@ -68,18 +68,18 @@ const CustomDonutTooltip = ({ active, payload }: any) => {
 const CustomTrendTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-slate-950/95 border border-slate-700/80 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-md text-white text-xs space-y-2 z-50 min-w-[170px]">
-        <div className="font-bold text-slate-300 border-b border-slate-800 pb-1 font-mono text-[11px]">
+      <div className="bg-slate-950/95 border border-slate-700/80 px-4 py-3.5 rounded-2xl shadow-2xl backdrop-blur-md text-white text-sm space-y-2.5 z-50 min-w-[200px]">
+        <div className="font-bold text-slate-200 border-b border-slate-800 pb-1.5 font-mono text-xs">
           📅 {label}
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           {payload.map((item: any, idx: number) => (
-            <div key={idx} className="flex items-center justify-between gap-3 text-xs">
-              <span className="flex items-center gap-1.5 text-slate-300 font-medium capitalize">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+            <div key={idx} className="flex items-center justify-between gap-3 text-xs xl:text-sm">
+              <span className="flex items-center gap-2 text-slate-300 font-semibold capitalize">
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
                 {item.name}:
               </span>
-              <span className="font-mono font-bold text-white text-xs">
+              <span className="font-mono font-bold text-white text-sm">
                 {item.value} {item.name === 'rainfall' ? 'mm' : ''}
               </span>
             </div>
@@ -95,19 +95,19 @@ const CustomTrendTooltip = ({ active, payload, label }: any) => {
 const CustomBarTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-slate-950/95 border border-slate-700/80 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-md text-white text-xs space-y-2 z-50 min-w-[170px]">
-        <div className="font-bold text-emerald-400 border-b border-slate-800 pb-1 font-mono text-xs flex items-center gap-1.5">
-          <MapPin className="w-3.5 h-3.5" />
+      <div className="bg-slate-950/95 border border-slate-700/80 px-4 py-3.5 rounded-2xl shadow-2xl backdrop-blur-md text-white text-sm space-y-2.5 z-50 min-w-[200px]">
+        <div className="font-bold text-emerald-400 border-b border-slate-800 pb-1.5 font-mono text-sm flex items-center gap-2">
+          <MapPin className="w-4 h-4" />
           <span>Zone {label}</span>
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           {payload.map((item: any, idx: number) => (
-            <div key={idx} className="flex items-center justify-between gap-3 text-xs">
-              <span className="flex items-center gap-1.5 text-slate-300 font-medium">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.fill }} />
+            <div key={idx} className="flex items-center justify-between gap-3 text-xs xl:text-sm">
+              <span className="flex items-center gap-2 text-slate-300 font-semibold">
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.fill }} />
                 {item.name}:
               </span>
-              <span className="font-mono font-bold text-white text-xs">
+              <span className="font-mono font-bold text-white text-sm">
                 {item.value}
               </span>
             </div>
@@ -124,7 +124,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
     return (
       <div className="p-12 text-center text-zinc-500 flex flex-col items-center justify-center min-h-[400px]">
         <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="font-semibold text-sm">Synthesizing telemetry analytics...</p>
+        <p className="font-semibold text-base">Synthesizing telemetry analytics...</p>
       </div>
     );
   }
@@ -138,81 +138,81 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
     <div className="space-y-6">
       {/* Top Header */}
       <div>
-        <h2 className="text-xl font-black text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
-          <BarChart3 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+        <h2 className="text-xl xl:text-2xl font-black text-zinc-900 dark:text-white tracking-tight flex items-center gap-2.5">
+          <BarChart3 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
           <span>Monsoon & Road Intelligence Analytics</span>
         </h2>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+        <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-1">
           Comprehensive seasonal correlation between drone detections, precipitation, and resolution velocity.
         </p>
       </div>
 
       {/* 4 Summary Highlight Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5">
-        <div className="p-5 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 flex items-center justify-center shrink-0">
-            <Waves className="w-6 h-6" />
+        <div className="p-5 xl:p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
+          <div className="w-13 h-13 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 flex items-center justify-center shrink-0">
+            <Waves className="w-7 h-7" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Total Inundated Road Area</div>
-            <div className="text-2xl xl:text-3xl font-black font-mono text-zinc-900 dark:text-white">{kpis.waterloggedAreaSqm} m²</div>
-            <div className="text-[11px] text-teal-600 dark:text-teal-400 font-semibold">Across Phase 1 & 2</div>
+            <div className="text-xs xl:text-sm font-bold text-zinc-500 dark:text-zinc-400">Total Inundated Road Area</div>
+            <div className="text-2xl xl:text-3xl font-black font-mono text-zinc-900 dark:text-white my-0.5">{kpis.waterloggedAreaSqm} m²</div>
+            <div className="text-xs text-teal-600 dark:text-teal-400 font-bold">Across Phase 1 & 2</div>
           </div>
         </div>
 
-        <div className="p-5 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
-            <Clock className="w-6 h-6" />
+        <div className="p-5 xl:p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
+          <div className="w-13 h-13 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
+            <Clock className="w-7 h-7" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Mean Time to Resolution</div>
-            <div className="text-2xl xl:text-3xl font-black font-mono text-zinc-900 dark:text-white">{kpis.meanTimeToResolutionHours} hrs</div>
-            <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">From Detection to Clear</div>
+            <div className="text-xs xl:text-sm font-bold text-zinc-500 dark:text-zinc-400">Mean Time to Resolution</div>
+            <div className="text-2xl xl:text-3xl font-black font-mono text-zinc-900 dark:text-white my-0.5">{kpis.meanTimeToResolutionHours} hrs</div>
+            <div className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">From Detection to Clear</div>
           </div>
         </div>
 
-        <div className="p-5 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 flex items-center justify-center shrink-0">
-            <TrendingUp className="w-6 h-6" />
+        <div className="p-5 xl:p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
+          <div className="w-13 h-13 rounded-2xl bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 flex items-center justify-center shrink-0">
+            <TrendingUp className="w-7 h-7" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">P1 Critical Hotspots</div>
-            <div className="text-2xl xl:text-3xl font-black font-mono text-zinc-900 dark:text-white">{kpis.criticalP1Count}</div>
-            <div className="text-[11px] text-red-600 dark:text-red-400 font-semibold">High priority triage</div>
+            <div className="text-xs xl:text-sm font-bold text-zinc-500 dark:text-zinc-400">P1 Critical Hotspots</div>
+            <div className="text-2xl xl:text-3xl font-black font-mono text-zinc-900 dark:text-white my-0.5">{kpis.criticalP1Count}</div>
+            <div className="text-xs text-red-600 dark:text-red-400 font-bold">High priority triage</div>
           </div>
         </div>
 
-        <div className="p-5 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-6 h-6" />
+        <div className="p-5 xl:p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
+          <div className="w-13 h-13 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-7 h-7" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">AI Detection Precision</div>
-            <div className="text-2xl xl:text-3xl font-black font-mono text-zinc-900 dark:text-white">94.2%</div>
-            <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">Operator Verified Accuracy</div>
+            <div className="text-xs xl:text-sm font-bold text-zinc-500 dark:text-zinc-400">AI Detection Precision</div>
+            <div className="text-2xl xl:text-3xl font-black font-mono text-zinc-900 dark:text-white my-0.5">94.2%</div>
+            <div className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">Operator Verified Accuracy</div>
           </div>
         </div>
       </div>
 
       {/* Row 1: Monsoon Rainfall vs Detection Volume Trend */}
       <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 xl:p-8 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-base xl:text-lg font-bold text-zinc-900 dark:text-white tracking-tight">
               Precipitation vs. Incident Surge Trend (7-Day Rolling)
             </h3>
-            <p className="text-xs xl:text-sm text-zinc-500 dark:text-zinc-400 font-medium">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
               Correlation between millimeter rainfall volume and autonomous waterlogging / pothole alerts.
             </p>
           </div>
-          <div className="flex items-center gap-3 text-xs font-semibold">
+          <div className="flex items-center gap-4 text-xs xl:text-sm font-bold">
             <span className="flex items-center gap-1.5 text-teal-600 dark:text-teal-400">
               <span className="w-3 h-3 rounded-full bg-teal-500" /> Waterlogging
             </span>
-            <span className="flex items-center gap-1.5 text-amber-600">
+            <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
               <span className="w-3 h-3 rounded-full bg-amber-500" /> Potholes
             </span>
-            <span className="flex items-center gap-1.5 text-slate-500">
+            <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
               <span className="w-3 h-3 rounded-full bg-slate-400" /> Rainfall (mm)
             </span>
           </div>
@@ -220,7 +220,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
 
         <div className="h-72 xl:h-96 2xl:h-[420px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={trend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={trend} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
               <defs>
                 <linearGradient id="waterColor" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#0d9488" stopOpacity={0.4} />
@@ -232,8 +232,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-              <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
+              <XAxis dataKey="date" tick={{ fontSize: 13, fontWeight: 600, fill: '#64748b' }} stroke="#94a3b8" dy={4} />
+              <YAxis tick={{ fontSize: 13, fontWeight: 600, fill: '#64748b' }} stroke="#94a3b8" />
               <Tooltip content={<CustomTrendTooltip />} />
               <Area type="monotone" name="Waterlogging" dataKey="waterlogging" stroke="#0d9488" strokeWidth={2.5} fillOpacity={1} fill="url(#waterColor)" />
               <Area type="monotone" name="Potholes" dataKey="potholes" stroke="#f59e0b" strokeWidth={2.5} fillOpacity={1} fill="url(#potholeColor)" />
@@ -250,19 +250,19 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
             <h3 className="text-base xl:text-lg font-bold text-zinc-900 dark:text-white tracking-tight">
               Zone Vulnerability & Priority Breakdown
             </h3>
-            <p className="text-xs xl:text-sm text-zinc-500 dark:text-zinc-400 font-medium">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
               Incident count categorized by P1, P2, P3 across Electronics City zones.
             </p>
           </div>
 
           <div className="h-72 xl:h-80 2xl:h-96 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={zoneMetrics} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={zoneMetrics} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
-                <XAxis dataKey="zoneId" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-                <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
+                <XAxis dataKey="zoneId" tick={{ fontSize: 13, fontWeight: 600, fill: '#64748b' }} stroke="#94a3b8" dy={4} />
+                <YAxis tick={{ fontSize: 13, fontWeight: 600, fill: '#64748b' }} stroke="#94a3b8" />
                 <Tooltip content={<CustomBarTooltip />} />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Legend wrapperStyle={{ fontSize: '13px', fontWeight: 600, paddingTop: '10px' }} />
                 <Bar dataKey="p1Count" name="P1 Critical" fill="#EF4444" radius={[6, 6, 0, 0]} />
                 <Bar dataKey="p2Count" name="P2 High" fill="#F97316" radius={[6, 6, 0, 0]} />
                 <Bar dataKey="p3Count" name="P3 Routine" fill="#F59E0B" radius={[6, 6, 0, 0]} />
@@ -277,7 +277,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
             <h3 className="text-base xl:text-lg font-bold text-zinc-900 dark:text-white tracking-tight">
               Operational Status Distribution
             </h3>
-            <p className="text-xs xl:text-sm text-zinc-500 dark:text-zinc-400 font-medium">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
               Current state machine breakdown of active incidents.
             </p>
           </div>
@@ -317,17 +317,17 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
                 </text>
                 <text
                   x="50%"
-                  y="50%"
+                  y="51%"
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  className="fill-zinc-400 dark:fill-zinc-500 font-bold uppercase text-[10px] tracking-widest select-none"
+                  className="fill-zinc-500 dark:fill-zinc-400 font-bold uppercase text-xs tracking-wider select-none"
                 >
                   Total Events
                 </text>
                 <Legend
-                  wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                  wrapperStyle={{ fontSize: '13px', fontWeight: 600, paddingTop: '12px' }}
                   iconType="circle"
-                  formatter={(value) => <span className="text-zinc-700 dark:text-zinc-300 font-medium">{value}</span>}
+                  formatter={(value) => <span className="text-zinc-800 dark:text-zinc-200 font-semibold">{value}</span>}
                 />
               </PieChart>
             </ResponsiveContainer>
