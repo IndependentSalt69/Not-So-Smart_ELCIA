@@ -1,0 +1,45 @@
+# ==============================================================================
+# CivicPulse — AI-Assisted Monsoon Civic Risk Intelligence & Response System
+# Python Backend & Computer Vision Pipeline Dependencies (ELCIA 2026)
+# ==============================================================================
+
+# Core Deep Learning & Computer Vision
+torch>=2.1.0
+torchvision>=0.16.0
+ultralytics>=8.1.0          # YOLOv8 / YOLOv11 for Object Detection & Segmentation
+opencv-python>=4.8.1.78     # Video decoding, frame sampling, visual overlays
+pillow>=10.2.0              # Image manipulation & format normalization
+supervision>=0.19.0         # Detection tracking, polygon masking, temporal association
+
+# Spatial & Geometry Operations
+shapely>=2.0.2              # Spatial intersection, road area coverage estimation
+scipy>=1.11.4               # Spatial matrices, distance computations
+numpy>=1.26.0
+
+# Backend & REST API Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.6.0
+pydantic-settings>=2.1.0
+python-multipart>=0.0.9     # Multipart file upload support for drone videos & photos
+aiofiles>=23.2.1            # Asynchronous file I/O for video chunking
+python-dotenv>=1.0.1        # Environment variable management
+pyyaml>=6.0.1               # Config file parsing
+
+# HTTP Clients & Utilities
+requests>=2.31.0
+httpx>=0.26.0
+tqdm>=4.66.1                # CLI progress bars for video inference
+
+# Data Science & Analytics
+pandas>=2.2.0
+scikit-learn>=1.4.0
+matplotlib>=3.8.2
+
+# Testing & Code Quality
+pytest>=8.0.0
+pytest-asyncio>=0.23.5
+pytest-cov>=4.1.0
+black>=24.2.0
+isort>=5.13.2
+flake8>=7.0.0
