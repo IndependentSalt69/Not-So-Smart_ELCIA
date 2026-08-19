@@ -27,90 +27,76 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Semantic Priority Colors */
+  --color-p1: #EF4444;
+  --color-p1-bg: #FEF2F2;
+  --color-p1-border: #FCA5A5;
+  --color-p1-text: #991B1B;
+
+  --color-p2: #F97316;
+  --color-p2-bg: #FFF7ED;
+  --color-p2-border: #FDBA74;
+  --color-p2-text: #9A3412;
+
+  --color-p3: #F59E0B;
+  --color-p3-bg: #FFFBEB;
+  --color-p3-border: #FCD34D;
+  --color-p3-text: #92400E;
+
+  /* Status Colors */
+  --color-status-detected: #E11D48;
+  --color-status-verified: #2563EB;
+  --color-status-assigned: #D97706;
+  --color-status-inprogress: #059669;
+  --color-status-reinspection: #0891B2;
+  --color-status-closed: #10B981;
+  --color-status-rejected: #64748B;
 }
 
 :root {
-  --primary: #09090B;
+  --primary: #0F172A;
   --primary-foreground: #FFFFFF;
-  --sidebar-primary: #18181B;
-  --sidebar-primary-foreground: #FFFFFF;
-  --chart-1: #09090B;
-  --chart-2: #334155;
-  --chart-3: #64748B;
-  --chart-4: #94A3B8;
-  --chart-5: #CBD5E1;
-  --radius: 0.65rem;
-  --background: #F4F5F7;
-  --foreground: #09090B;
+  --radius: 0.75rem;
+  --background: #F8FAFC;
+  --foreground: #0F172A;
   --card: #FFFFFF;
-  --card-foreground: #09090B;
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
   --secondary: #F1F5F9;
-  --secondary-foreground: #09090B;
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.141 0.005 285.823);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
+  --secondary-foreground: #1E293B;
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+  --accent: #E2E8F0;
+  --accent-foreground: #0F172A;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
   --border: #E2E8F0;
   --input: #E2E8F0;
-  --ring: oklch(0.2 0 0);
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #09090B;
-  --sidebar-accent: #F1F5F9;
-  --sidebar-accent-foreground: #09090B;
-  --sidebar-border: #E2E8F0;
-  --sidebar-ring: oklch(0.2 0 0);
+  --ring: #3B82F6;
 }
 
 .dark {
   --primary: #FFFFFF;
-  --primary-foreground: #09090B;
-  --sidebar-primary: #FFFFFF;
-  --sidebar-primary-foreground: #09090B;
-  --background: #09090B;
-  --foreground: #F4F5F7;
-  --card: #18181B;
-  --card-foreground: #F4F5F7;
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.85 0.005 65);
-  --secondary: #27272A;
-  --secondary-foreground: #F4F5F7;
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.92 0.005 65);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: #27272A;
-  --input: #27272A;
-  --ring: oklch(0.8 0 0);
-  --chart-1: #FFFFFF;
-  --chart-2: #94A3B8;
-  --chart-3: #64748B;
-  --chart-4: #475569;
-  --chart-5: #334155;
-  --sidebar: #18181B;
-  --sidebar-foreground: #F4F5F7;
-  --sidebar-accent: #27272A;
-  --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #27272A;
-  --sidebar-ring: oklch(0.8 0 0);
+  --primary-foreground: #0F172A;
+  --background: #090D16;
+  --foreground: #F8FAFC;
+  --card: #111827;
+  --card-foreground: #F8FAFC;
+  --popover: #111827;
+  --popover-foreground: #F8FAFC;
+  --secondary: #1F2937;
+  --secondary-foreground: #F8FAFC;
+  --muted: #1F2937;
+  --muted-foreground: #9CA3AF;
+  --accent: #1F2937;
+  --accent-foreground: #F8FAFC;
+  --destructive: #DC2626;
+  --destructive-foreground: #FFFFFF;
+  --border: #1F2937;
+  --input: #1F2937;
+  --ring: #3B82F6;
 }
 
 @layer base {
@@ -118,7 +104,8 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased selection:bg-blue-500/20 selection:text-blue-700;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -133,45 +120,63 @@
   }
 }
 
-@layer components {
-  /**
-   * Custom container utility that centers content and adds responsive padding.
-   *
-   * This overrides Tailwind's default container behavior to:
-   * - Auto-center content (mx-auto)
-   * - Add responsive horizontal padding
-   * - Set max-width for large screens
-   *
-   * Usage: <div className="container">...</div>
-   *
-   * For custom widths, use max-w-* utilities directly:
-   * <div className="max-w-6xl mx-auto px-4">...</div>
-   */
-  .container {
-    width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 1rem; /* 16px - mobile padding */
-    padding-right: 1rem;
+/* Radar Pulse Animation for Critical P1 Incidents */
+@keyframes radar-pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
   }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
 
-  .flex {
-    min-height: 0;
-    min-width: 0;
+@keyframes amber-pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7);
   }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px rgba(249, 115, 22, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
+  }
+}
 
-  @media (min-width: 640px) {
-    .container {
-      padding-left: 1.5rem; /* 24px - tablet padding */
-      padding-right: 1.5rem;
-    }
-  }
+.animate-radar-pulse {
+  animation: radar-pulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
 
-  @media (min-width: 1024px) {
-    .container {
-      padding-left: 2rem; /* 32px - desktop padding */
-      padding-right: 2rem;
-      max-width: 1280px; /* Standard content width */
-    }
-  }
+.animate-amber-pulse {
+  animation: amber-pulse 2.5s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+/* Custom modern scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
