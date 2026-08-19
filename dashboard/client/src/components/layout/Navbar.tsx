@@ -33,6 +33,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [timeStr, setTimeStr] = useState<string>('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const buttonRefs = React.useRef<Map<DashboardView, HTMLButtonElement>>(new Map());
+  const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number; opacity: number }>({
+    left: 0,
+    width: 0,
+    opacity: 0,
+  });
 
   useEffect(() => {
     const updateTime = () => {
@@ -51,6 +57,29 @@ export const Navbar: React.FC<NavbarProps> = ({
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Update sliding indicator position whenever activeView changes or window resizes
+  useEffect(() => {
+    const updateIndicator = () => {
+      const activeEl = buttonRefs.current.get(activeView);
+      if (activeEl) {
+        setIndicatorStyle({
+          left: activeEl.offsetLeft,
+          width: activeEl.offsetWidth,
+          opacity: 1,
+        });
+      }
+    };
+
+    updateIndicator();
+    // Allow fonts/layout to settle
+    const timeout = setTimeout(updateIndicator, 50);
+    window.addEventListener('resize', updateIndicator);
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('resize', updateIndicator);
+    };
+  }, [activeView]);
 
   // Lock body scroll when mobile menu is open
   useEffect(() => {
@@ -148,25 +177,40 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             </div>
 
-            {/* Desktop Navigation Switcher Tabs */}
-            <nav className="hidden md:flex items-center p-1.5 bg-zinc-100/90 dark:bg-zinc-900/90 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-inner backdrop-blur-md gap-1">
+            {/* Desktop Navigation Switcher with Sliding Active Pill */}
+            <nav className="relative hidden md:flex items-center p-1.5 bg-zinc-100/90 dark:bg-zinc-900/90 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-inner backdrop-blur-md">
+              {/* Smooth Animated Sliding Glider Pill */}
+              <div
+                style={{
+                  transform: `translateX(${indicatorStyle.left}px)`,
+                  width: `${indicatorStyle.width}px`,
+                  opacity: indicatorStyle.opacity,
+                  transition: 'transform 320ms cubic-bezier(0.34, 1.25, 0.64, 1), width 320ms cubic-bezier(0.34, 1.25, 0.64, 1), opacity 200ms ease',
+                }}
+                className="absolute top-1.5 bottom-1.5 left-0 rounded-xl bg-white dark:bg-zinc-800 shadow-md shadow-zinc-900/10 dark:shadow-blue-500/15 ring-1 ring-zinc-950/5 dark:ring-white/10 pointer-events-none z-0"
+              />
+
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeView === item.id;
                 return (
                   <button
                     key={item.id}
+                    ref={(el) => {
+                      if (el) buttonRefs.current.set(item.id, el);
+                      else buttonRefs.current.delete(item.id);
+                    }}
                     onClick={() => handleNavClick(item.id)}
                     className={cn(
-                      'relative flex items-center gap-2 px-4 py-2 rounded-xl text-xs xl:text-sm font-bold transition-all duration-200 select-none cursor-pointer group',
+                      'relative z-10 flex items-center gap-2 px-4 py-2 rounded-xl text-xs xl:text-sm font-bold transition-colors duration-200 select-none cursor-pointer group',
                       isActive
-                        ? 'bg-white dark:bg-zinc-800 text-zinc-950 dark:text-white shadow-md shadow-zinc-900/5 dark:shadow-blue-500/10 scale-[1.02] ring-1 ring-zinc-950/5 dark:ring-white/10'
-                        : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:bg-white/60 dark:hover:bg-zinc-800/50 hover:-translate-y-0.5'
+                        ? 'text-zinc-950 dark:text-white'
+                        : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white'
                     )}
                   >
                     <Icon
                       className={cn(
-                        'w-4 h-4 transition-all duration-200',
+                        'w-4 h-4 transition-all duration-300',
                         isActive
                           ? 'text-blue-600 dark:text-blue-400 scale-110'
                           : 'text-zinc-400 dark:text-zinc-500 group-hover:text-blue-500'
