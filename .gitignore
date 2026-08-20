@@ -1,2 +1,22 @@
-.DS_Store
+# Virtual Environment & Python Caches
+.venv/
 venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+
+# Datasets & Sample Media (Keep repo light)
+data/
+pothole-segmentation-1/
+coco_converted/
+*.mov
+*.mp4
+
+# Training Runs & Checkpoints
+runs/
+*.pt
+!models/checkpoints/.gitkeep
+
+# Output Artefacts (Evidence & Predictions)
+outputs/evidence/*.jpg
+outputs/predictions/*.jpg
