@@ -9,6 +9,7 @@ __pycache__/
 data/
 pothole-segmentation-1/
 coco_converted/
+ipd-pothole-detection-*/
 *.mov
 *.mp4
 
@@ -20,3 +21,4 @@ runs/
 # Output Artefacts (Evidence & Predictions)
 outputs/evidence/*.jpg
 outputs/predictions/*.jpg
+data/sample/*.png
