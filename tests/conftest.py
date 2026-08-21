@@ -35,6 +35,15 @@ TestingSessionLocal = sessionmaker(
 )
 
 
+# Disable GeoAlchemy2 SpatiaLite DDL listeners during SQLite unit testing
+try:
+    import geoalchemy2.admin.dialects.sqlite
+    geoalchemy2.admin.dialects.sqlite.after_create = lambda *args, **kwargs: None
+    geoalchemy2.admin.dialects.sqlite.before_drop = lambda *args, **kwargs: None
+except Exception:
+    pass
+
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_db():
     """Create all tables in memory before testing and drop after."""
