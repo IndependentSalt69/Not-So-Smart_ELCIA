@@ -35,11 +35,12 @@ TestingSessionLocal = sessionmaker(
 )
 
 
-# Disable GeoAlchemy2 SpatiaLite DDL listeners during SQLite unit testing
+# Disable SpatiaLite C extension function calls during SQLite unit testing
 try:
     import geoalchemy2.admin.dialects.sqlite
     geoalchemy2.admin.dialects.sqlite.after_create = lambda *args, **kwargs: None
     geoalchemy2.admin.dialects.sqlite.before_drop = lambda *args, **kwargs: None
+    geoalchemy2.admin.dialects.sqlite.after_drop = lambda *args, **kwargs: None
 except Exception:
     pass
 
