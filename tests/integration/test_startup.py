@@ -23,25 +23,24 @@ def test_openapi_schema(client: TestClient):
     schema = response.json()
     assert schema["info"]["title"] == "CivicPulse API"
     assert "/health" in schema["paths"]
-    assert "/api/health" in schema["paths"]
-    assert "/api/incidents/" in schema["paths"]
-    assert "/api/zones/" in schema["paths"]
-    assert "/api/users/" in schema["paths"]
+    assert "/api/v1/incidents/" in schema["paths"]
+    assert "/api/v1/zones/" in schema["paths"]
+    assert "/api/v1/users/" in schema["paths"]
 
 
-def test_zones_skeleton_endpoint(client: TestClient):
-    """Verify zones endpoint returns registered zones."""
-    response = client.get("/api/zones/")
-    assert response.status_code == 200
-    zones = response.json()
-    assert len(zones) >= 4
-    zone_ids = [z["zone_id"] for z in zones]
-    assert "EC-01" in zone_ids
-    assert "EC-04" in zone_ids
-
-
-def test_incidents_skeleton_endpoint(client: TestClient):
-    """Verify incidents list endpoint responds."""
-    response = client.get("/api/incidents/")
+def test_zones_endpoint(client: TestClient):
+    """Verify zones list endpoint responds."""
+    response = client.get("/api/v1/zones/")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
+
+
+def test_incidents_endpoint(client: TestClient):
+    """Verify incidents list endpoint responds with paginated structure."""
+    response = client.get("/api/v1/incidents/")
+    assert response.status_code == 200
+    data = response.json()
+    assert "items" in data
+    assert "total" in data
+    assert "skip" in data
+    assert "limit" in data

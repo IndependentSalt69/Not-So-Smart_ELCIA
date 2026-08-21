@@ -19,6 +19,7 @@ from src.repositories.incidents import (
     create_incident,
     get_incident,
     list_incidents,
+    count_incidents,
     update_incident,
     update_incident_status,
 )

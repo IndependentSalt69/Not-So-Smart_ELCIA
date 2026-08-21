@@ -21,6 +21,13 @@ async def lifespan(app: FastAPI):
     # Ensure evidence output directories exist
     os.makedirs(settings.EVIDENCE_DIR, exist_ok=True)
     os.makedirs(settings.PREDICTIONS_DIR, exist_ok=True)
+
+    # Initialize tables automatically for SQLite
+    if settings.DATABASE_URL.startswith("sqlite"):
+        from src.db.base import Base
+        from src.db.session import engine
+        Base.metadata.create_all(bind=engine)
+
     yield
     # Shutdown cleanups if needed
 
@@ -45,8 +52,10 @@ def create_application() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Include API Routers (both at /api and top-level for convenience)
+    # Include API Routers (both /api/v1 and legacy /api for backwards compatibility)
     app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+    if settings.API_V1_PREFIX != "/api":
+        app.include_router(api_router, prefix="/api")
     # Also expose /health at root level for orchestrators/load balancers
     from src.api.routes.health import router as health_router
     app.include_router(health_router)

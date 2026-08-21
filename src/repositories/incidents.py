@@ -86,8 +86,10 @@ def list_incidents(
     incident_type: Optional[IncidentType] = None,
     skip: int = 0,
     limit: int = 100,
+    sort_by: str = "created_at",
+    order: str = "desc",
 ) -> List[Incident]:
-    """List incidents with multi-criteria filtering and pagination."""
+    """List incidents with multi-criteria filtering, sorting, and pagination."""
     stmt = select(Incident)
     if zone_id is not None:
         zid = parse_uuid(zone_id) or zone_id
@@ -99,8 +101,42 @@ def list_incidents(
     if incident_type is not None:
         stmt = stmt.where(Incident.incident_type == incident_type)
 
+    if sort_by == "priority":
+        sort_column = Incident.priority
+    else:
+        sort_column = Incident.created_at
+
+    if order.lower() == "asc":
+        stmt = stmt.order_by(sort_column.asc())
+    else:
+        stmt = stmt.order_by(sort_column.desc())
+
     stmt = stmt.offset(skip).limit(limit)
     return list(db.scalars(stmt).all())
+
+
+def count_incidents(
+    db: Session,
+    zone_id: Optional[Union[uuid.UUID, str]] = None,
+    status: Optional[IncidentStatus] = None,
+    priority: Optional[PriorityLevel] = None,
+    incident_type: Optional[IncidentType] = None,
+) -> int:
+    """Get total count of incidents matching the filter criteria."""
+    from sqlalchemy import func
+    stmt = select(func.count(Incident.id))
+    if zone_id is not None:
+        zid = parse_uuid(zone_id) or zone_id
+        stmt = stmt.where(Incident.zone_id == zid)
+    if status is not None:
+        stmt = stmt.where(Incident.status == status)
+    if priority is not None:
+        stmt = stmt.where(Incident.priority == priority)
+    if incident_type is not None:
+        stmt = stmt.where(Incident.incident_type == incident_type)
+
+    return db.scalar(stmt) or 0
+
 
 
 def update_incident(
