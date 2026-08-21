@@ -40,9 +40,7 @@ if settings.DATABASE_URL.startswith("sqlite"):
     @event.listens_for(engine, "connect")
     def _register_sqlite_spatial_udfs(dbapi_connection, connection_record):
         def dummy_spatial_udf(*args):
-            if not args:
-                return None
-            return args[0]
+            return None
 
         spatial_funcs = [
             "GeomFromEWKT",

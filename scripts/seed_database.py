@@ -1,46 +1,486 @@
 """
 scripts/seed_database.py
-Initializes database tables and seeds initial municipal reference data.
+Deterministic and idempotent development seed script for CivicPulse database.
+Populates realistic DEMO data for Electronics City operational zones, users,
+incidents, detections, evidence, assignments, status history, and inspections.
 """
 
 import sys
 from pathlib import Path
+from datetime import datetime, timezone, timedelta
 
-# Add project root to sys.path
-sys.path.append(str(Path(__file__).resolve().parent.parent))
+# Ensure project root is in sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from sqlalchemy import text
-from src.core.config import settings
-from src.db.session import engine, SessionLocal
+from src.db.session import SessionLocal, engine
 from src.db.base import Base
+from src.db.models.enums import (
+    UserRole,
+    IncidentType,
+    PriorityLevel,
+    IncidentStatus,
+    EvidenceType,
+    InspectionResult,
+)
+from src.repositories import (
+    create_zone,
+    get_zone,
+    create_user,
+    get_user,
+    create_incident,
+    get_incident,
+    create_detection,
+    list_incident_detections,
+    create_evidence,
+    list_incident_evidence,
+    create_assignment,
+    get_incident_assignments,
+    create_inspection,
+    list_incident_inspections,
+    create_status_history,
+    list_incident_status_history,
+)
 
 
 def seed_database():
     """
-    Checks database connection and initializes metadata.
+    Seed database with deterministic demo data.
+    Idempotent: Safe to run repeatedly without creating duplicate entries.
     """
-    print(f"[CivicPulse DB] Connecting to database at: {settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}")
+    print("Initializing database tables if not created...")
+    Base.metadata.create_all(bind=engine)
+
+    db = SessionLocal()
     try:
-        with engine.connect() as connection:
-            result = connection.execute(text("SELECT version();")).scalar()
-            print(f"[CivicPulse DB] Connection successful! PostgreSQL Version:\n  {result}")
+        print("\n--- Seeding Operational Zones ---")
+        zones_data = [
+            {
+                "code": "EC-01",
+                "name": "Phase 1 - West (Hosur Road Corridor) [DEMO DATA]",
+                "description": "DEMO DATA: Primary technology corridor along Hosur Road arterial underpass.",
+                "geometry": "POLYGON((77.670 12.835, 77.680 12.835, 77.680 12.845, 77.670 12.845, 77.670 12.835))",
+            },
+            {
+                "code": "EC-02",
+                "name": "Phase 1 - East (Neeladri Road) [DEMO DATA]",
+                "description": "DEMO DATA: High-density commercial and residential junction along Neeladri Road.",
+                "geometry": "POLYGON((77.680 12.845, 77.690 12.845, 77.690 12.855, 77.680 12.855, 77.680 12.845))",
+            },
+            {
+                "code": "EC-03",
+                "name": "Phase 2 - North (Velankani Drive) [DEMO DATA]",
+                "description": "DEMO DATA: Tech park entry corridor and culvert catchment area near Velankani Drive.",
+                "geometry": "POLYGON((77.685 12.855, 77.695 12.855, 77.695 12.865, 77.685 12.865, 77.685 12.855))",
+            },
+            {
+                "code": "EC-04",
+                "name": "Main Junction Corridor (EPIC Area) [DEMO DATA]",
+                "description": "DEMO DATA: Central ELCIA municipal hub and traffic management intersection.",
+                "geometry": "POLYGON((77.675 12.840, 77.688 12.840, 77.688 12.850, 77.675 12.850, 77.675 12.840))",
+            },
+        ]
 
-            # Verify PostGIS extension if available
-            try:
-                postgis_version = connection.execute(text("SELECT PostGIS_Version();")).scalar()
-                print(f"[CivicPulse DB] PostGIS Extension enabled. Version: {postgis_version}")
-            except Exception:
-                print("[CivicPulse DB] Notice: PostGIS extension not yet created or queried.")
+        seeded_zones = {}
+        for zdef in zones_data:
+            existing = get_zone(db, zdef["code"])
+            if existing:
+                print(f"  [SKIP] Zone '{zdef['code']}' already exists.")
+                seeded_zones[zdef["code"]] = existing
+            else:
+                zone = create_zone(
+                    db=db,
+                    code=zdef["code"],
+                    name=zdef["name"],
+                    description=zdef["description"],
+                    geometry=zdef["geometry"],
+                )
+                print(f"  [CREATED] Zone '{zone.code}' ({zone.name})")
+                seeded_zones[zdef["code"]] = zone
 
-            # Create registered tables
-            print("[CivicPulse DB] Creating table schemas via SQLAlchemy metadata...")
-            Base.metadata.create_all(bind=connection)
-            connection.commit()
-            print("[CivicPulse DB] Schema initialization complete.")
+        print("\n--- Seeding Demo System Users ---")
+        users_data = [
+            {
+                "name": "Admin User",
+                "email": "admin@elcia.in",
+                "role": UserRole.ADMIN,
+                "is_active": True,
+            },
+            {
+                "name": "Control Room Operator",
+                "email": "operator@elcia.in",
+                "role": UserRole.OPERATOR,
+                "is_active": True,
+            },
+            {
+                "name": "Field Inspector Alpha",
+                "email": "inspector@elcia.in",
+                "role": UserRole.INSPECTOR,
+                "is_active": True,
+            },
+        ]
 
-    except Exception as exc:
-        print(f"[CivicPulse DB ERROR] Could not connect to database: {exc}")
-        print("[CivicPulse DB] Please verify your PostgreSQL connection in .env or environment variables.")
+        seeded_users = {}
+        for udef in users_data:
+            existing = get_user(db, udef["email"])
+            if existing:
+                print(f"  [SKIP] User '{udef['email']}' already exists.")
+                seeded_users[udef["email"]] = existing
+            else:
+                user = create_user(
+                    db=db,
+                    name=udef["name"],
+                    email=udef["email"],
+                    role=udef["role"],
+                    is_active=udef["is_active"],
+                )
+                print(f"  [CREATED] User '{user.email}' ({user.role})")
+                seeded_users[udef["email"]] = user
+
+        print("\n--- Seeding Demo Incidents & Sub-resources ---")
+        now = datetime.now(timezone.utc)
+
+        incidents_data = [
+            {
+                "incident_code": "INC-DEMO-001",
+                "incident_type": IncidentType.WATERLOGGING,
+                "confidence": 0.95,
+                "severity_score": 8.5,
+                "priority": PriorityLevel.P1,
+                "zone_code": "EC-01",
+                "status": IncidentStatus.IN_PROGRESS,
+                "started_at": now - timedelta(hours=4),
+                "recommended_action": "DEMO: Deploy 15HP mobile dewatering pump to clear Hosur Road underpass.",
+                "location": "POINT(77.6750 12.8420)",
+                "detections": [
+                    {
+                        "detection_type": "waterlogging",
+                        "confidence": 0.95,
+                        "frame_number": 120,
+                        "detected_at": now - timedelta(hours=4),
+                        "location": "POINT(77.6750 12.8420)",
+                        "detection_metadata": {"is_demo": True, "bbox": [100, 200, 450, 600], "water_depth_cm_est": 25.0},
+                    },
+                    {
+                        "detection_type": "waterlogging",
+                        "confidence": 0.96,
+                        "frame_number": 180,
+                        "detected_at": now - timedelta(hours=3, minutes=30),
+                        "location": "POINT(77.6751 12.8421)",
+                        "detection_metadata": {"is_demo": True, "bbox": [110, 205, 460, 610], "water_depth_cm_est": 28.5},
+                    },
+                ],
+                "evidence": [
+                    {
+                        "evidence_type": EvidenceType.IMAGE,
+                        "file_path": "outputs/evidence/demo_waterlogging_ec01.jpg",
+                        "description": "DEMO: Underpass waterlogging snapshot",
+                        "is_primary": True,
+                    },
+                    {
+                        "evidence_type": EvidenceType.VIDEO,
+                        "file_path": "outputs/evidence/demo_waterlogging_ec01.mp4",
+                        "description": "DEMO: Traffic slowdown CCTV recording clip",
+                        "is_primary": False,
+                    },
+                ],
+                "assignments": [
+                    {
+                        "assigned_to_email": "operator@elcia.in",
+                        "assigned_team": "Monsoon Quick Response Team 1",
+                        "notes": "DEMO: High priority underpass dewatering dispatch.",
+                    }
+                ],
+                "status_history": [
+                    {
+                        "old_status": None,
+                        "new_status": IncidentStatus.DETECTED,
+                        "changed_by_email": None,
+                        "comment": "DEMO: System auto-detected waterlogging event.",
+                        "changed_at": now - timedelta(hours=4),
+                    },
+                    {
+                        "old_status": IncidentStatus.DETECTED,
+                        "new_status": IncidentStatus.VERIFIED,
+                        "changed_by_email": "operator@elcia.in",
+                        "comment": "DEMO: Control room operator verified CCTV feed.",
+                        "changed_at": now - timedelta(hours=3, minutes=45),
+                    },
+                    {
+                        "old_status": IncidentStatus.VERIFIED,
+                        "new_status": IncidentStatus.ASSIGNED,
+                        "changed_by_email": "operator@elcia.in",
+                        "comment": "DEMO: Dispatched Response Team 1.",
+                        "changed_at": now - timedelta(hours=3, minutes=30),
+                    },
+                    {
+                        "old_status": IncidentStatus.ASSIGNED,
+                        "new_status": IncidentStatus.IN_PROGRESS,
+                        "changed_by_email": "operator@elcia.in",
+                        "comment": "DEMO: Dewatering pump active on site.",
+                        "changed_at": now - timedelta(hours=2),
+                    },
+                ],
+                "inspections": [],
+            },
+            {
+                "incident_code": "INC-DEMO-002",
+                "incident_type": IncidentType.POTHOLE,
+                "confidence": 0.88,
+                "severity_score": 6.2,
+                "priority": PriorityLevel.P2,
+                "zone_code": "EC-02",
+                "status": IncidentStatus.VERIFIED,
+                "started_at": now - timedelta(hours=12),
+                "recommended_action": "DEMO: Apply cold mix asphalt patch and place safety hazard cones.",
+                "location": "POINT(77.6820 12.8510)",
+                "detections": [
+                    {
+                        "detection_type": "pothole",
+                        "confidence": 0.88,
+                        "frame_number": 45,
+                        "detected_at": now - timedelta(hours=12),
+                        "location": "POINT(77.6820 12.8510)",
+                        "detection_metadata": {"is_demo": True, "bbox": [200, 300, 320, 420], "estimated_diameter_cm": 45.0},
+                    }
+                ],
+                "evidence": [
+                    {
+                        "evidence_type": EvidenceType.IMAGE,
+                        "file_path": "outputs/evidence/demo_pothole_ec02.jpg",
+                        "description": "DEMO: Neeladri road pothole visual evidence",
+                        "is_primary": True,
+                    }
+                ],
+                "assignments": [],
+                "status_history": [
+                    {
+                        "old_status": None,
+                        "new_status": IncidentStatus.DETECTED,
+                        "changed_by_email": None,
+                        "comment": "DEMO: Automatic detection logged.",
+                        "changed_at": now - timedelta(hours=12),
+                    },
+                    {
+                        "old_status": IncidentStatus.DETECTED,
+                        "new_status": IncidentStatus.VERIFIED,
+                        "changed_by_email": "inspector@elcia.in",
+                        "comment": "DEMO: Field inspector verified pothole dimension.",
+                        "changed_at": now - timedelta(hours=10),
+                    },
+                ],
+                "inspections": [],
+            },
+            {
+                "incident_code": "INC-DEMO-003",
+                "incident_type": IncidentType.DRAINAGE_OVERFLOW,
+                "confidence": 0.92,
+                "severity_score": 9.1,
+                "priority": PriorityLevel.P1,
+                "zone_code": "EC-03",
+                "status": IncidentStatus.ASSIGNED,
+                "started_at": now - timedelta(hours=2),
+                "recommended_action": "DEMO: Deploy excavator to clear heavy silt and trash accumulation blocking culvert exit.",
+                "location": "POINT(77.6910 12.8630)",
+                "detections": [
+                    {
+                        "detection_type": "drainage_overflow",
+                        "confidence": 0.92,
+                        "frame_number": 88,
+                        "detected_at": now - timedelta(hours=2),
+                        "location": "POINT(77.6910 12.8630)",
+                        "detection_metadata": {"is_demo": True, "bbox": [150, 180, 480, 520], "overflow_rate_est": "HIGH"},
+                    }
+                ],
+                "evidence": [
+                    {
+                        "evidence_type": EvidenceType.IMAGE,
+                        "file_path": "outputs/evidence/demo_drainage_ec03.jpg",
+                        "description": "DEMO: Drainage culvert overflow evidence",
+                        "is_primary": True,
+                    }
+                ],
+                "assignments": [
+                    {
+                        "assigned_to_email": "operator@elcia.in",
+                        "assigned_team": "Heavy Drainage Equipment Clearance Crew B",
+                        "notes": "DEMO: Immediate silt removal dispatch.",
+                    }
+                ],
+                "status_history": [
+                    {
+                        "old_status": None,
+                        "new_status": IncidentStatus.DETECTED,
+                        "changed_by_email": None,
+                        "comment": "DEMO: System auto-detected overflow.",
+                        "changed_at": now - timedelta(hours=2),
+                    },
+                    {
+                        "old_status": IncidentStatus.DETECTED,
+                        "new_status": IncidentStatus.ASSIGNED,
+                        "changed_by_email": "admin@elcia.in",
+                        "comment": "DEMO: Emergency clearance assigned.",
+                        "changed_at": now - timedelta(hours=1, minutes=30),
+                    },
+                ],
+                "inspections": [],
+            },
+            {
+                "incident_code": "INC-DEMO-004",
+                "incident_type": IncidentType.WATERLOGGING,
+                "confidence": 0.82,
+                "severity_score": 4.5,
+                "priority": PriorityLevel.P3,
+                "zone_code": "EC-04",
+                "status": IncidentStatus.CLOSED,
+                "started_at": now - timedelta(days=1, hours=6),
+                "ended_at": now - timedelta(hours=5),
+                "duration_seconds": 75600.0,
+                "recommended_action": "DEMO: Cleared water accumulation verified by field inspector.",
+                "location": "POINT(77.6850 12.8460)",
+                "detections": [
+                    {
+                        "detection_type": "waterlogging",
+                        "confidence": 0.82,
+                        "frame_number": 15,
+                        "detected_at": now - timedelta(days=1, hours=6),
+                        "location": "POINT(77.6850 12.8460)",
+                        "detection_metadata": {"is_demo": True, "bbox": [50, 100, 200, 300], "water_depth_cm_est": 8.0},
+                    }
+                ],
+                "evidence": [
+                    {
+                        "evidence_type": EvidenceType.IMAGE,
+                        "file_path": "outputs/evidence/demo_waterlogging_ec04.jpg",
+                        "description": "DEMO: Minor puddle at EPIC junction",
+                        "is_primary": True,
+                    }
+                ],
+                "assignments": [],
+                "status_history": [
+                    {
+                        "old_status": None,
+                        "new_status": IncidentStatus.DETECTED,
+                        "changed_by_email": None,
+                        "comment": "DEMO: Detection logged.",
+                        "changed_at": now - timedelta(days=1, hours=6),
+                    },
+                    {
+                        "old_status": IncidentStatus.DETECTED,
+                        "new_status": IncidentStatus.CLOSED,
+                        "changed_by_email": "inspector@elcia.in",
+                        "comment": "DEMO: Resolved naturally via drainage flow.",
+                        "changed_at": now - timedelta(hours=5),
+                    },
+                ],
+                "inspections": [
+                    {
+                        "inspector_email": "inspector@elcia.in",
+                        "result": InspectionResult.RESOLVED,
+                        "notes": "DEMO: Site inspected. Road clear and dry.",
+                        "location": "POINT(77.6850 12.8460)",
+                    }
+                ],
+            },
+        ]
+
+        for idef in incidents_data:
+            existing = get_incident(db, idef["incident_code"])
+            if existing:
+                print(f"  [SKIP] Incident '{idef['incident_code']}' already exists.")
+                incident = existing
+            else:
+                zone = seeded_zones[idef["zone_code"]]
+                incident = create_incident(
+                    db=db,
+                    incident_code=idef["incident_code"],
+                    incident_type=idef["incident_type"],
+                    confidence=idef["confidence"],
+                    severity_score=idef["severity_score"],
+                    priority=idef["priority"],
+                    zone_id=zone.id,
+                    status=idef["status"],
+                    started_at=idef.get("started_at"),
+                    ended_at=idef.get("ended_at"),
+                    duration_seconds=idef.get("duration_seconds"),
+                    recommended_action=idef.get("recommended_action"),
+                    location=idef.get("location"),
+                )
+                print(f"  [CREATED] Incident '{incident.incident_code}' ({incident.incident_type.value})")
+
+            # Seed Detections
+            if not list_incident_detections(db, incident.id):
+                for det in idef.get("detections", []):
+                    create_detection(
+                        db=db,
+                        incident_id=incident.id,
+                        detection_type=det["detection_type"],
+                        confidence=det["confidence"],
+                        frame_number=det.get("frame_number"),
+                        detected_at=det.get("detected_at"),
+                        location=det.get("location"),
+                        detection_metadata=det.get("detection_metadata"),
+                    )
+                print(f"    - Added {len(idef.get('detections', []))} frame detections")
+
+            # Seed Evidence
+            if not list_incident_evidence(db, incident.id):
+                for ev in idef.get("evidence", []):
+                    create_evidence(
+                        db=db,
+                        incident_id=incident.id,
+                        evidence_type=ev["evidence_type"],
+                        file_path=ev["file_path"],
+                        description=ev.get("description"),
+                        is_primary=ev.get("is_primary", False),
+                    )
+                print(f"    - Added {len(idef.get('evidence', []))} evidence assets")
+
+            # Seed Assignments
+            if not get_incident_assignments(db, incident.id):
+                for asgn in idef.get("assignments", []):
+                    assignee = seeded_users[asgn["assigned_to_email"]]
+                    create_assignment(
+                        db=db,
+                        incident_id=incident.id,
+                        assigned_to=assignee.id,
+                        assigned_team=asgn.get("assigned_team"),
+                        notes=asgn.get("notes"),
+                    )
+                print(f"    - Added {len(idef.get('assignments', []))} team assignments")
+
+            # Seed Status History
+            if not list_incident_status_history(db, incident.id):
+                for sh in idef.get("status_history", []):
+                    cb_user = seeded_users[sh["changed_by_email"]] if sh.get("changed_by_email") else None
+                    create_status_history(
+                        db=db,
+                        incident_id=incident.id,
+                        old_status=sh.get("old_status"),
+                        new_status=sh["new_status"],
+                        changed_by=cb_user.id if cb_user else None,
+                        comment=sh.get("comment"),
+                        changed_at=sh.get("changed_at"),
+                    )
+                print(f"    - Added {len(idef.get('status_history', []))} status history audit entries")
+
+            # Seed Inspections
+            if not list_incident_inspections(db, incident.id):
+                for insp in idef.get("inspections", []):
+                    inspector = seeded_users[insp["inspector_email"]]
+                    create_inspection(
+                        db=db,
+                        incident_id=incident.id,
+                        inspector_id=inspector.id,
+                        result=insp["result"],
+                        notes=insp.get("notes"),
+                        location=insp.get("location"),
+                    )
+                print(f"    - Added {len(idef.get('inspections', []))} field inspection records")
+
+        print("\n[SUCCESS] Database successfully seeded with Electronics City DEMO DATA!")
+
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":
