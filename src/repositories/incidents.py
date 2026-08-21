@@ -1,0 +1,162 @@
+"""
+src/repositories/incidents.py
+Repository functions for Incident entity management.
+"""
+
+import uuid
+from datetime import datetime
+from typing import Optional, List, Union, Any
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from src.db.models.incident import Incident
+from src.db.models.history import IncidentStatusHistory
+from src.db.models.enums import IncidentType, PriorityLevel, IncidentStatus
+
+
+def parse_uuid(val: Union[uuid.UUID, str]) -> Optional[uuid.UUID]:
+    if isinstance(val, uuid.UUID):
+        return val
+    try:
+        return uuid.UUID(str(val))
+    except ValueError:
+        return None
+
+
+def create_incident(
+    db: Session,
+    incident_code: str,
+    incident_type: IncidentType,
+    confidence: float,
+    severity_score: float,
+    priority: PriorityLevel,
+    zone_id: Union[uuid.UUID, str],
+    status: IncidentStatus = IncidentStatus.DETECTED,
+    started_at: Optional[datetime] = None,
+    ended_at: Optional[datetime] = None,
+    duration_seconds: Optional[float] = None,
+    recommended_action: Optional[str] = None,
+    location: Optional[Any] = None,
+) -> Incident:
+    """Create a new civic incident record."""
+    zid = parse_uuid(zone_id) or zone_id
+    incident = Incident(
+        incident_code=incident_code,
+        incident_type=incident_type,
+        confidence=confidence,
+        severity_score=severity_score,
+        priority=priority,
+        zone_id=zid,
+        status=status,
+        ended_at=ended_at,
+        duration_seconds=duration_seconds,
+        recommended_action=recommended_action,
+        location=location,
+    )
+    if started_at is not None:
+        incident.started_at = started_at
+
+    try:
+        db.add(incident)
+        db.commit()
+        db.refresh(incident)
+        return incident
+    except Exception:
+        db.rollback()
+        raise
+
+
+def get_incident(db: Session, incident_id: Union[uuid.UUID, str]) -> Optional[Incident]:
+    """Get incident by primary key UUID or incident_code."""
+    uid = parse_uuid(incident_id)
+    if uid:
+        stmt = select(Incident).where(Incident.id == uid)
+        result = db.scalars(stmt).first()
+        if result:
+            return result
+    stmt = select(Incident).where(Incident.incident_code == str(incident_id))
+    return db.scalars(stmt).first()
+
+
+def list_incidents(
+    db: Session,
+    zone_id: Optional[Union[uuid.UUID, str]] = None,
+    status: Optional[IncidentStatus] = None,
+    priority: Optional[PriorityLevel] = None,
+    incident_type: Optional[IncidentType] = None,
+    skip: int = 0,
+    limit: int = 100,
+) -> List[Incident]:
+    """List incidents with multi-criteria filtering and pagination."""
+    stmt = select(Incident)
+    if zone_id is not None:
+        zid = parse_uuid(zone_id) or zone_id
+        stmt = stmt.where(Incident.zone_id == zid)
+    if status is not None:
+        stmt = stmt.where(Incident.status == status)
+    if priority is not None:
+        stmt = stmt.where(Incident.priority == priority)
+    if incident_type is not None:
+        stmt = stmt.where(Incident.incident_type == incident_type)
+
+    stmt = stmt.offset(skip).limit(limit)
+    return list(db.scalars(stmt).all())
+
+
+def update_incident(
+    db: Session,
+    incident_id: Union[uuid.UUID, str],
+    **kwargs: Any,
+) -> Optional[Incident]:
+    """Update fields on an existing incident."""
+    incident = get_incident(db, incident_id)
+    if not incident:
+        return None
+
+    try:
+        for key, value in kwargs.items():
+            if hasattr(incident, key) and key not in ("id", "created_at"):
+                if key == "zone_id" and value is not None:
+                    value = parse_uuid(value) or value
+                setattr(incident, key, value)
+        db.commit()
+        db.refresh(incident)
+        return incident
+    except Exception:
+        db.rollback()
+        raise
+
+
+def update_incident_status(
+    db: Session,
+    incident_id: Union[uuid.UUID, str],
+    status: IncidentStatus,
+    changed_by: Optional[Union[uuid.UUID, str]] = None,
+    comment: Optional[str] = None,
+) -> Optional[Incident]:
+    """Update status of an incident and append audit log entry in history."""
+    incident = get_incident(db, incident_id)
+    if not incident:
+        return None
+
+    old_status = incident.status
+    incident.status = status
+
+    cb_user_id = parse_uuid(changed_by) if changed_by is not None else None
+
+    history_entry = IncidentStatusHistory(
+        incident_id=incident.id,
+        old_status=old_status,
+        new_status=status,
+        changed_by=cb_user_id,
+        comment=comment,
+    )
+
+    try:
+        db.add(history_entry)
+        db.commit()
+        db.refresh(incident)
+        return incident
+    except Exception:
+        db.rollback()
+        raise

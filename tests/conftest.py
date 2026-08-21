@@ -35,6 +35,38 @@ TestingSessionLocal = sessionmaker(
 )
 
 
+# Register dummy SpatiaLite SQL functions for SQLite unit testing
+from sqlalchemy import event
+
+
+@event.listens_for(test_engine, "connect")
+def _register_sqlite_spatial_udfs(dbapi_connection, connection_record):
+    def dummy_spatial_udf(*args):
+        if not args:
+            return None
+        return args[0]
+
+    spatial_funcs = [
+        "GeomFromEWKT",
+        "GeomFromText",
+        "GeomFromWKB",
+        "AsEWKB",
+        "AsText",
+        "AsBinary",
+        "ST_AsText",
+        "ST_GeomFromText",
+        "ST_GeomFromEWKT",
+        "ST_WKBToSQL",
+        "ST_AsBinary",
+        "SetSRID",
+    ]
+    for func_name in spatial_funcs:
+        try:
+            dbapi_connection.create_function(func_name, -1, dummy_spatial_udf)
+        except Exception:
+            pass
+
+
 # Disable SpatiaLite C extension function calls during SQLite unit testing
 try:
     import geoalchemy2.admin.dialects.sqlite
@@ -43,6 +75,7 @@ try:
     geoalchemy2.admin.dialects.sqlite.after_drop = lambda *args, **kwargs: None
 except Exception:
     pass
+
 
 
 @pytest.fixture(scope="session", autouse=True)
