@@ -1,0 +1,8 @@
+# configs/custom_bytetrack.yaml
+tracker_type: bytetrack
+track_high_thresh: 0.20    # Threshold for first-round association (picks up distant hazards)
+track_low_thresh: 0.08     # Threshold for second-round recovery (keeps weak detections alive)
+new_track_thresh: 0.22     # Minimum score required to initialize a new ID
+track_buffer: 60           # Retain lost tracks for 60 frames (~2 seconds at 30 FPS)
+match_thresh: 0.70         # IoU overlap matching threshold
+fuse_score: True           # Fuse detection confidence with track confidence

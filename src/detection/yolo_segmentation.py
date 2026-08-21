@@ -1,7 +1,7 @@
 """
 src/detection/yolo_segmentation.py
-Handles loading the YOLOv8-seg model, inference, ByteTrack persistence,
-and drawing bounding boxes/polygons on frames.
+Handles YOLOv8-seg model inference, custom ByteTrack tracking,
+and smooth visualization overlays.
 """
 import cv2
 import numpy as np
@@ -12,13 +12,17 @@ class YOLOSegmentor:
     def __init__(
         self,
         model_path: str = "models/production/civicpulse_best.pt",
-        conf_threshold: float = 0.35,
+        conf_threshold: float = 0.20,     # Lowered from 0.35 to catch distant hazards
         iou_threshold: float = 0.45,
+        imgsz: int = 640,                 # Set to 1280 for maximum range if needed
+        tracker_config: str = "configs/custom_bytetrack.yaml",
         target_classes: Optional[Dict[int, str]] = None,
     ):
         self.model_path = model_path
         self.conf_threshold = conf_threshold
         self.iou_threshold = iou_threshold
+        self.imgsz = imgsz
+        self.tracker_config = tracker_config
         self.target_classes = target_classes or {
             0: "waterlogging",
             1: "pothole",
@@ -45,7 +49,6 @@ class YOLOSegmentor:
             conf = float(box.conf[0].item())
             xyxy = box.xyxy[0].cpu().numpy().tolist()
 
-            # Extract persistent tracking ID if available
             track_id = int(box.id[0].item()) if (box.id is not None) else None
 
             cls_name = self.target_classes.get(
@@ -63,7 +66,6 @@ class YOLOSegmentor:
                     mask_polygon = polygon_points
                     mask_area_pixels = float(cv2.contourArea(polygon_points))
 
-                    # Calculate precise centroid from mask moments
                     M = cv2.moments(polygon_points)
                     if M["m00"] != 0:
                         centroid = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
@@ -85,24 +87,24 @@ class YOLOSegmentor:
         return detections
 
     def track_frame(self, frame: np.ndarray, persist: bool = True) -> List[Dict[str, Any]]:
-        """Continuous multi-object tracking across video frames."""
+        """Continuous tracking with the custom ByteTrack config."""
         h, w = frame.shape[:2]
         results = self.model.track(
             source=frame,
             persist=persist,
-            tracker="bytetrack.yaml",
+            tracker=self.tracker_config,
             conf=self.conf_threshold,
             iou=self.iou_threshold,
+            imgsz=self.imgsz,
             verbose=False,
         )
         return self._parse_results(results, h, w)
 
     def draw_detections(self, frame: np.ndarray, detections: List[Dict[str, Any]]) -> np.ndarray:
-        """Overlays bounding boxes, polygons, and telemetry data onto the frame."""
         annotated = frame.copy()
         color_palette = {
-            "waterlogging": (235, 150, 50), # Blue-ish
-            "pothole": (40, 50, 230),       # Red-ish
+            "waterlogging": (235, 150, 50),
+            "pothole": (40, 50, 230),
         }
         default_color = (0, 255, 0)
 
@@ -113,19 +115,16 @@ class YOLOSegmentor:
             x1, y1, x2, y2 = [int(v) for v in det["bbox"]]
             color = color_palette.get(cls_name.lower(), default_color)
 
-            # Draw transparent polygon mask
             if det["mask_polygon"] is not None:
                 overlay = annotated.copy()
                 cv2.fillPoly(overlay, [det["mask_polygon"]], color=color)
                 cv2.addWeighted(overlay, 0.4, annotated, 0.6, 0, annotated)
                 cv2.polylines(annotated, [det["mask_polygon"]], isClosed=True, color=color, thickness=2)
 
-            # Draw bounding box and centroid
             cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 2)
             cx, cy = det["centroid"]
             cv2.circle(annotated, (cx, cy), 4, (0, 255, 255), -1)
 
-            # Draw label background and text
             id_prefix = f"ID #{track_id} | " if track_id is not None else ""
             label = f"{id_prefix}{cls_name.upper()} {conf:.2f}"
             (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)

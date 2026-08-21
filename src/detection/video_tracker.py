@@ -1,7 +1,7 @@
 """
 src/detection/video_tracker.py
 Orchestrates the YOLOSegmentor, DepthEstimator, and SeverityAnalyzer.
-Reads video feeds and logs comprehensive 3D hazard telemetry.
+Optimized for Drone Footage: Immediate capture with area-based noise filtering.
 """
 import cv2
 import json
@@ -25,6 +25,9 @@ class HazardVideoPipeline:
         # State tracking
         self.logged_hazard_ids = set()
         self.telemetry_log = []
+        
+        # Drone Optimization: Minimum pixel area to filter out camera noise/glitches
+        self.min_area_pixels = 150 
 
     def process_video(self, video_path: str, output_video_path: str = "outputs/demo_tracked_output.mp4"):
         cap = cv2.VideoCapture(video_path)
@@ -40,7 +43,7 @@ class HazardVideoPipeline:
         out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
 
         frame_idx = 0
-        print(f"[INFO] Starting end-to-end pipeline on: {video_path}...")
+        print(f"[INFO] Starting Drone-Optimized Pipeline on: {video_path}...")
 
         while cap.isOpened():
             ret, frame = cap.read()
@@ -49,47 +52,52 @@ class HazardVideoPipeline:
             
             frame_idx += 1
             
-            # 1. Get tracked detections and draw standard annotations
+            # Get tracked detections and draw standard annotations
             detections = self.segmentor.track_frame(frame, persist=True)
             annotated_frame = self.segmentor.draw_detections(frame, detections)
 
             for det in detections:
                 track_id = det["track_id"]
                 poly = det["mask_polygon"]
+                area = det["mask_area_px"]
 
-                # 2. If it is a newly discovered hazard with a valid ID and mask
-                if track_id is not None and poly is not None and track_id not in self.logged_hazard_ids:
-                    self.logged_hazard_ids.add(track_id)
+                # Check for valid ID, mask, AND that it is larger than our noise filter
+                if track_id is not None and poly is not None and area > self.min_area_pixels:
                     
-                    # 3. Compute Depth and Severity
-                    depth_map = self.depth_estimator.estimate_depth(frame)
-                    metrics = self.severity_analyzer.calculate_hazard_severity(poly, depth_map, frame.shape)
-                    
-                    # 4. Extract Evidence Snapshot (Saved without bounding boxes for pure evidence)
-                    evidence_filename = f"hazard_{track_id}_{metrics['risk_level']}.jpg"
-                    evidence_filepath = self.evidence_dir / evidence_filename
-                    cv2.imwrite(str(evidence_filepath), frame)
+                    # If we haven't analyzed this hazard yet, do it IMMEDIATELY
+                    if track_id not in self.logged_hazard_ids:
+                        self.logged_hazard_ids.add(track_id)
+                        
+                        # Compute Depth and Severity (This slows down processing to ensure accuracy)
+                        depth_map = self.depth_estimator.estimate_depth(frame)
+                        metrics = self.severity_analyzer.calculate_hazard_severity(poly, depth_map, frame.shape)
+                        
+                        # Extract Evidence Snapshot
+                        evidence_filename = f"hazard_{track_id}_{metrics['risk_level']}.jpg"
+                        evidence_filepath = self.evidence_dir / evidence_filename
+                        cv2.imwrite(str(evidence_filepath), frame)
 
-                    # 5. Append to Telemetry Record
-                    log_entry = {
-                        "hazard_id": track_id,
-                        "frame_first_detected": frame_idx,
-                        "class_name": det["class_name"],
-                        "risk_level": metrics["risk_level"],
-                        "severity_score": metrics["severity_score"],
-                        "relative_depth_drop": metrics["relative_depth"],
-                        "area_coverage_pct": metrics["area_percentage"],
-                        "evidence_file": evidence_filename
-                    }
-                    self.telemetry_log.append(log_entry)
-                    print(f"[ALERT] New {det['class_name'].upper()} (ID: {track_id}) | Severity: {metrics['severity_score']}/100 [{metrics['risk_level']}]")
+                        # Append to Telemetry Record
+                        log_entry = {
+                            "hazard_id": track_id,
+                            "frame_logged": frame_idx,
+                            "class_name": det["class_name"],
+                            "risk_level": metrics["risk_level"],
+                            "severity_score": metrics["severity_score"],
+                            "relative_depth_drop": metrics["relative_depth"],
+                            "area_coverage_pct": metrics["area_percentage"],
+                            "mask_pixels": area,
+                            "evidence_file": evidence_filename
+                        }
+                        self.telemetry_log.append(log_entry)
+                        print(f"[DRONE CAPTURE] {det['class_name'].upper()} (ID: {track_id}) | Area: {area}px | Sev: {metrics['severity_score']}/100")
 
-                    # Draw Severity Label next to standard YOLO label
+                # Draw a "Logged" marker on the video if we successfully recorded it
+                if track_id in self.logged_hazard_ids:
                     x, y = int(det["bbox"][0]), int(det["bbox"][1])
-                    cv2.putText(annotated_frame, f"Sev: {metrics['severity_score']}", 
+                    cv2.putText(annotated_frame, f"Logged", 
                                 (x, max(35, y + 15)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
-            # Write fully processed frame to output video
             out.write(annotated_frame)
 
         cap.release()
@@ -102,5 +110,4 @@ class HazardVideoPipeline:
 
         print(f"\n[COMPLETE] Video Processing Finished.")
         print(f" - Exported Video: {output_video_path}")
-        print(f" - Telemetry Data: {json_path}")
-        print(f" - Evidence Logged: {len(self.telemetry_log)} unique hazards found.")
+        print(f" - Evidence Logged: {len(self.telemetry_log)} accurate hazards found.")
