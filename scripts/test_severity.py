@@ -18,7 +18,7 @@ def main():
 
     # 1. Run detection (using existing checkpoint)
     # Using your currently available model weights
-    model = YOLO("runs/segment/civicpulse_v2_model/weights/last.pt")
+    model = YOLO("models/civicpulse_best.pt")
     results = model(frame, conf=0.15)[0]
 
     # 2. Run depth estimation

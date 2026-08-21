@@ -1,3 +1,8 @@
+"""
+src/detection/yolo_segmentation.py
+Handles loading the YOLOv8-seg model, inference, ByteTrack persistence,
+and drawing bounding boxes/polygons on frames.
+"""
 import cv2
 import numpy as np
 from ultralytics import YOLO
@@ -6,8 +11,8 @@ from typing import List, Dict, Any, Optional
 class YOLOSegmentor:
     def __init__(
         self,
-        model_path: str = "models/checkpoints/civicpulse_best.pt",
-        conf_threshold: float = 0.05,
+        model_path: str = "models/production/civicpulse_best.pt",
+        conf_threshold: float = 0.35,
         iou_threshold: float = 0.45,
         target_classes: Optional[Dict[int, str]] = None,
     ):
@@ -22,7 +27,7 @@ class YOLOSegmentor:
         self.model = YOLO(self.model_path)
 
     def _parse_results(self, results, h: int, w: int) -> List[Dict[str, Any]]:
-        """Helper method to parse YOLO boxes, masks, and tracking IDs."""
+        """Parses YOLO boxes, masks, and tracking IDs into a clean dictionary list."""
         detections = []
         if not results or len(results) == 0:
             return detections
@@ -58,6 +63,7 @@ class YOLOSegmentor:
                     mask_polygon = polygon_points
                     mask_area_pixels = float(cv2.contourArea(polygon_points))
 
+                    # Calculate precise centroid from mask moments
                     M = cv2.moments(polygon_points)
                     if M["m00"] != 0:
                         centroid = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
@@ -78,17 +84,6 @@ class YOLOSegmentor:
 
         return detections
 
-    def infer_frame(self, frame: np.ndarray) -> List[Dict[str, Any]]:
-        """Static single-frame inference without tracking."""
-        h, w = frame.shape[:2]
-        results = self.model.predict(
-            source=frame,
-            conf=self.conf_threshold,
-            iou=self.iou_threshold,
-            verbose=False,
-        )
-        return self._parse_results(results, h, w)
-
     def track_frame(self, frame: np.ndarray, persist: bool = True) -> List[Dict[str, Any]]:
         """Continuous multi-object tracking across video frames."""
         h, w = frame.shape[:2]
@@ -102,17 +97,12 @@ class YOLOSegmentor:
         )
         return self._parse_results(results, h, w)
 
-    def draw_detections(
-        self,
-        frame: np.ndarray,
-        detections: List[Dict[str, Any]],
-        show_masks: bool = True,
-        show_centroids: bool = True,
-    ) -> np.ndarray:
+    def draw_detections(self, frame: np.ndarray, detections: List[Dict[str, Any]]) -> np.ndarray:
+        """Overlays bounding boxes, polygons, and telemetry data onto the frame."""
         annotated = frame.copy()
         color_palette = {
-            "waterlogging": (235, 150, 50),
-            "pothole": (40, 50, 230),
+            "waterlogging": (235, 150, 50), # Blue-ish
+            "pothole": (40, 50, 230),       # Red-ish
         }
         default_color = (0, 255, 0)
 
@@ -123,32 +113,24 @@ class YOLOSegmentor:
             x1, y1, x2, y2 = [int(v) for v in det["bbox"]]
             color = color_palette.get(cls_name.lower(), default_color)
 
-            if show_masks and det["mask_polygon"] is not None:
+            # Draw transparent polygon mask
+            if det["mask_polygon"] is not None:
                 overlay = annotated.copy()
                 cv2.fillPoly(overlay, [det["mask_polygon"]], color=color)
                 cv2.addWeighted(overlay, 0.4, annotated, 0.6, 0, annotated)
                 cv2.polylines(annotated, [det["mask_polygon"]], isClosed=True, color=color, thickness=2)
 
+            # Draw bounding box and centroid
             cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 2)
+            cx, cy = det["centroid"]
+            cv2.circle(annotated, (cx, cy), 4, (0, 255, 255), -1)
 
-            if show_centroids:
-                cx, cy = det["centroid"]
-                cv2.circle(annotated, (cx, cy), 4, (0, 255, 255), -1)
-
-            # Display Track ID if available
+            # Draw label background and text
             id_prefix = f"ID #{track_id} | " if track_id is not None else ""
-            label = f"{id_prefix}{cls_name.upper()} {conf:.2f} (Cov: {det['coverage_ratio']:.1%})"
+            label = f"{id_prefix}{cls_name.upper()} {conf:.2f}"
             (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
             cv2.rectangle(annotated, (x1, max(0, y1 - 22)), (x1 + tw + 6, max(0, y1)), color, -1)
-            cv2.putText(
-                annotated,
-                label,
-                (x1 + 3, max(15, y1 - 6)),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
-                (255, 255, 255),
-                1,
-                cv2.LINE_AA,
-            )
+            cv2.putText(annotated, label, (x1 + 3, max(15, y1 - 6)), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
 
         return annotated

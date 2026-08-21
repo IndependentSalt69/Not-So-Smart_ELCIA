@@ -21,7 +21,13 @@ runs/
 *.pt
 !models/checkpoints/.gitkeep
 
-# Output Artefacts (Evidence & Predictions)
-outputs/evidence/*.jpg
-outputs/predictions/*.jpg
-data/sample/*.png
+# Ignore all generated outputs
+outputs/*
+!outputs/.gitkeep
+
+# Ignore dataset images and heavy test videos
+data/*
+!data/samples/
+data/samples/*
+!data/samples/.gitkeep
+!data/samples/*.txt
