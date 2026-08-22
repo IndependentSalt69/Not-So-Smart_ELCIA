@@ -52,10 +52,11 @@ def create_application() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Include API Routers (both /api/v1 and legacy /api for backwards compatibility)
-    app.include_router(api_router, prefix=settings.API_V1_PREFIX)
-    if settings.API_V1_PREFIX != "/api":
-        app.include_router(api_router, prefix="/api")
+    # Include API Routers (supporting both /api/v1 and /api)
+    app.include_router(api_router, prefix="/api/v1")
+    if settings.API_V1_PREFIX != "/api/v1":
+        app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+    app.include_router(api_router, prefix="/api")
     # Also expose /health at root level for orchestrators/load balancers
     from src.api.routes.health import router as health_router
     app.include_router(health_router)

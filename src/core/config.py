@@ -6,6 +6,7 @@ Application and Database Configuration management using Pydantic Settings.
 from typing import List, Union
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy import URL
 
 
 class Settings(BaseSettings):
@@ -50,10 +51,17 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
     POSTGRES_DB: str = "civicpulse_db"
 
-    # SQLAlchemy 2.x Database URL with psycopg 3 driver
-    DATABASE_URL: str = Field(
-        default="postgresql+psycopg://postgres:postgres@localhost:5432/civicpulse_db"
-    )
+    # SQLAlchemy 2.x Database URL constructed safely via URL.create()
+    @property
+    def DATABASE_URL(self) -> str:
+        return URL.create(
+            drivername="postgresql+psycopg",
+            username=self.POSTGRES_USER,
+            password=self.POSTGRES_PASSWORD,
+            host=self.POSTGRES_HOST,
+            port=self.POSTGRES_PORT,
+            database=self.POSTGRES_DB,
+        ).render_as_string(hide_password=False)
 
     # Storage Settings
     EVIDENCE_DIR: str = "outputs/evidence"
