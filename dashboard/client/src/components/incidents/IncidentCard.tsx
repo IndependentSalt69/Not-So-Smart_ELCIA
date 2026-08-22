@@ -60,7 +60,7 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <span className="font-mono text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                {incident.id}
+                {incident.code || incident.id}
               </span>
               <PriorityBadge priority={incident.priority} />
               <StatusBadge status={incident.status} />
@@ -163,7 +163,7 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <span className="font-mono text-base font-black text-zinc-900 dark:text-zinc-100">
-              {incident.id}
+              {incident.code || incident.id}
             </span>
             <StatusBadge status={incident.status} />
           </div>

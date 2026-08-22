@@ -21,6 +21,7 @@ export default function CivicPulseDashboard() {
     loading: incidentsLoading,
     filters,
     setFilters,
+    getIncidentById,
     verifyIncident,
     rejectIncident,
     assignIncident,
@@ -35,9 +36,18 @@ export default function CivicPulseDashboard() {
     (i) => i.priority === 'P1' && i.status !== 'CLOSED' && i.status !== 'REJECTED'
   ).length;
 
-  const handleSelectIncident = (incident: Incident) => {
+  const handleSelectIncident = async (incident: Incident) => {
     setSelectedIncident(incident);
     setIsDrawerOpen(true);
+
+    try {
+      const fresh = await getIncidentById(incident.id);
+      if (fresh) {
+        setSelectedIncident(fresh);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch fresh detail for incident:', incident.id, err);
+    }
   };
 
   const handleCloseDrawer = () => {

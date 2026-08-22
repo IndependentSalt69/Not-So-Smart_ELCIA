@@ -1,6 +1,6 @@
 import { generateSvgFrame, INITIAL_MOCK_INCIDENTS } from '@/data/mockIncidents';
 import { canTransition } from '@/lib/stateMachine';
-import { api } from '@/services/api';
+import { api, ApiError } from '@/services/api';
 import {
   Incident,
   IncidentFilters,
@@ -49,22 +49,23 @@ export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Inciden
   const severity = item.severity_score;
   const durationSeconds = item.duration_seconds ?? 180;
 
-  const code = item.incident_code || item.id;
+  const displayCode = item.incident_code || item.id;
   const evidenceFrame = generateSvgFrame(
     `${lat.toFixed(4)}N, ${lng.toFixed(4)}E`,
-    code,
+    displayCode,
     false,
     isWater
   );
   const evidenceOverlay = generateSvgFrame(
     `${lat.toFixed(4)}N, ${lng.toFixed(4)}E`,
-    code,
+    displayCode,
     true,
     isWater
   );
 
   return {
-    id: code,
+    id: item.id || item.incident_code, // Prefer actual backend UUID primary key
+    code: item.incident_code || item.id, // Human readable tracking code
     type,
     confidence: item.confidence,
     severity: item.severity_score,
@@ -73,7 +74,7 @@ export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Inciden
     zone: `Electronics City Zone (${item.zone_id ? item.zone_id.slice(0, 8) : 'EC-01'})`,
     zoneId: 'EC-01',
     locationDescription: item.recommended_action
-      ? `${code} - ${isWater ? 'Waterlogging' : 'Pothole'} Hazard`
+      ? `${displayCode} - ${isWater ? 'Waterlogging' : 'Pothole'} Hazard`
       : `Electronics City Arterial Corridor (${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E)`,
     coordinates: { lat, lng },
     durationSeconds,
@@ -259,11 +260,24 @@ export const incidentService = {
   },
 
   /**
-   * Get single incident by ID
+   * Get single incident by ID (UUID or tracking code) from GET /api/v1/incidents/{incident_id}
    */
   async getIncidentById(id: string): Promise<Incident | undefined> {
-    await new Promise((resolve) => setTimeout(resolve, 15));
-    return incidentsState.find((inc) => inc.id === id);
+    try {
+      const item = await api.get<BackendIncidentItem>(`/incidents/${id}`);
+      if (item && (item.id || item.incident_code)) {
+        return mapBackendIncidentToFrontend(item);
+      }
+    } catch (err: any) {
+      if (err instanceof ApiError && err.status === 404) {
+        console.warn(`Incident '${id}' not found on backend API.`);
+      } else {
+        console.warn(`Failed to fetch incident '${id}' from backend API, checking local state:`, err);
+      }
+    }
+
+    // Fallback to local state lookup
+    return incidentsState.find((inc) => inc.id === id || inc.code === id);
   },
 
   /**

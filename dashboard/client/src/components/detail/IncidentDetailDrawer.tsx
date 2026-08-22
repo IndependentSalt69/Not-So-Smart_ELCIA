@@ -47,7 +47,7 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">
               <span className="text-xl font-black font-mono tracking-tight text-zinc-900 dark:text-white">
-                {incident.id}
+                {incident.code || incident.id}
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
                 {isWater ? '🌊 Waterlogging' : '⚠️ Pothole'}

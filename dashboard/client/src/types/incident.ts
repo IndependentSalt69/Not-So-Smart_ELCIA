@@ -32,7 +32,8 @@ export interface IncidentHistoryEntry {
 }
 
 export interface Incident {
-  id: string; // e.g., "EC-0142"
+  id: string; // Backend UUID e.g., "820d5447-eb9f-4264-9e66-995fd147d6a7" or tracking code
+  code?: string; // Tracking code e.g. "TEST-INC-001" or "EC-0142"
   type: IncidentType;
   confidence: number; // 0.0 to 1.0 (e.g. 0.94 -> 94%)
   severity: number; // 0.0 to 10.0
