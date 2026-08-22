@@ -189,7 +189,7 @@ Connect the frontend incident verification / inspection workflow to the live Fas
   - `dashboard/client/src/services/api.ts`
   - `dashboard/client/src/types/incident.ts`
 * **Backend:**
-  - `src/schemas/inspection.py` (Inspected `InspectionCreate` & `InspectionResponse`: `inspector_id`, `result`, `inspection_time`, `notes`, `location`, `evidence_id`)
+  - `src/schemas/inspection.py` (Inspected `InspectionCreate` & `InspectionResponse`)
   - `src/db/models/enums.py` (Confirmed `InspectionResult` enum values: `RESOLVED`, `NOT_RESOLVED`, `PARTIALLY_RESOLVED`)
   - `src/api/routes/incidents.py` (Inspected `POST` & `GET /{incident_id}/inspections`)
   - `src/repositories/inspections.py` (Inspected `create_inspection` and `list_incident_inspections`)
@@ -204,42 +204,35 @@ Connect the frontend incident verification / inspection workflow to the live Fas
   - `dashboard/client/src/hooks/useIncidents.ts` (Exposed `getIncidentInspections` and `createIncidentInspection` helpers)
   - `dashboard/client/src/components/detail/IncidentDetailDrawer.tsx` (Included `<InspectionSection incident={incident} />` inside drawer)
 
-### 4. Endpoints Integrated
-* `GET /api/v1/incidents/{incident_id}/inspections` (Retrieves recorded field inspection reports for an incident)
-* `POST /api/v1/incidents/{incident_id}/inspections` (Records a new field verification result)
+---
 
-### 5. `InspectionResult` Enum Enforcement
-The frontend strictly sends valid backend `InspectionResult` enum values:
-* `RESOLVED`: Field verification confirms municipal hazard completely cleared.
-* `PARTIALLY_RESOLVED`: Mitigation partially complete, follow-up required.
-* `NOT_RESOLVED`: Hazard active, crew re-dispatch required.
+## Phase 8: Frontend Mock Data & Integration Audit
 
-No invalid values (`CONFIRMED`, `VERIFIED`, `SUCCESS`, `FAILED`) are transmitted.
+**Date:** August 23, 2026  
+**Status:** Completed  
 
-### 6. Status Behavior Strategy
-* Creating an inspection via `POST /incidents/{id}/inspections` records the verification entity in PostgreSQL without automatically mutating `Incident.status`.
-* Status transitions (e.g. `CLOSED`) remain explicitly governed by the operator status mutation flow (`PATCH /api/v1/incidents/{id}/status`), strictly obeying backend rules without implicit side effects.
+### 1. Objective
+Perform a comprehensive audit across all 105 TS/TSX files in `dashboard/client/src/` to identify remaining mock data dependencies, `localStorage` usages, hard-coded coordinates, SVG fallbacks, and demo components without making destructive changes prior to final presentation.
 
-### 7. Tests & Commands Executed
-1. **TypeScript Typecheck (`npm run check`):**
-   ```bash
-   npm run check
-   # Result: Exit code 0, 0 type errors.
-   ```
-2. **Phase 7 Integration Verification Script (`npx tsx scratch/verify_phase7.ts`):**
-   ```bash
-   npx tsx scratch/verify_phase7.ts
-   # Output:
-   # 1. Fetching system users GET /api/v1/users/ -> Found 1 user: Backend Test Operator (UUID 941dbac3-c8e7-404d-b5fd-a08cc345379e)
-   # 2. Fetching existing inspections GET /api/v1/incidents/{UUID}/inspections -> Found 2 existing inspection records (Primary: result='RESOLVED')
-   # 3. Creating a RESOLVED inspection POST /api/v1/incidents/{UUID}/inspections -> Backend returned HTTP 201 Created with InspectionResponse ID ac536230-d129-478e-8ae9-b094473db63c
-   # 4. Creating a PARTIALLY_RESOLVED inspection -> Backend returned HTTP 201 Created (result: PARTIALLY_RESOLVED)
-   # 5. Creating a NOT_RESOLVED inspection -> Backend returned HTTP 201 Created (result: NOT_RESOLVED)
-   # 6. Verifying updated inspections list -> Returned 5 total inspection records, latest matches created record
-   # 7. Testing error handling on invalid inspector UUID -> Caught ApiError 404: "Inspector user '00000000-0000-0000-0000-000000000000' not found."
-   # 8. Testing error handling on invalid evidence UUID -> Caught ApiError 404: "Evidence '00000000-0000-0000-0000-000000000000' not found."
-   # 9. Testing error handling on nonexistent incident ID -> Nonexistent incident handled gracefully without crash
-   ```
+### 2. Files Inspected
+* Entire `dashboard/client/src/` codebase (105 TS/TSX files across `data/`, `services/`, `hooks/`, `components/`, `types/`, `contexts/`, `__tests__/`).
 
-### 8. Recommended Next Step
-* All core incident CRUD, status transitions, evidence assets, team assignments, model detection observations, and field inspections are now fully integrated and verified!
+### 3. Search Terms Executed
+* `mock`, `MOCK`, `INITIAL_MOCK`, `mockIncidents`, `mockAnalytics`
+* `localStorage`, `sessionStorage`
+* Hard-coded IDs / UUIDs (`TEST-INC`, `PG-SPATIAL`, `820d5447...`)
+* Hard-coded coordinates (`77.6631`, `12.8452`)
+* `generateSvgFrame`, `generateSvg`
+* `fake`, `demo`, `sample`, `placeholder`, `fallback`, `Traffic Congestion`
+
+### 4. Key Findings & Classifications
+* **Files Searched:** 105 TS/TSX files.
+* **Mock Dependencies Found:** 6 (2 data fixtures, 1 simulation service, 1 renderer fallback, 2 test fixtures).
+* **localStorage Dependencies Found:** 4 keys (`civicpulse_incidents_cache`, `theme`, 2x `civicpulse_gmaps_key`). Zero `sessionStorage`.
+* **Hard-coded Values Found:** 6 items (Google Map ID `"DEMO_MAP_ID"`, default spatial coords `12.8452, 77.6631`, analytics trend/zone fixtures).
+* **Legitimate Fallbacks Identified:** 4 (API offline cache, SVG frame generator for local filesystem evidence paths, default spatial point, Google Maps API key fallback).
+* **Map Data Source:** 100% PostGIS driven from live backend API `GET /api/v1/incidents/`.
+* **Analytics Data Source:** Hybrid (KPI counts generated dynamically from live incident list; historical trend/zone metrics merge from `MOCK_ANALYTICS_DATA`).
+
+### 5. Recommended Next Step
+* Proceed to **Phase 9: Real-Time Analytics Integration** to connect historical trends and zone analytics to live FastAPI backend endpoints, completing 100% backend coverage across all tabs.
