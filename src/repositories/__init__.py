@@ -25,6 +25,7 @@ from src.repositories.incidents import (
 )
 from src.repositories.evidence import (
     create_evidence,
+    get_evidence,
     list_incident_evidence,
 )
 from src.repositories.detections import (
@@ -63,6 +64,7 @@ __all__ = [
     "update_incident_status",
     # EVIDENCE
     "create_evidence",
+    "get_evidence",
     "list_incident_evidence",
     # DETECTIONS
     "create_detection",

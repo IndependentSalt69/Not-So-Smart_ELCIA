@@ -34,6 +34,7 @@ from src.repositories import (
     get_zone as repo_get_zone,
     get_user as repo_get_user,
     create_evidence as repo_create_evidence,
+    get_evidence as repo_get_evidence,
     list_incident_evidence as repo_list_evidence,
     create_detection as repo_create_detection,
     list_incident_detections as repo_list_detections,
@@ -418,6 +419,18 @@ def add_incident_inspection(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Inspector user '{payload.inspector_id}' not found.",
         )
+
+    if payload.evidence_id is not None:
+        evidence = repo_get_evidence(
+            db=db,
+            evidence_id=payload.evidence_id,
+        )
+
+        if not evidence:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Evidence '{payload.evidence_id}' not found.",
+            )
 
     inspection = repo_create_inspection(
         db=db,

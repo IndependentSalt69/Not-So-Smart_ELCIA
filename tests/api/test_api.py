@@ -201,6 +201,18 @@ def test_incidents_and_subresources_api_flow(client: TestClient):
     assert len(as_list.json()) == 1
 
     # 10. Inspections Sub-resource
+    # Test non-existent evidence_id returns 404
+    bad_ev_id = str(uuid.uuid4())
+    bad_insp_payload = {
+        "inspector_id": user_id,
+        "result": "RESOLVED",
+        "notes": "Invalid evidence link",
+        "evidence_id": bad_ev_id,
+    }
+    bad_insp_resp = client.post(f"/api/v1/incidents/{inc_id}/inspections", json=bad_insp_payload)
+    assert bad_insp_resp.status_code == 404
+    assert "Evidence" in bad_insp_resp.json()["detail"]
+
     insp_payload = {
         "inspector_id": user_id,
         "result": "RESOLVED",
