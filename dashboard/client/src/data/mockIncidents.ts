@@ -1,7 +1,7 @@
 import { Incident } from '@/types/incident';
 
 // Realistic SVG inline frames for visual evidence and segmentation overlay
-const generateSvgFrame = (title: string, sub: string, isOverlay: boolean = false, isWater: boolean = true) => {
+export const generateSvgFrame = (title: string, sub: string, isOverlay: boolean = false, isWater: boolean = true) => {
   const bgColor = isOverlay ? '#0f172a' : '#1e293b';
   const overlayColor = isWater ? 'rgba(59, 130, 246, 0.45)' : 'rgba(239, 68, 68, 0.45)';
   const strokeColor = isWater ? '#3b82f6' : '#ef4444';
