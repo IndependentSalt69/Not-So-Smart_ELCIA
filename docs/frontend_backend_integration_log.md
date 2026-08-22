@@ -103,52 +103,78 @@ Connect the frontend `EvidenceViewer` component to the live FastAPI backend endp
   - `dashboard/client/src/hooks/useIncidents.ts` (Exposed `getIncidentEvidence` helper)
   - `dashboard/client/src/components/detail/EvidenceViewer.tsx` (Connected component state to `getIncidentEvidence(incident.id)`, rendering live metadata bar and empty states)
 
-### 4. Endpoint Integrated
-* **Endpoint:** `GET /api/v1/incidents/{incident_id}/evidence`
-* **Request URL Example:** `http://127.0.0.1:8000/api/v1/incidents/820d5447-eb9f-4264-9e66-995fd147d6a7/evidence`
-* **Response Model:** `List[EvidenceResponse]`
+---
 
-### 5. `EvidenceResponse` $\rightarrow$ Frontend `EvidenceAsset` Mapping
-| Backend Field (`EvidenceResponse`) | Frontend Field (`EvidenceAsset`) | Mapping / Notes |
-| :--- | :--- | :--- |
-| `id` | `id` | Evidence UUID. |
-| `incident_id` | `incidentId` | Parent incident UUID. |
-| `evidence_type` | `evidenceType` | Enum (`IMAGE` \| `VIDEO` \| `CLIP`). |
-| `file_path` | `filePath` | Raw stored string (e.g. `outputs/evidence/test-waterlogging.jpg`). |
-| `captured_at` | `capturedAt` | Optional ISO datetime. |
-| `description` | `description` | Optional description string. |
-| `is_primary` | `isPrimary` | Boolean primary asset indicator flag. |
-| `created_at` | `createdAt` | ISO datetime string. |
+## Phase 5: Incident Assignments (`POST` & `GET /api/v1/incidents/{incident_id}/assignments`)
 
-### 6. Browser Accessibility & File Path Handling
-* **Filesystem-relative paths:** The backend returns `file_path = "outputs/evidence/test-waterlogging.jpg"`. Because no static HTTP file server route exists yet on the FastAPI backend, the raw path cannot be directly loaded by browser `<img>` tags (`http://127.0.0.1:8000/outputs/evidence/...` returns 404).
-* **UI Handling Strategy:**
-  - The exact `file_path` string is rendered in an explicit HUD metadata banner (`Path: outputs/evidence/test-waterlogging.jpg`, `Type: IMAGE`, `Primary: true`).
-  - To prevent broken image renders in the browser, the visual canvas preserves the SVG frame preview when `file_path` is a local filesystem path.
-  - If a browser-accessible URL (starting with `http://`, `https://`, or `data:`) is returned, the viewer renders the live image directly.
+**Date:** August 23, 2026  
+**Status:** Completed & Verified  
 
-### 7. Loading, Empty & Error States
-* **Loading:** Displays an active loading indicator (`Fetching backend evidence metadata...`).
-* **Empty State:** If an incident has no evidence (e.g. `PG-SPATIAL-INC01`), displays `No backend evidence assets attached to this incident` chip.
-* **Error Handling:** If `ApiError` 404 or network failure occurs, the catch block logs a warning, returns `[]`, and renders the empty state cleanly without UI crash.
+### 1. Objective
+Connect the frontend `AssignmentSection` component and dispatch flow to the live FastAPI user management endpoint `GET /api/v1/users/` and assignment endpoints (`POST` & `GET /api/v1/incidents/{incident_id}/assignments`) using database UUIDs for users and incidents.
 
-### 8. Tests & Commands Executed
+### 2. Files Inspected
+* **Frontend:**
+  - `dashboard/client/src/components/detail/AssignmentSection.tsx`
+  - `dashboard/client/src/components/detail/IncidentDetailDrawer.tsx`
+  - `dashboard/client/src/components/CivicPulseDashboard.tsx`
+  - `dashboard/client/src/hooks/useIncidents.ts`
+  - `dashboard/client/src/services/incidentService.ts`
+  - `dashboard/client/src/services/api.ts`
+  - `dashboard/client/src/types/incident.ts`
+* **Backend:**
+  - `src/schemas/assignment.py` (Inspected `AssignmentCreate` & `AssignmentResponse`)
+  - `src/schemas/user.py` (Inspected `UserResponse`)
+  - `src/api/routes/incidents.py` (Inspected `POST` & `GET /{incident_id}/assignments`)
+  - `src/api/routes/users.py` (Inspected `GET /api/v1/users/`)
+  - `src/repositories/assignments.py` (Inspected `create_assignment` and `get_incident_assignments`)
+
+### 3. Files Created / Modified
+* **Created:**
+  - `dashboard/scratch/verify_phase5.ts` (Phase 5 assignment integration verification script)
+* **Modified:**
+  - `dashboard/client/src/types/incident.ts` (Added `User`, `Assignment`, `AssignmentCreatePayload` interfaces)
+  - `dashboard/client/src/services/incidentService.ts` (Added `BackendUserItem`, `BackendAssignmentItem` interfaces and implemented `getUsers()`, `createIncidentAssignment()`, `getIncidentAssignments()`, and updated `assignIncident()`)
+  - `dashboard/client/src/hooks/useIncidents.ts` (Exposed `getUsers` and `getIncidentAssignments` helpers)
+  - `dashboard/client/src/components/detail/AssignmentSection.tsx` (Connected component to fetch backend system users for selector dropdown and display existing verified assignments)
+
+### 4. Endpoints Integrated
+* `GET /api/v1/users/` (Fetches active operator users for assignment selection)
+* `POST /api/v1/incidents/{incident_id}/assignments` (Creates an assignment linking incident to operator user & team)
+* `GET /api/v1/incidents/{incident_id}/assignments` (Retrieves existing team/operator assignments for an incident)
+
+### 5. Data Mapping & Schema
+* **User (`UserResponse`):** `id` (UUID), `name`, `email`, `role`, `is_active`.
+* **Assignment Payload (`AssignmentCreate`):**
+  ```json
+  {
+    "assigned_to": "941dbac3-c8e7-404d-b5fd-a08cc345379e",
+    "assigned_team": "ELCIA Stormwater Maintenance Unit",
+    "notes": "Deploy mobile de-watering pump unit"
+  }
+  ```
+* **Assignment Response (`AssignmentResponse`):** `id`, `incident_id`, `assigned_to`, `assigned_team`, `assigned_at`, `notes`.
+
+### 6. Status Behavior Flow
+$$\text{User Clicks Dispatch} \longrightarrow \text{POST /incidents/\{UUID\}/assignments} \longrightarrow \text{HTTP 201 Created} \longrightarrow \text{PATCH /incidents/\{UUID\}/status (to ASSIGNED)} \longrightarrow \text{Update React State}$$
+
+If `POST /assignments` fails (e.g. invalid user UUID), `ApiError` is thrown, status update is aborted, and previous React state is preserved.
+
+### 7. Tests & Commands Executed
 1. **TypeScript Typecheck (`npm run check`):**
    ```bash
    npm run check
    # Result: Exit code 0, 0 type errors.
    ```
-2. **Phase 4 Integration Verification Script (`npx tsx scratch/verify_phase4.ts`):**
+2. **Phase 5 Integration Verification Script (`npx tsx scratch/verify_phase5.ts`):**
    ```bash
-   npx tsx scratch/verify_phase4.ts
+   npx tsx scratch/verify_phase5.ts
    # Output:
-   # 1. Fetching evidence for TEST-INC-001 (UUID 820d5447-eb9f-4264-9e66-995fd147d6a7) -> Evidence Count: 1, Type: IMAGE, Path: outputs/evidence/test-waterlogging.jpg, Description: Backend integration test evidence, Primary: true
-   # 2. Fetching evidence for PG-SPATIAL-INC01 (UUID 6ba7265f-0326-40dd-bcb2-699c7bf4398d) -> Evidence Count: 0 (Empty state verified)
-   # 3. Fetching evidence for NONEXISTENT-99999 -> Caught ApiError 404, Evidence Count: 0 (Graceful error handling)
+   # 1. Fetching available system users GET /api/v1/users/ -> Found 1 user: Backend Test Operator (UUID 941dbac3-c8e7-404d-b5fd-a08cc345379e)
+   # 2. Creating assignment POST /api/v1/incidents/{UUID}/assignments -> Backend returned HTTP 201 Created with AssignmentResponse ID 48d06cd9-e897-45df-88db-5c64b52d84ab
+   # 3. Fetching assignments list GET /api/v1/incidents/{UUID}/assignments -> Returned 3 assignments, latest matches created assignment
+   # 4. Testing invalid user UUID (00000000-0000-0000-0000-000000000000) -> Caught ApiError 404: "User '00000000-0000-0000-0000-000000000000' not found."
    ```
 
-### 9. Known Limitations
-* No static HTTP file serving endpoint currently exists on the FastAPI backend for serving raw local filesystem assets under `outputs/evidence/`.
-
-### 10. Recommended Next Step
-* Proceed to **Phase 5**: Connect field crew & mitigation task assignments (`POST /api/v1/incidents/{incident_id}/assignments`) or detection observations (`GET /api/v1/incidents/{incident_id}/detections`).
+### 8. Recommended Next Step
+* Proceed to **Phase 6**: Connect detection observations (`GET` / `POST /api/v1/incidents/{incident_id}/detections`) or field inspection reports (`POST /api/v1/incidents/{incident_id}/inspections`).

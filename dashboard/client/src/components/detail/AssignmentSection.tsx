@@ -1,7 +1,8 @@
 import { Button } from '@/components/ui/button';
-import { Incident } from '@/types/incident';
-import { Check, Send, Users, Wrench } from 'lucide-react';
-import React, { useState } from 'react';
+import { incidentService } from '@/services/incidentService';
+import { Assignment, Incident, User } from '@/types/incident';
+import { Check, Send, UserCheck, Users, Wrench } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 interface AssignmentSectionProps {
   incident: Incident;
@@ -44,7 +45,36 @@ export const AssignmentSection: React.FC<AssignmentSectionProps> = ({
 
   const [selectedOwner, setSelectedOwner] = useState<string>(incident.owner || defaultTeams[0]);
   const [selectedAction, setSelectedAction] = useState<string>(incident.recommendedAction || defaultActions[0]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [existingAssignments, setExistingAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadBackendData() {
+      try {
+        const userList = await incidentService.getUsers();
+        if (isMounted && userList.length > 0) {
+          setUsers(userList);
+          setSelectedUserId(userList[0].id);
+        }
+
+        const assignments = await incidentService.getIncidentAssignments(incident.id);
+        if (isMounted) {
+          setExistingAssignments(assignments);
+        }
+      } catch (err) {
+        console.warn('Failed to load assignment users or existing assignments:', err);
+      }
+    }
+    loadBackendData();
+    return () => {
+      isMounted = false;
+    };
+  }, [incident.id]);
+
+  const latestAssignment = existingAssignments[0];
 
   // If incident is in VERIFIED status, show the active assignment form
   if (incident.status === 'VERIFIED') {
@@ -65,6 +95,25 @@ export const AssignmentSection: React.FC<AssignmentSectionProps> = ({
         </div>
 
         <div className="space-y-3">
+          {users.length > 0 && (
+            <div>
+              <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
+                Assigned Operator / Supervisor:
+              </label>
+              <select
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                className="w-full h-9 rounded-xl text-xs bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 px-3 font-medium text-zinc-900 dark:text-zinc-100"
+              >
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} ({u.role}) — {u.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
             <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
               Select Response Team:
@@ -113,23 +162,33 @@ export const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   }
 
   // If already assigned or further in lifecycle
-  if (incident.owner) {
+  if (incident.owner || latestAssignment) {
+    const displayTeam = latestAssignment?.assignedTeam || incident.owner || 'Assigned Field Team';
+    const displayNotes = latestAssignment?.notes || incident.recommendedAction || 'Mitigation in progress';
+
     return (
       <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-700/60 space-y-2.5">
-        <div className="flex items-center gap-2 text-xs font-bold text-zinc-900 dark:text-zinc-100">
-          <Wrench className="w-3.5 h-3.5 text-emerald-500" />
-          <span>Assigned Mitigation Unit</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-bold text-zinc-900 dark:text-zinc-100">
+            <Wrench className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Assigned Mitigation Unit</span>
+          </div>
+          {latestAssignment && (
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+              [Backend Assignment Verified]
+            </span>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
           <div>
             <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block">Assigned Crew:</span>
-            <span className="font-semibold text-zinc-800 dark:text-zinc-200">{incident.owner}</span>
+            <span className="font-semibold text-zinc-800 dark:text-zinc-200">{displayTeam}</span>
           </div>
           <div>
             <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block">Mitigation Procedure:</span>
             <span className="font-medium text-zinc-800 dark:text-zinc-200 line-clamp-2">
-              {incident.recommendedAction}
+              {displayNotes}
             </span>
           </div>
         </div>

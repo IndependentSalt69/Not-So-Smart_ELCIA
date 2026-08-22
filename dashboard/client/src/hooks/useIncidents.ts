@@ -43,8 +43,8 @@ export function useIncidents(
     return updated;
   };
 
-  const assignIncident = async (id: string, owner: string, action: string, actor?: string) => {
-    const updated = await incidentService.assignIncident(id, owner, action, actor);
+  const assignIncident = async (id: string, owner: string, action: string, actor?: string, assignedToUserId?: string) => {
+    const updated = await incidentService.assignIncident(id, owner, action, actor, assignedToUserId);
     return updated;
   };
 
@@ -61,6 +61,14 @@ export function useIncidents(
     return await incidentService.getIncidentEvidence(id);
   }, []);
 
+  const getUsers = useCallback(async () => {
+    return await incidentService.getUsers();
+  }, []);
+
+  const getIncidentAssignments = useCallback(async (id: string) => {
+    return await incidentService.getIncidentAssignments(id);
+  }, []);
+
   return {
     incidents,
     loading,
@@ -70,6 +78,8 @@ export function useIncidents(
     refetch: fetchIncidents,
     getIncidentById,
     getIncidentEvidence,
+    getUsers,
+    getIncidentAssignments,
     verifyIncident,
     rejectIncident,
     assignIncident,

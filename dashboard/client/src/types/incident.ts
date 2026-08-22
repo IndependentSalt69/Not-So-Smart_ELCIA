@@ -31,6 +31,34 @@ export interface IncidentHistoryEntry {
   notes?: string;
 }
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Assignment {
+  id: string;
+  incidentId: string;
+  assignedTo: string;
+  assignedTeam?: string | null;
+  assignedAt?: string | null;
+  completedAt?: string | null;
+  notes?: string | null;
+}
+
+export interface AssignmentCreatePayload {
+  assigned_to: string;
+  assigned_team?: string;
+  assigned_at?: string;
+  completed_at?: string;
+  notes?: string;
+}
+
 export interface EvidenceAsset {
   id: string;
   incidentId: string;

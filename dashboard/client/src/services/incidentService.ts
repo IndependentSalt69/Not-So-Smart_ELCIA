@@ -2,6 +2,8 @@ import { generateSvgFrame, INITIAL_MOCK_INCIDENTS } from '@/data/mockIncidents';
 import { canTransition } from '@/lib/stateMachine';
 import { api, ApiError } from '@/services/api';
 import {
+  Assignment,
+  AssignmentCreatePayload,
   EvidenceAsset,
   Incident,
   IncidentFilters,
@@ -10,6 +12,7 @@ import {
   PriorityLevel,
   SortDirection,
   SortField,
+  User,
 } from '@/types/incident';
 
 export interface BackendIncidentItem {
@@ -49,6 +52,26 @@ export interface BackendEvidenceItem {
   description?: string | null;
   is_primary: boolean;
   created_at: string;
+}
+
+export interface BackendUserItem {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface BackendAssignmentItem {
+  id: string;
+  incident_id: string;
+  assigned_to: string;
+  assigned_team?: string | null;
+  assigned_at?: string | null;
+  completed_at?: string | null;
+  notes?: string | null;
 }
 
 export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Incident {
@@ -321,6 +344,79 @@ export const incidentService = {
   },
 
   /**
+   * Get active system users for assignment selection from GET /api/v1/users/
+   */
+  async getUsers(): Promise<User[]> {
+    try {
+      const items = await api.get<BackendUserItem[]>('/users/');
+      if (Array.isArray(items)) {
+        return items.map((u) => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          isActive: u.is_active,
+          createdAt: u.created_at,
+          updatedAt: u.updated_at,
+        }));
+      }
+    } catch (err: any) {
+      if (err instanceof ApiError) {
+        console.error('Backend API user fetch failed:', err.message);
+        throw err;
+      }
+      console.warn('Backend API user fetch failed, checking fallback:', err);
+    }
+    return [];
+  },
+
+  /**
+   * Create an assignment linking an incident to a user/team via POST /api/v1/incidents/{incident_id}/assignments
+   */
+  async createIncidentAssignment(
+    incidentId: string,
+    payload: AssignmentCreatePayload
+  ): Promise<Assignment> {
+    const item = await api.post<BackendAssignmentItem>(`/incidents/${incidentId}/assignments`, payload);
+    return {
+      id: item.id,
+      incidentId: item.incident_id,
+      assignedTo: item.assigned_to,
+      assignedTeam: item.assigned_team,
+      assignedAt: item.assigned_at,
+      completedAt: item.completed_at,
+      notes: item.notes,
+    };
+  },
+
+  /**
+   * Get existing assignments for an incident from GET /api/v1/incidents/{incident_id}/assignments
+   */
+  async getIncidentAssignments(incidentId: string): Promise<Assignment[]> {
+    try {
+      const items = await api.get<BackendAssignmentItem[]>(`/incidents/${incidentId}/assignments`);
+      if (Array.isArray(items)) {
+        return items.map((item) => ({
+          id: item.id,
+          incidentId: item.incident_id,
+          assignedTo: item.assigned_to,
+          assignedTeam: item.assigned_team,
+          assignedAt: item.assigned_at,
+          completedAt: item.completed_at,
+          notes: item.notes,
+        }));
+      }
+    } catch (err: any) {
+      if (err instanceof ApiError && err.status === 404) {
+        console.warn(`Incident '${incidentId}' not found when fetching assignments.`);
+      } else {
+        console.warn(`Failed to fetch assignments for incident '${incidentId}':`, err);
+      }
+    }
+    return [];
+  },
+
+  /**
    * Transition an incident to VERIFIED status
    */
   async verifyIncident(id: string, actor: string = 'Command Operator', notes?: string): Promise<Incident> {
@@ -345,8 +441,43 @@ export const incidentService = {
     id: string,
     owner: string,
     action: string,
-    actor: string = 'Dispatch Supervisor'
+    actor: string = 'Dispatch Supervisor',
+    assignedToUserId?: string
   ): Promise<Incident> {
+    let userId = assignedToUserId;
+
+    if (!userId) {
+      const availableUsers = await this.getUsers();
+      if (availableUsers.length > 0) {
+        userId = availableUsers[0].id;
+      }
+    }
+
+    if (userId) {
+      const payload: AssignmentCreatePayload = {
+        assigned_to: userId,
+        assigned_team: owner,
+        notes: action,
+      };
+
+      await this.createIncidentAssignment(id, payload);
+
+      const incident = incidentsState.find((inc) => inc.id === id || inc.code === id);
+      if (incident && incident.status === 'VERIFIED') {
+        const updatedWithStatus = await this.updateIncidentStatus(
+          id,
+          'ASSIGNED',
+          actor,
+          `Assigned to: ${owner} | Action: ${action}`
+        );
+        return {
+          ...updatedWithStatus,
+          owner,
+          recommendedAction: action,
+        };
+      }
+    }
+
     const incident = incidentsState.find((inc) => inc.id === id || inc.code === id);
     if (!incident) {
       throw new Error(`Incident ${id} not found`);
