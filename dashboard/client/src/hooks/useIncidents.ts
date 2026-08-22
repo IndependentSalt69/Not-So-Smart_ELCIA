@@ -57,6 +57,10 @@ export function useIncidents(
     return await incidentService.getIncidentById(id);
   }, []);
 
+  const getIncidentEvidence = useCallback(async (id: string) => {
+    return await incidentService.getIncidentEvidence(id);
+  }, []);
+
   return {
     incidents,
     loading,
@@ -65,6 +69,7 @@ export function useIncidents(
     setFilters,
     refetch: fetchIncidents,
     getIncidentById,
+    getIncidentEvidence,
     verifyIncident,
     rejectIncident,
     assignIncident,

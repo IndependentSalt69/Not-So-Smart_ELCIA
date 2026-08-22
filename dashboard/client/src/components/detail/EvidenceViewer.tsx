@@ -1,11 +1,13 @@
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { Incident } from '@/types/incident';
+import { incidentService } from '@/services/incidentService';
+import { EvidenceAsset, Incident } from '@/types/incident';
 import {
   Camera,
   ChevronLeft,
   ChevronRight,
+  FileCode2,
   Maximize2,
   Pause,
   Play,
@@ -24,8 +26,33 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
   const [showOverlay, setShowOverlay] = useState<boolean>(true);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentFrame, setCurrentFrame] = useState<number>(42);
+  const [evidenceList, setEvidenceList] = useState<EvidenceAsset[]>([]);
+  const [loadingEvidence, setLoadingEvidence] = useState<boolean>(true);
   const totalFrames = 120;
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadEvidence() {
+      setLoadingEvidence(true);
+      try {
+        const assets = await incidentService.getIncidentEvidence(incident.id);
+        if (isMounted) {
+          setEvidenceList(assets);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch backend evidence for incident:', incident.id, err);
+      } finally {
+        if (isMounted) {
+          setLoadingEvidence(false);
+        }
+      }
+    }
+    loadEvidence();
+    return () => {
+      isMounted = false;
+    };
+  }, [incident.id]);
 
   // Playback timer simulation for frame stepping
   useEffect(() => {
@@ -57,7 +84,18 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
     setCurrentFrame(0);
   };
 
-  const activeImage = showOverlay && incident.evidenceOverlay ? incident.evidenceOverlay : incident.evidenceFrame;
+  const primaryEvidence = evidenceList.find((e) => e.isPrimary) || evidenceList[0];
+  const isBrowserUrl =
+    primaryEvidence?.filePath?.startsWith('http://') ||
+    primaryEvidence?.filePath?.startsWith('https://') ||
+    primaryEvidence?.filePath?.startsWith('data:');
+
+  const activeImage = isBrowserUrl
+    ? primaryEvidence.filePath
+    : showOverlay && incident.evidenceOverlay
+    ? incident.evidenceOverlay
+    : incident.evidenceFrame;
+
   const isWater = incident.type === 'waterlogging';
 
   return (
@@ -111,12 +149,48 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
         </div>
       </div>
 
+      {/* Backend Evidence Metadata Bar */}
+      <div className="px-4 py-2 bg-zinc-900/60 border-b border-zinc-800/80 flex items-center justify-between text-xs font-mono text-zinc-300">
+        {loadingEvidence ? (
+          <div className="flex items-center gap-2 text-amber-400">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+            <span>Fetching backend evidence metadata...</span>
+          </div>
+        ) : primaryEvidence ? (
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
+              <FileCode2 className="w-3.5 h-3.5" />
+              <span>[Backend Evidence Record]</span>
+            </div>
+            <span>Type: <strong className="text-white">{primaryEvidence.evidenceType}</strong></span>
+            <span>•</span>
+            <span>Path: <strong className="text-sky-300">{primaryEvidence.filePath}</strong></span>
+            {primaryEvidence.description && (
+              <>
+                <span>•</span>
+                <span className="text-zinc-400 italic">"{primaryEvidence.description}"</span>
+              </>
+            )}
+            {primaryEvidence.isPrimary && (
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
+                Primary Asset
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="text-zinc-400 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-zinc-600" />
+            <span>No backend evidence assets attached to this incident</span>
+          </div>
+        )}
+      </div>
+
       {/* Screen Canvas Area */}
       <div className="relative aspect-video w-full bg-black flex items-center justify-center overflow-hidden select-none">
         {viewMode === 'image' ? (
           <img
             src={activeImage}
-            alt={incident.id}
+            alt={incident.code || incident.id}
             className="w-full h-full object-contain"
           />
         ) : (
@@ -134,7 +208,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
             ) : (
               <img
                 src={activeImage}
-                alt={incident.id}
+                alt={incident.code || incident.id}
                 className="w-full h-full object-contain filter contrast-125"
               />
             )}

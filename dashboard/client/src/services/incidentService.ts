@@ -2,6 +2,7 @@ import { generateSvgFrame, INITIAL_MOCK_INCIDENTS } from '@/data/mockIncidents';
 import { canTransition } from '@/lib/stateMachine';
 import { api, ApiError } from '@/services/api';
 import {
+  EvidenceAsset,
   Incident,
   IncidentFilters,
   IncidentStatus,
@@ -37,6 +38,17 @@ export interface BackendIncidentListResponse {
   total: number;
   skip: number;
   limit: number;
+}
+
+export interface BackendEvidenceItem {
+  id: string;
+  incident_id: string;
+  evidence_type: 'IMAGE' | 'VIDEO' | 'CLIP';
+  file_path: string;
+  captured_at?: string | null;
+  description?: string | null;
+  is_primary: boolean;
+  created_at: string;
 }
 
 export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Incident {
@@ -278,6 +290,34 @@ export const incidentService = {
 
     // Fallback to local state lookup
     return incidentsState.find((inc) => inc.id === id || inc.code === id);
+  },
+
+  /**
+   * Get attached evidence assets for an incident from GET /api/v1/incidents/{incident_id}/evidence
+   */
+  async getIncidentEvidence(incidentId: string): Promise<EvidenceAsset[]> {
+    try {
+      const items = await api.get<BackendEvidenceItem[]>(`/incidents/${incidentId}/evidence`);
+      if (Array.isArray(items)) {
+        return items.map((item) => ({
+          id: item.id,
+          incidentId: item.incident_id,
+          evidenceType: item.evidence_type,
+          filePath: item.file_path,
+          capturedAt: item.captured_at,
+          description: item.description,
+          isPrimary: item.is_primary,
+          createdAt: item.created_at,
+        }));
+      }
+    } catch (err: any) {
+      if (err instanceof ApiError && err.status === 404) {
+        console.warn(`Incident '${incidentId}' not found when fetching evidence.`);
+      } else {
+        console.warn(`Failed to fetch evidence for incident '${incidentId}':`, err);
+      }
+    }
+    return [];
   },
 
   /**
