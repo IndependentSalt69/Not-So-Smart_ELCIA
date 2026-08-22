@@ -4,6 +4,7 @@ import { api, ApiError } from '@/services/api';
 import {
   Assignment,
   AssignmentCreatePayload,
+  DetectionObservation,
   EvidenceAsset,
   Incident,
   IncidentFilters,
@@ -72,6 +73,21 @@ export interface BackendAssignmentItem {
   assigned_at?: string | null;
   completed_at?: string | null;
   notes?: string | null;
+}
+
+export interface BackendDetectionItem {
+  id: string;
+  incident_id: string;
+  detection_type: string;
+  confidence: number;
+  frame_number?: number | null;
+  detected_at?: string | null;
+  location?: {
+    type: string;
+    coordinates: [number, number];
+  } | null;
+  detection_metadata?: Record<string, any> | null;
+  created_at: string;
 }
 
 export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Incident {
@@ -338,6 +354,35 @@ export const incidentService = {
         console.warn(`Incident '${incidentId}' not found when fetching evidence.`);
       } else {
         console.warn(`Failed to fetch evidence for incident '${incidentId}':`, err);
+      }
+    }
+    return [];
+  },
+
+  /**
+   * Get model frame observations for an incident from GET /api/v1/incidents/{incident_id}/detections
+   */
+  async getIncidentDetections(incidentId: string): Promise<DetectionObservation[]> {
+    try {
+      const items = await api.get<BackendDetectionItem[]>(`/incidents/${incidentId}/detections`);
+      if (Array.isArray(items)) {
+        return items.map((item) => ({
+          id: item.id,
+          incidentId: item.incident_id,
+          detectionType: item.detection_type,
+          confidence: item.confidence,
+          frameNumber: item.frame_number,
+          detectedAt: item.detected_at,
+          location: item.location,
+          detectionMetadata: item.detection_metadata,
+          createdAt: item.created_at,
+        }));
+      }
+    } catch (err: any) {
+      if (err instanceof ApiError && err.status === 404) {
+        console.warn(`Incident '${incidentId}' not found when fetching detections.`);
+      } else {
+        console.warn(`Failed to fetch detections for incident '${incidentId}':`, err);
       }
     }
     return [];

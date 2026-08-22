@@ -70,6 +70,21 @@ export interface EvidenceAsset {
   createdAt: string;
 }
 
+export interface DetectionObservation {
+  id: string;
+  incidentId: string;
+  detectionType: string;
+  confidence: number;
+  frameNumber?: number | null;
+  detectedAt?: string | null;
+  location?: {
+    type: string;
+    coordinates: [number, number];
+  } | null;
+  detectionMetadata?: Record<string, any> | null;
+  createdAt: string;
+}
+
 export interface Incident {
   id: string; // Backend UUID e.g., "820d5447-eb9f-4264-9e66-995fd147d6a7" or tracking code
   code?: string; // Tracking code e.g. "TEST-INC-001" or "EC-0142"

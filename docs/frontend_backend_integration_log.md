@@ -138,27 +138,59 @@ Connect the frontend `AssignmentSection` component and dispatch flow to the live
   - `dashboard/client/src/hooks/useIncidents.ts` (Exposed `getUsers` and `getIncidentAssignments` helpers)
   - `dashboard/client/src/components/detail/AssignmentSection.tsx` (Connected component to fetch backend system users for selector dropdown and display existing verified assignments)
 
+---
+
+## Phase 6: Detection Observations (`GET /api/v1/incidents/{incident_id}/detections`)
+
+**Date:** August 23, 2026  
+**Status:** Completed & Verified  
+
+### 1. Objective
+Connect the frontend incident inspection surfaces (`EvidenceViewer` / `IncidentDetailDrawer`) to the live FastAPI backend detection endpoint `GET /api/v1/incidents/{incident_id}/detections`, displaying frame-level AI detection observations (`detection_type`, `confidence`, `frame_number`, `location`, `detection_metadata`).
+
+### 2. Files Inspected
+* **Frontend:**
+  - `dashboard/client/src/components/detail/EvidenceViewer.tsx`
+  - `dashboard/client/src/components/detail/IncidentDetailDrawer.tsx`
+  - `dashboard/client/src/components/incidents/IncidentCard.tsx`
+  - `dashboard/client/src/hooks/useIncidents.ts`
+  - `dashboard/client/src/services/incidentService.ts`
+  - `dashboard/client/src/services/api.ts`
+  - `dashboard/client/src/types/incident.ts`
+* **Backend:**
+  - `src/schemas/detection.py` (Inspected `DetectionCreate` & `DetectionResponse`: `id`, `incident_id`, `detection_type`, `confidence`, `frame_number`, `detected_at`, `location`, `detection_metadata`, `created_at`)
+  - `src/api/routes/incidents.py` (Inspected `GET` & `POST /{incident_id}/detections`)
+  - `src/repositories/detections.py` (Inspected `create_detection` and `list_incident_detections`)
+
+### 3. Files Created / Modified
+* **Created:**
+  - `dashboard/scratch/verify_phase6.ts` (Phase 6 detection observations integration verification script)
+* **Modified:**
+  - `dashboard/client/src/types/incident.ts` (Added `DetectionObservation` interface)
+  - `dashboard/client/src/services/incidentService.ts` (Added `BackendDetectionItem` interface and implemented `getIncidentDetections(incidentId)` querying `GET /api/v1/incidents/{incident_id}/detections` via `api.ts`)
+  - `dashboard/client/src/hooks/useIncidents.ts` (Exposed `getIncidentDetections` helper)
+  - `dashboard/client/src/components/detail/EvidenceViewer.tsx` (Connected component to fetch live detection observations and display AI detection HUD pills)
+
 ### 4. Endpoints Integrated
-* `GET /api/v1/users/` (Fetches active operator users for assignment selection)
-* `POST /api/v1/incidents/{incident_id}/assignments` (Creates an assignment linking incident to operator user & team)
-* `GET /api/v1/incidents/{incident_id}/assignments` (Retrieves existing team/operator assignments for an incident)
+* `GET /api/v1/incidents/{incident_id}/detections` (Retrieves frame-level AI detection observations for an incident)
 
-### 5. Data Mapping & Schema
-* **User (`UserResponse`):** `id` (UUID), `name`, `email`, `role`, `is_active`.
-* **Assignment Payload (`AssignmentCreate`):**
-  ```json
-  {
-    "assigned_to": "941dbac3-c8e7-404d-b5fd-a08cc345379e",
-    "assigned_team": "ELCIA Stormwater Maintenance Unit",
-    "notes": "Deploy mobile de-watering pump unit"
-  }
-  ```
-* **Assignment Response (`AssignmentResponse`):** `id`, `incident_id`, `assigned_to`, `assigned_team`, `assigned_at`, `notes`.
+### 5. `POST` Endpoint Decision Rationale
+* `POST /api/v1/incidents/{incident_id}/detections` is designed exclusively for the automated ML computer vision pipeline / background drone processing scripts.
+* No manual user workflow for manually logging frame-level AI bounding box detections exists (or should exist) in the frontend UI.
+* Therefore, only `GET` was integrated into the frontend service layer, strictly preserving the ML pipeline boundary as instructed.
 
-### 6. Status Behavior Flow
-$$\text{User Clicks Dispatch} \longrightarrow \text{POST /incidents/\{UUID\}/assignments} \longrightarrow \text{HTTP 201 Created} \longrightarrow \text{PATCH /incidents/\{UUID\}/status (to ASSIGNED)} \longrightarrow \text{Update React State}$$
-
-If `POST /assignments` fails (e.g. invalid user UUID), `ApiError` is thrown, status update is aborted, and previous React state is preserved.
+### 6. `DetectionResponse` $\rightarrow$ Frontend `DetectionObservation` Mapping
+| Backend Field (`DetectionResponse`) | Frontend Field (`DetectionObservation`) | Mapping / Notes |
+| :--- | :--- | :--- |
+| `id` | `id` | Detection observation UUID. |
+| `incident_id` | `incidentId` | Parent incident UUID. |
+| `detection_type` | `detectionType` | String (`WATERLOGGING`, `POTHOLE`, etc.). |
+| `confidence` | `confidence` | Model confidence float (`0.0 - 1.0`). |
+| `frame_number` | `frameNumber` | Frame index integer (e.g. `127`). |
+| `detected_at` | `detectedAt` | ISO datetime string. |
+| `location` | `location` | GeoJSON Point `{ type: "Point", coordinates: [lng, lat] }`. |
+| `detection_metadata` | `detectionMetadata` | Dictionary metadata (`model`, `source`, `severity`). |
+| `created_at` | `createdAt` | ISO datetime string. |
 
 ### 7. Tests & Commands Executed
 1. **TypeScript Typecheck (`npm run check`):**
@@ -166,15 +198,19 @@ If `POST /assignments` fails (e.g. invalid user UUID), `ApiError` is thrown, sta
    npm run check
    # Result: Exit code 0, 0 type errors.
    ```
-2. **Phase 5 Integration Verification Script (`npx tsx scratch/verify_phase5.ts`):**
+2. **Phase 6 Integration Verification Script (`npx tsx scratch/verify_phase6.ts`):**
    ```bash
-   npx tsx scratch/verify_phase5.ts
+   npx tsx scratch/verify_phase6.ts
    # Output:
-   # 1. Fetching available system users GET /api/v1/users/ -> Found 1 user: Backend Test Operator (UUID 941dbac3-c8e7-404d-b5fd-a08cc345379e)
-   # 2. Creating assignment POST /api/v1/incidents/{UUID}/assignments -> Backend returned HTTP 201 Created with AssignmentResponse ID 48d06cd9-e897-45df-88db-5c64b52d84ab
-   # 3. Fetching assignments list GET /api/v1/incidents/{UUID}/assignments -> Returned 3 assignments, latest matches created assignment
-   # 4. Testing invalid user UUID (00000000-0000-0000-0000-000000000000) -> Caught ApiError 404: "User '00000000-0000-0000-0000-000000000000' not found."
+   # 1. Fetching detection observations for TEST-INC-001 (UUID 820d5447-eb9f-4264-9e66-995fd147d6a7) ->
+   #    Detections count: 1
+   #    Verified Detection Type: WATERLOGGING
+   #    Verified Confidence: 0.94 (94%)
+   #    Verified Frame Number: 127
+   #    Verified Location: Point [77.6631, 12.8452]
+   # 2. Fetching detections for PG-SPATIAL-INC01 (UUID 6ba7265f-0326-40dd-bcb2-699c7bf4398d) -> Detections count: 0 (Empty state verified)
+   # 3. Fetching detections for NONEXISTENT-99999 -> Caught ApiError 404: "Incident 'NONEXISTENT-99999' not found.", Detections count: 0 (Graceful error handling)
    ```
 
 ### 8. Recommended Next Step
-* Proceed to **Phase 6**: Connect detection observations (`GET` / `POST /api/v1/incidents/{incident_id}/detections`) or field inspection reports (`POST /api/v1/incidents/{incident_id}/inspections`).
+* Proceed to **Phase 7**: Connect field inspection reports (`POST` & `GET /api/v1/incidents/{incident_id}/inspections`).

@@ -2,11 +2,12 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { incidentService } from '@/services/incidentService';
-import { EvidenceAsset, Incident } from '@/types/incident';
+import { DetectionObservation, EvidenceAsset, Incident } from '@/types/incident';
 import {
   Camera,
   ChevronLeft,
   ChevronRight,
+  Cpu,
   FileCode2,
   Maximize2,
   Pause,
@@ -27,28 +28,36 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentFrame, setCurrentFrame] = useState<number>(42);
   const [evidenceList, setEvidenceList] = useState<EvidenceAsset[]>([]);
+  const [detectionsList, setDetectionsList] = useState<DetectionObservation[]>([]);
   const [loadingEvidence, setLoadingEvidence] = useState<boolean>(true);
   const totalFrames = 120;
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     let isMounted = true;
-    async function loadEvidence() {
+    async function loadBackendMetadata() {
       setLoadingEvidence(true);
       try {
-        const assets = await incidentService.getIncidentEvidence(incident.id);
+        const [assets, detections] = await Promise.all([
+          incidentService.getIncidentEvidence(incident.id),
+          incidentService.getIncidentDetections(incident.id),
+        ]);
         if (isMounted) {
           setEvidenceList(assets);
+          setDetectionsList(detections);
+          if (detections.length > 0 && detections[0].frameNumber != null) {
+            setCurrentFrame(detections[0].frameNumber);
+          }
         }
       } catch (err) {
-        console.warn('Failed to fetch backend evidence for incident:', incident.id, err);
+        console.warn('Failed to fetch backend evidence/detections for incident:', incident.id, err);
       } finally {
         if (isMounted) {
           setLoadingEvidence(false);
         }
       }
     }
-    loadEvidence();
+    loadBackendMetadata();
     return () => {
       isMounted = false;
     };
@@ -149,39 +158,42 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
         </div>
       </div>
 
-      {/* Backend Evidence Metadata Bar */}
-      <div className="px-4 py-2 bg-zinc-900/60 border-b border-zinc-800/80 flex items-center justify-between text-xs font-mono text-zinc-300">
+      {/* Backend Evidence & Detection Metadata Bar */}
+      <div className="px-4 py-2 bg-zinc-900/60 border-b border-zinc-800/80 flex items-center justify-between text-xs font-mono text-zinc-300 gap-2 flex-wrap">
         {loadingEvidence ? (
           <div className="flex items-center gap-2 text-amber-400">
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-            <span>Fetching backend evidence metadata...</span>
-          </div>
-        ) : primaryEvidence ? (
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
-              <FileCode2 className="w-3.5 h-3.5" />
-              <span>[Backend Evidence Record]</span>
-            </div>
-            <span>Type: <strong className="text-white">{primaryEvidence.evidenceType}</strong></span>
-            <span>•</span>
-            <span>Path: <strong className="text-sky-300">{primaryEvidence.filePath}</strong></span>
-            {primaryEvidence.description && (
-              <>
-                <span>•</span>
-                <span className="text-zinc-400 italic">"{primaryEvidence.description}"</span>
-              </>
-            )}
-            {primaryEvidence.isPrimary && (
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
-                Primary Asset
-              </span>
-            )}
+            <span>Fetching backend evidence & detection observations...</span>
           </div>
         ) : (
-          <div className="text-zinc-400 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-zinc-600" />
-            <span>No backend evidence assets attached to this incident</span>
-          </div>
+          <>
+            {primaryEvidence ? (
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                  <FileCode2 className="w-3.5 h-3.5" />
+                  <span>[Evidence]</span>
+                </div>
+                <span>Type: <strong className="text-white">{primaryEvidence.evidenceType}</strong></span>
+                <span>•</span>
+                <span>Path: <strong className="text-sky-300">{primaryEvidence.filePath}</strong></span>
+              </div>
+            ) : (
+              <div className="text-zinc-400 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-zinc-600" />
+                <span>No backend evidence assets</span>
+              </div>
+            )}
+
+            {detectionsList.length > 0 && (
+              <div className="flex items-center gap-2 font-mono text-[11px] px-2 py-0.5 rounded bg-sky-950/80 text-sky-300 border border-sky-800">
+                <Cpu className="w-3.5 h-3.5 text-sky-400" />
+                <span>
+                  <strong>AI Detection:</strong> {detectionsList[0].detectionType} ({Math.round(detectionsList[0].confidence * 100)}% Conf)
+                  {detectionsList[0].frameNumber != null && ` • Frame #${detectionsList[0].frameNumber}`}
+                </span>
+              </div>
+            )}
+          </>
         )}
       </div>
 
