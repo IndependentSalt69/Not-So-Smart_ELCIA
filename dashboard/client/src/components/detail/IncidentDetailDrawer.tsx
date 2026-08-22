@@ -13,6 +13,7 @@ import React from 'react';
 import { AssignmentSection } from './AssignmentSection';
 import { EvidenceViewer } from './EvidenceViewer';
 import { IncidentStepper } from './IncidentStepper';
+import { InspectionSection } from './InspectionSection';
 import { SeverityExplainer } from './SeverityExplainer';
 import { VerificationBar } from './VerificationBar';
 
@@ -113,6 +114,9 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
             incident={incident}
             onUpdateStatus={onUpdateStatus}
           />
+
+          {/* Field Inspections & Verification Section */}
+          <InspectionSection incident={incident} />
 
           {/* Severity & AI Explainability Breakdown */}
           <SeverityExplainer incident={incident} />

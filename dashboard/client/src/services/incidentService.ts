@@ -10,6 +10,9 @@ import {
   IncidentFilters,
   IncidentStatus,
   IncidentType,
+  InspectionCreatePayload,
+  InspectionRecord,
+  InspectionResult,
   PriorityLevel,
   SortDirection,
   SortField,
@@ -87,6 +90,21 @@ export interface BackendDetectionItem {
     coordinates: [number, number];
   } | null;
   detection_metadata?: Record<string, any> | null;
+  created_at: string;
+}
+
+export interface BackendInspectionItem {
+  id: string;
+  incident_id: string;
+  inspector_id: string;
+  result: InspectionResult;
+  inspection_time?: string | null;
+  notes?: string | null;
+  location?: {
+    type: string;
+    coordinates: [number, number];
+  } | null;
+  evidence_id?: string | null;
   created_at: string;
 }
 
@@ -383,6 +401,56 @@ export const incidentService = {
         console.warn(`Incident '${incidentId}' not found when fetching detections.`);
       } else {
         console.warn(`Failed to fetch detections for incident '${incidentId}':`, err);
+      }
+    }
+    return [];
+  },
+
+  /**
+   * Record a field inspection verification via POST /api/v1/incidents/{incident_id}/inspections
+   */
+  async createIncidentInspection(
+    incidentId: string,
+    payload: InspectionCreatePayload
+  ): Promise<InspectionRecord> {
+    const item = await api.post<BackendInspectionItem>(`/incidents/${incidentId}/inspections`, payload);
+    return {
+      id: item.id,
+      incidentId: item.incident_id,
+      inspectorId: item.inspector_id,
+      result: item.result,
+      inspectionTime: item.inspection_time,
+      notes: item.notes,
+      location: item.location,
+      evidenceId: item.evidence_id,
+      createdAt: item.created_at,
+    };
+  },
+
+  /**
+   * Get field inspection verification history from GET /api/v1/incidents/{incident_id}/inspections
+   */
+  async getIncidentInspections(incidentId: string): Promise<InspectionRecord[]> {
+    try {
+      const items = await api.get<BackendInspectionItem[]>(`/incidents/${incidentId}/inspections`);
+      if (Array.isArray(items)) {
+        return items.map((item) => ({
+          id: item.id,
+          incidentId: item.incident_id,
+          inspectorId: item.inspector_id,
+          result: item.result,
+          inspectionTime: item.inspection_time,
+          notes: item.notes,
+          location: item.location,
+          evidenceId: item.evidence_id,
+          createdAt: item.created_at,
+        }));
+      }
+    } catch (err: any) {
+      if (err instanceof ApiError && err.status === 404) {
+        console.warn(`Incident '${incidentId}' not found when fetching inspections.`);
+      } else {
+        console.warn(`Failed to fetch inspections for incident '${incidentId}':`, err);
       }
     }
     return [];

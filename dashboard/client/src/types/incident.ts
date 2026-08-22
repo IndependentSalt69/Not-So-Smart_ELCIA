@@ -85,6 +85,35 @@ export interface DetectionObservation {
   createdAt: string;
 }
 
+export type InspectionResult = 'RESOLVED' | 'NOT_RESOLVED' | 'PARTIALLY_RESOLVED';
+
+export interface InspectionRecord {
+  id: string;
+  incidentId: string;
+  inspectorId: string;
+  result: InspectionResult;
+  inspectionTime?: string | null;
+  notes?: string | null;
+  location?: {
+    type: string;
+    coordinates: [number, number];
+  } | null;
+  evidenceId?: string | null;
+  createdAt: string;
+}
+
+export interface InspectionCreatePayload {
+  inspector_id: string;
+  result: InspectionResult;
+  inspection_time?: string;
+  notes?: string;
+  location?: {
+    type: 'Point';
+    coordinates: [number, number];
+  };
+  evidence_id?: string;
+}
+
 export interface Incident {
   id: string; // Backend UUID e.g., "820d5447-eb9f-4264-9e66-995fd147d6a7" or tracking code
   code?: string; // Tracking code e.g. "TEST-INC-001" or "EC-0142"

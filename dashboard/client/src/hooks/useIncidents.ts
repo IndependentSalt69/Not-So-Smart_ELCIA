@@ -73,6 +73,17 @@ export function useIncidents(
     return await incidentService.getIncidentDetections(id);
   }, []);
 
+  const getIncidentInspections = useCallback(async (id: string) => {
+    return await incidentService.getIncidentInspections(id);
+  }, []);
+
+  const createIncidentInspection = useCallback(
+    async (id: string, payload: Parameters<typeof incidentService.createIncidentInspection>[1]) => {
+      return await incidentService.createIncidentInspection(id, payload);
+    },
+    []
+  );
+
   return {
     incidents,
     loading,
@@ -83,6 +94,8 @@ export function useIncidents(
     getIncidentById,
     getIncidentEvidence,
     getIncidentDetections,
+    getIncidentInspections,
+    createIncidentInspection,
     getUsers,
     getIncidentAssignments,
     verifyIncident,
