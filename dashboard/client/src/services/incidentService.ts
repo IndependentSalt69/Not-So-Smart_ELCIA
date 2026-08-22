@@ -284,7 +284,7 @@ export const incidentService = {
    * Transition an incident to VERIFIED status
    */
   async verifyIncident(id: string, actor: string = 'Command Operator', notes?: string): Promise<Incident> {
-    return this.updateIncidentStatus(id, 'VERIFIED', actor, notes || 'Incident verified by human operator');
+    return this.updateIncidentStatus(id, 'VERIFIED', actor, notes || 'Incident verified by operator.');
   },
 
   /**
@@ -295,7 +295,7 @@ export const incidentService = {
     reason: string = 'Marked as false positive',
     actor: string = 'Command Operator'
   ): Promise<Incident> {
-    return this.updateIncidentStatus(id, 'REJECTED', actor, reason);
+    return this.updateIncidentStatus(id, 'REJECTED', actor, reason || 'Incident rejected as false positive.');
   },
 
   /**
@@ -307,7 +307,7 @@ export const incidentService = {
     action: string,
     actor: string = 'Dispatch Supervisor'
   ): Promise<Incident> {
-    const incident = incidentsState.find((inc) => inc.id === id);
+    const incident = incidentsState.find((inc) => inc.id === id || inc.code === id);
     if (!incident) {
       throw new Error(`Incident ${id} not found`);
     }
@@ -332,13 +332,13 @@ export const incidentService = {
       ],
     };
 
-    incidentsState = incidentsState.map((inc) => (inc.id === id ? updated : inc));
+    incidentsState = incidentsState.map((inc) => (inc.id === id || inc.code === id ? updated : inc));
     persist();
     return updated;
   },
 
   /**
-   * Advance or update status obeying the state machine
+   * Advance or update status obeying backend status mutation contract (PATCH /api/v1/incidents/{incident_id}/status)
    */
   async updateIncidentStatus(
     id: string,
@@ -346,7 +346,30 @@ export const incidentService = {
     actor: string = 'Command Operator',
     notes?: string
   ): Promise<Incident> {
-    const incident = incidentsState.find((inc) => inc.id === id);
+    try {
+      const payload = {
+        status: nextStatus,
+        changed_by: null,
+        comment: notes || (actor ? `Status changed by ${actor}` : `Status updated to ${nextStatus}`),
+      };
+
+      const responseItem = await api.patch<BackendIncidentItem>(`/incidents/${id}/status`, payload);
+
+      if (responseItem && (responseItem.id || responseItem.incident_code)) {
+        const updated = mapBackendIncidentToFrontend(responseItem);
+        incidentsState = incidentsState.map((inc) => (inc.id === id || inc.code === id ? updated : inc));
+        persist();
+        return updated;
+      }
+    } catch (err: any) {
+      if (err instanceof ApiError) {
+        console.error(`Backend status mutation failed for incident '${id}':`, err.message);
+        throw err;
+      }
+      console.warn(`Backend API status update failed for incident '${id}', attempting local state fallback:`, err);
+    }
+
+    const incident = incidentsState.find((inc) => inc.id === id || inc.code === id);
     if (!incident) {
       throw new Error(`Incident ${id} not found`);
     }
@@ -371,7 +394,7 @@ export const incidentService = {
       ],
     };
 
-    incidentsState = incidentsState.map((inc) => (inc.id === id ? updated : inc));
+    incidentsState = incidentsState.map((inc) => (inc.id === id || inc.code === id ? updated : inc));
     persist();
     return updated;
   },
