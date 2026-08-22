@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.db.models.zone import Zone
+from src.core.spatial import geojson_to_geoalchemy
 
 
 def parse_uuid(val: Union[uuid.UUID, str]) -> Optional[uuid.UUID]:
@@ -28,11 +29,12 @@ def create_zone(
     geometry: Optional[Any] = None,
 ) -> Zone:
     """Create a new municipal operational zone."""
+    geom_elem = geojson_to_geoalchemy(geometry)
     zone = Zone(
         code=code,
         name=name,
         description=description,
-        geometry=geometry,
+        geometry=geom_elem,
     )
     try:
         db.add(zone)
@@ -76,6 +78,8 @@ def update_zone(
     try:
         for key, value in kwargs.items():
             if hasattr(zone, key) and key not in ("id", "created_at"):
+                if key == "geometry" and value is not None:
+                    value = geojson_to_geoalchemy(value)
                 setattr(zone, key, value)
         db.commit()
         db.refresh(zone)

@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from src.db.models.inspection import Inspection
 from src.db.models.enums import InspectionResult
+from src.core.spatial import geojson_to_geoalchemy
 
 
 def parse_uuid(val: Union[uuid.UUID, str]) -> Optional[uuid.UUID]:
@@ -36,15 +37,17 @@ def create_inspection(
     inc_id = parse_uuid(incident_id) or incident_id
     insp_id = parse_uuid(inspector_id) or inspector_id
     ev_id = parse_uuid(evidence_id) if evidence_id is not None else None
+    loc_elem = geojson_to_geoalchemy(location)
 
     inspection = Inspection(
         incident_id=inc_id,
         inspector_id=insp_id,
         result=result,
         notes=notes,
-        location=location,
+        location=loc_elem,
         evidence_id=ev_id,
     )
+
     if inspection_time is not None:
         inspection.inspection_time = inspection_time
 

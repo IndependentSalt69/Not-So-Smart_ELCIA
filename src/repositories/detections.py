@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.db.models.detection import Detection
+from src.core.spatial import geojson_to_geoalchemy
 
 
 def parse_uuid(val: Union[uuid.UUID, str]) -> Optional[uuid.UUID]:
@@ -33,14 +34,16 @@ def create_detection(
 ) -> Detection:
     """Create a frame-level detection observation record."""
     inc_id = parse_uuid(incident_id) or incident_id
+    loc_elem = geojson_to_geoalchemy(location)
     detection = Detection(
         incident_id=inc_id,
         detection_type=detection_type,
         confidence=confidence,
         frame_number=frame_number,
-        location=location,
+        location=loc_elem,
         detection_metadata=detection_metadata,
     )
+
     if detected_at is not None:
         detection.detected_at = detected_at
 

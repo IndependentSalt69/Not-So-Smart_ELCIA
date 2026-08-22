@@ -37,11 +37,27 @@ TestingSessionLocal = sessionmaker(
 
 # Register dummy SpatiaLite SQL functions for SQLite unit testing
 from sqlalchemy import event
+from shapely.wkt import loads as wkt_loads
 
 
 @event.listens_for(test_engine, "connect")
 def _register_sqlite_spatial_udfs(dbapi_connection, connection_record):
     def dummy_spatial_udf(*args):
+        if not args or args[0] is None:
+            return None
+        val = args[0]
+        if isinstance(val, (bytes, bytearray)):
+            return val
+        if isinstance(val, str):
+            s = val.strip()
+            if s.startswith("SRID="):
+                s = s.split(";", 1)[1]
+            if s.startswith(("POINT", "POLYGON", "GEOMETRYCOLLECTION", "LINESTRING", "MULTIPOLYGON")):
+                try:
+                    return wkt_loads(s).wkb_hex
+                except Exception:
+                    pass
+            return s
         return None
 
     spatial_funcs = [
@@ -63,6 +79,7 @@ def _register_sqlite_spatial_udfs(dbapi_connection, connection_record):
             dbapi_connection.create_function(func_name, -1, dummy_spatial_udf)
         except Exception:
             pass
+
 
 
 # Disable SpatiaLite C extension function calls during SQLite unit testing

@@ -18,11 +18,12 @@ Verifies:
 13. Status history creation
 14. Inspection creation
 15. Incident closure
-16. PostGIS location storage and retrieval
+16. PostGIS location storage and retrieval (GeoJSON Point & Polygon)
 17. Invalid foreign keys rejection
 18. Invalid enum/status/priority values rejection
 19. Duplicate incident codes rejection
 20. API correct HTTP status codes
+21. GeoJSON Spatial validation rules (latitude/longitude bounds, unclosed ring, malformed topology)
 
 Full Lifecycles Tested:
 - DETECTED -> VERIFIED -> ASSIGNED -> IN_PROGRESS -> RE_INSPECTION -> CLOSED
@@ -109,9 +110,9 @@ def test_alembic_migrations():
 def test_complete_incident_lifecycle_happy_path(client: TestClient):
     """
     Verifies:
-    4. Zone creation
+    4. Zone creation (Polygon GeoJSON)
     5. User creation (Operator & Inspector)
-    6. Incident creation (DETECTED)
+    6. Incident creation (Point GeoJSON)
     7. Incident retrieval
     8. Incident filtering
     9. Detection creation
@@ -121,19 +122,30 @@ def test_complete_incident_lifecycle_happy_path(client: TestClient):
     13. Status history creation (audit trail for each status update)
     14. Inspection creation
     15. Incident closure
-    16. Location field accepted and stored
+    16. Location field stored and returned as GeoJSON
     20. Correct HTTP status codes
     """
-    # 4. Zone Creation
+    # 4. Zone Creation with Polygon GeoJSON
     zone_payload = {
         "code": "E2E-Z-01",
         "name": "Hosur Road Junction Zone",
         "description": "Primary intersection for monsoon inundation tracking",
+        "geometry": {
+            "type": "Polygon",
+            "coordinates": [[
+                [77.66, 12.84],
+                [77.67, 12.84],
+                [77.67, 12.85],
+                [77.66, 12.85],
+                [77.66, 12.84]
+            ]]
+        }
     }
     zone_res = client.post("/api/v1/zones/", json=zone_payload)
     assert zone_res.status_code == 201, zone_res.text
     zone_data = zone_res.json()
     zone_id = zone_data["id"]
+    assert zone_data["geometry"]["type"] == "Polygon"
 
     # 5. User Creation (Operator & Inspector)
     op_res = client.post("/api/v1/users/", json={
@@ -154,7 +166,7 @@ def test_complete_incident_lifecycle_happy_path(client: TestClient):
     assert insp_res.status_code == 201
     insp_id = insp_res.json()["id"]
 
-    # 6. Incident Creation & Location Payload Storage
+    # 6. Incident Creation & GeoJSON Point Storage
     inc_payload = {
         "incident_code": "INC-E2E-001",
         "incident_type": "WATERLOGGING",
@@ -164,7 +176,10 @@ def test_complete_incident_lifecycle_happy_path(client: TestClient):
         "zone_id": zone_id,
         "status": "DETECTED",
         "recommended_action": "Deploy high-capacity sump pumps",
-        "location": "POINT(77.6631 12.8452)",
+        "location": {
+            "type": "Point",
+            "coordinates": [77.6631, 12.8452]
+        }
     }
     inc_res = client.post("/api/v1/incidents/", json=inc_payload)
     assert inc_res.status_code == 201, inc_res.text
@@ -172,11 +187,14 @@ def test_complete_incident_lifecycle_happy_path(client: TestClient):
     inc_id = inc_data["id"]
     assert inc_data["status"] == "DETECTED"
     assert inc_data["priority"] == "P1"
+    assert inc_data["location"]["type"] == "Point"
+    assert inc_data["location"]["coordinates"] == [77.6631, 12.8452]
 
     # 7. Incident Retrieval by ID and by Code
     get_by_id = client.get(f"/api/v1/incidents/{inc_id}")
     assert get_by_id.status_code == 200
     assert get_by_id.json()["incident_code"] == "INC-E2E-001"
+    assert get_by_id.json()["location"]["coordinates"] == [77.6631, 12.8452]
 
     get_by_code = client.get("/api/v1/incidents/INC-E2E-001")
     assert get_by_code.status_code == 200
@@ -189,15 +207,20 @@ def test_complete_incident_lifecycle_happy_path(client: TestClient):
     assert filter_data["total"] >= 1
     assert any(i["id"] == inc_id for i in filter_data["items"])
 
-    # 9. Detection Subresource Creation
+    # 9. Detection Subresource Creation with Point GeoJSON
     det_res = client.post(f"/api/v1/incidents/{inc_id}/detections", json={
         "detection_type": "waterlogging",
         "confidence": 0.96,
         "frame_number": 120,
+        "location": {
+            "type": "Point",
+            "coordinates": [77.6631, 12.8452]
+        },
         "detection_metadata": {"area_sq_m": 340.5, "depth_cm": 25.0},
     })
     assert det_res.status_code == 201
     assert det_res.json()["confidence"] == 0.96
+    assert det_res.json()["location"]["coordinates"] == [77.6631, 12.8452]
 
     det_list = client.get(f"/api/v1/incidents/{inc_id}/detections")
     assert det_list.status_code == 200
@@ -266,8 +289,13 @@ def test_complete_incident_lifecycle_happy_path(client: TestClient):
         "inspector_id": insp_id,
         "result": "RESOLVED",
         "notes": "Drain cleared and roadway free of standing water.",
+        "location": {
+            "type": "Point",
+            "coordinates": [77.6631, 12.8452]
+        }
     })
     assert insp_create_res.status_code == 201
+    assert insp_create_res.json()["location"]["coordinates"] == [77.6631, 12.8452]
 
     s4_res = client.patch(f"/api/v1/incidents/{inc_id}/status", json={
         "status": "RE_INSPECTION",
@@ -298,7 +326,131 @@ def test_complete_incident_lifecycle_happy_path(client: TestClient):
 
 
 # ==============================================================================
-# 3. REJECTED LIFECYCLE TEST: DETECTED -> REJECTED
+# 3. SPATIAL & GEOJSON COMPREHENSIVE SUITE (A-K)
+# ==============================================================================
+
+def test_spatial_geojson_validation_and_persistence(client: TestClient):
+    """
+    Verifies Spatial & GeoJSON Requirements:
+    A. Create zone with valid Polygon GeoJSON.
+    B. Read zone and verify Polygon GeoJSON is returned.
+    C. Create incident with valid Point GeoJSON.
+    D. Read incident and verify Point GeoJSON is returned.
+    E-G. Verify longitude/latitude are preserved.
+    H. Reject invalid latitude (> 90 or < -90).
+    I. Reject invalid longitude (> 180 or < -180).
+    J. Reject malformed Polygon topology.
+    K. Reject unclosed Polygon ring.
+    """
+    polygon_geojson = {
+        "type": "Polygon",
+        "coordinates": [[
+            [77.6610, 12.8410],
+            [77.6710, 12.8410],
+            [77.6710, 12.8510],
+            [77.6610, 12.8510],
+            [77.6610, 12.8410]
+        ]]
+    }
+
+    # A & B. Create and read Zone with Polygon GeoJSON
+    z_res = client.post("/api/v1/zones/", json={
+        "code": "SPATIAL-Z-01",
+        "name": "Spatial Verification Sector",
+        "geometry": polygon_geojson
+    })
+    assert z_res.status_code == 201, z_res.text
+    z_id = z_res.json()["id"]
+    assert z_res.json()["geometry"]["type"] == "Polygon"
+    assert z_res.json()["geometry"]["coordinates"] == polygon_geojson["coordinates"]
+
+    get_z = client.get(f"/api/v1/zones/{z_id}")
+    assert get_z.status_code == 200
+    assert get_z.json()["geometry"] == polygon_geojson
+
+    # C & D. Create and read Incident with Point GeoJSON
+    point_geojson = {
+        "type": "Point",
+        "coordinates": [77.6650, 12.8450]
+    }
+    inc_res = client.post("/api/v1/incidents/", json={
+        "incident_code": "INC-SPATIAL-01",
+        "incident_type": "POTHOLE",
+        "confidence": 0.88,
+        "severity_score": 7.0,
+        "priority": "P2",
+        "zone_id": z_id,
+        "location": point_geojson
+    })
+    assert inc_res.status_code == 201, inc_res.text
+    inc_id = inc_res.json()["id"]
+    assert inc_res.json()["location"]["type"] == "Point"
+    assert inc_res.json()["location"]["coordinates"] == [77.6650, 12.8450]
+
+    get_inc = client.get(f"/api/v1/incidents/{inc_id}")
+    assert get_inc.status_code == 200
+    assert get_inc.json()["location"] == point_geojson
+
+    # H. Reject invalid latitude (> 90)
+    bad_lat = client.post("/api/v1/incidents/", json={
+        "incident_code": "INC-BAD-LAT",
+        "incident_type": "POTHOLE",
+        "confidence": 0.88,
+        "severity_score": 7.0,
+        "priority": "P2",
+        "zone_id": z_id,
+        "location": {"type": "Point", "coordinates": [77.6650, 95.0]}
+    })
+    assert bad_lat.status_code == 422
+
+    # I. Reject invalid longitude (> 180)
+    bad_lng = client.post("/api/v1/incidents/", json={
+        "incident_code": "INC-BAD-LNG",
+        "incident_type": "POTHOLE",
+        "confidence": 0.88,
+        "severity_score": 7.0,
+        "priority": "P2",
+        "zone_id": z_id,
+        "location": {"type": "Point", "coordinates": [195.0, 12.8450]}
+    })
+    assert bad_lng.status_code == 422
+
+    # J. Reject malformed Polygon (self-intersecting bowtie polygon)
+    bad_poly = client.post("/api/v1/zones/", json={
+        "code": "BAD-POLY-01",
+        "name": "Self Intersecting Zone",
+        "geometry": {
+            "type": "Polygon",
+            "coordinates": [[
+                [0.0, 0.0],
+                [0.0, 1.0],
+                [1.0, 0.0],
+                [1.0, 1.0],
+                [0.0, 0.0]
+            ]]
+        }
+    })
+    assert bad_poly.status_code == 422
+
+    # K. Reject unclosed Polygon ring (first point != last point)
+    unclosed_poly = client.post("/api/v1/zones/", json={
+        "code": "UNCLOSED-POLY-01",
+        "name": "Unclosed Zone",
+        "geometry": {
+            "type": "Polygon",
+            "coordinates": [[
+                [77.66, 12.84],
+                [77.67, 12.84],
+                [77.67, 12.85],
+                [77.66, 12.85]
+            ]]
+        }
+    })
+    assert unclosed_poly.status_code == 422
+
+
+# ==============================================================================
+# 4. REJECTED LIFECYCLE TEST: DETECTED -> REJECTED
 # ==============================================================================
 
 def test_incident_lifecycle_rejected_path(client: TestClient):
@@ -348,7 +500,7 @@ def test_incident_lifecycle_rejected_path(client: TestClient):
 
 
 # ==============================================================================
-# 4. DATABASE CONSTRAINTS & ERROR REJECTION TESTS
+# 5. DATABASE CONSTRAINTS & ERROR REJECTION TESTS
 # ==============================================================================
 
 def test_invalid_foreign_keys_rejected(client: TestClient):

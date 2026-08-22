@@ -6,9 +6,10 @@ Pydantic schemas for Incident entity API serialization and validation.
 from datetime import datetime
 from typing import Optional, List, Any
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.db.models.enums import IncidentType, PriorityLevel, IncidentStatus
+from src.core.spatial import GeoJSONPoint, geoalchemy_to_geojson
 
 
 class IncidentBase(BaseModel):
@@ -23,7 +24,7 @@ class IncidentBase(BaseModel):
     ended_at: Optional[datetime] = None
     duration_seconds: Optional[float] = None
     recommended_action: Optional[str] = None
-    location: Optional[Any] = None
+    location: Optional[GeoJSONPoint] = Field(None, description="GeoJSON point coordinates [longitude, latitude]")
 
 
 class IncidentCreate(IncidentBase):
@@ -40,7 +41,7 @@ class IncidentUpdate(BaseModel):
     ended_at: Optional[datetime] = None
     duration_seconds: Optional[float] = None
     recommended_action: Optional[str] = None
-    location: Optional[Any] = None
+    location: Optional[GeoJSONPoint] = None
 
 
 class IncidentStatusUpdate(BaseModel):
@@ -55,6 +56,13 @@ class IncidentResponse(IncidentBase):
     id: UUID
     created_at: datetime
     updated_at: datetime
+
+    @field_validator("location", mode="before")
+    @classmethod
+    def convert_spatial_location(cls, v: Any) -> Any:
+        if v is not None and not isinstance(v, (dict, GeoJSONPoint)):
+            return geoalchemy_to_geojson(v)
+        return v
 
 
 class IncidentListResponse(BaseModel):

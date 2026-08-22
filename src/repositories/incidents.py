@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from src.db.models.incident import Incident
 from src.db.models.history import IncidentStatusHistory
 from src.db.models.enums import IncidentType, PriorityLevel, IncidentStatus
+from src.core.spatial import geojson_to_geoalchemy
 
 
 def parse_uuid(val: Union[uuid.UUID, str]) -> Optional[uuid.UUID]:
@@ -40,6 +41,7 @@ def create_incident(
 ) -> Incident:
     """Create a new civic incident record."""
     zid = parse_uuid(zone_id) or zone_id
+    loc_elem = geojson_to_geoalchemy(location)
     incident = Incident(
         incident_code=incident_code,
         incident_type=incident_type,
@@ -51,7 +53,7 @@ def create_incident(
         ended_at=ended_at,
         duration_seconds=duration_seconds,
         recommended_action=recommended_action,
-        location=location,
+        location=loc_elem,
     )
     if started_at is not None:
         incident.started_at = started_at
@@ -138,7 +140,6 @@ def count_incidents(
     return db.scalar(stmt) or 0
 
 
-
 def update_incident(
     db: Session,
     incident_id: Union[uuid.UUID, str],
@@ -154,6 +155,8 @@ def update_incident(
             if hasattr(incident, key) and key not in ("id", "created_at"):
                 if key == "zone_id" and value is not None:
                     value = parse_uuid(value) or value
+                elif key == "location" and value is not None:
+                    value = geojson_to_geoalchemy(value)
                 setattr(incident, key, value)
         db.commit()
         db.refresh(incident)
@@ -161,6 +164,7 @@ def update_incident(
     except Exception:
         db.rollback()
         raise
+
 
 
 def update_incident_status(
