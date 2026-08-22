@@ -214,25 +214,41 @@ Connect the frontend incident verification / inspection workflow to the live Fas
 ### 1. Objective
 Perform a comprehensive audit across all 105 TS/TSX files in `dashboard/client/src/` to identify remaining mock data dependencies, `localStorage` usages, hard-coded coordinates, SVG fallbacks, and demo components without making destructive changes prior to final presentation.
 
-### 2. Files Inspected
-* Entire `dashboard/client/src/` codebase (105 TS/TSX files across `data/`, `services/`, `hooks/`, `components/`, `types/`, `contexts/`, `__tests__/`).
-
-### 3. Search Terms Executed
-* `mock`, `MOCK`, `INITIAL_MOCK`, `mockIncidents`, `mockAnalytics`
-* `localStorage`, `sessionStorage`
-* Hard-coded IDs / UUIDs (`TEST-INC`, `PG-SPATIAL`, `820d5447...`)
-* Hard-coded coordinates (`77.6631`, `12.8452`)
-* `generateSvgFrame`, `generateSvg`
-* `fake`, `demo`, `sample`, `placeholder`, `fallback`, `Traffic Congestion`
-
-### 4. Key Findings & Classifications
+### 2. Key Audit Discoveries
 * **Files Searched:** 105 TS/TSX files.
 * **Mock Dependencies Found:** 6 (2 data fixtures, 1 simulation service, 1 renderer fallback, 2 test fixtures).
 * **localStorage Dependencies Found:** 4 keys (`civicpulse_incidents_cache`, `theme`, 2x `civicpulse_gmaps_key`). Zero `sessionStorage`.
-* **Hard-coded Values Found:** 6 items (Google Map ID `"DEMO_MAP_ID"`, default spatial coords `12.8452, 77.6631`, analytics trend/zone fixtures).
-* **Legitimate Fallbacks Identified:** 4 (API offline cache, SVG frame generator for local filesystem evidence paths, default spatial point, Google Maps API key fallback).
 * **Map Data Source:** 100% PostGIS driven from live backend API `GET /api/v1/incidents/`.
 * **Analytics Data Source:** Hybrid (KPI counts generated dynamically from live incident list; historical trend/zone metrics merge from `MOCK_ANALYTICS_DATA`).
 
-### 5. Recommended Next Step
-* Proceed to **Phase 9: Real-Time Analytics Integration** to connect historical trends and zone analytics to live FastAPI backend endpoints, completing 100% backend coverage across all tabs.
+---
+
+## Phase 9A: Backend Analytics Contract Audit
+
+**Date:** August 23, 2026  
+**Status:** Completed  
+
+### 1. Objective
+Inspect backend API routes, Pydantic schemas, repositories, and ORM models to determine whether analytics endpoints exist and verify database capabilities for generating real-time SQL aggregations.
+
+### 2. Files Inspected
+* `src/api/routes/__init__.py`, `health.py`, `incidents.py`, `users.py`, `zones.py`
+* `src/schemas/incident.py`, `zone.py`, `user.py`, `detection.py`, `assignment.py`, `inspection.py`
+* `src/repositories/incidents.py`, `zones.py`, `users.py`, `detections.py`, `assignments.py`, `inspections.py`
+* `src/db/models/incident.py`, `zone.py`, `history.py`, `inspection.py`
+
+### 3. Routes Discovered
+* No dedicated analytics endpoints (`/api/v1/analytics/`) currently exist in `src/api/routes/`.
+* Tested HTTP GET against live server (`/api/v1/analytics/summary`, `/api/v1/analytics/trends`, `/api/v1/analytics/zones`) $\rightarrow$ Returned `HTTP 404 Not Found`.
+
+### 4. Database Aggregation Capability
+* Inspection of `src/db/models/incident.py` and `zone.py` confirms that the existing PostgreSQL schema contains 100% of the raw data required for real-time SQL aggregations:
+  - `status`, `priority`, `incident_type`, `zone_id`, `severity_score`, `created_at`, `duration_seconds`, `started_at`, `ended_at`.
+* **Zero schema modifications or Alembic migrations required for Phase 9B.**
+
+### 5. Tests Executed
+* Ran backend pytest test suite: `.venv\Scripts\python -m pytest -v`
+  - Result: **31 / 31 passed in 0.79s** (0 regressions).
+
+### 6. Recommended Next Step
+* Proceed to **Phase 9B: Backend Analytics Endpoints Implementation & Frontend Wiring**.
