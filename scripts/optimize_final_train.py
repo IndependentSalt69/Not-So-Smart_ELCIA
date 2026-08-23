@@ -17,3 +17,14 @@ if __name__ == '__main__':
         exist_ok=True             # Overwrites/appends safely to the same run directory
     )
     print("\n[SUCCESS] Training resumed at maximum capacity!")
+
+
+# from ultralytics import YOLO
+
+# # Load the exact checkpoint where it died
+# model = YOLO("runs/segment/civicpulse_4class_max/weights/last.pt")
+
+# if __name__ == '__main__':
+#     print("[AI Engine] Resuming training from the exact stopped epoch...")
+#     # resume=True automatically remembers your 300 epochs and batch=-1 settings!
+#     model.train(resume=True)

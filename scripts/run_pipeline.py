@@ -6,11 +6,12 @@ from src.detection.video_tracker import HazardVideoPipeline
 
 def main():
     # Update this to your demo video's path
-    video_path = "data/sample/test_video.mov" 
+    video_path = "data_raw/demo_video.mov"
 
     pipeline = HazardVideoPipeline(
-        weights_path="models/production/civicpulse_best.pt",
-        output_dir="outputs"
+        weights_path="runs/segment/civicpulse_4class_max-2/weights/last.pt",
+        output_dir="outputs",
+        srt_path="data_raw/demo_video.srt"
     )
     
     pipeline.process_video(

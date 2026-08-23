@@ -6,6 +6,7 @@ incidents, detections, evidence, assignments, status history, and inspections.
 """
 
 import sys
+import json
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
@@ -478,6 +479,84 @@ def seed_database():
                 print(f"    - Added {len(idef.get('inspections', []))} field inspection records")
 
         print("\n[SUCCESS] Database successfully seeded with Electronics City DEMO DATA!")
+
+        print("\n--- Ingesting AI Telemetry Data ---")
+        telemetry_file = Path("outputs/hazard_telemetry.json")
+        
+        if telemetry_file.exists():
+            with open(telemetry_file, "r") as f:
+                ai_data = json.load(f)
+
+            # Map YOLO string classes to your database Enums
+            type_map = {
+                "pothole": IncidentType.POTHOLE,
+                "waterlogging": IncidentType.WATERLOGGING,
+                "drainage_overflow": IncidentType.DRAINAGE_OVERFLOW,
+                "damaged_footpath": IncidentType.DAMAGED_FOOTPATH
+            }
+
+            for item in ai_data:
+                # Create a unique ID for AI incidents
+                incident_code = f"INC-AI-{item['hazard_id']}"
+                
+                existing = get_incident(db, incident_code)
+                if existing:
+                    print(f"  [SKIP] AI Incident '{incident_code}' already exists.")
+                    continue
+                
+                # Convert AI severity (0-100) to Priority Level
+                score = item.get("severity_score", 0)
+                priority = PriorityLevel.P3
+                if score > 70: 
+                    priority = PriorityLevel.P1
+                elif score > 40: 
+                    priority = PriorityLevel.P2
+
+                # We'll attach these to EC-01 for demo mapping purposes
+                zone = seeded_zones.get("EC-01")
+
+                # 1. Create the Incident
+                incident = create_incident(
+                    db=db,
+                    incident_code=incident_code,
+                    incident_type=type_map.get(item["class_name"].lower(), IncidentType.POTHOLE),
+                    confidence=0.95,
+                    severity_score=score / 10.0, # Assuming DB expects 1-10 scale based on your demo data
+                    priority=priority,
+                    zone_id=zone.id if zone else 1,
+                    status=IncidentStatus.DETECTED,
+                    started_at=datetime.now(timezone.utc),
+                    location=f"POINT({item['longitude']} {item['latitude']})"
+                )
+                print(f"  [CREATED] AI Incident '{incident.incident_code}' at Lat: {item['latitude']}, Lon: {item['longitude']}")
+
+                # 2. Create the Detection Record
+                create_detection(
+                    db=db,
+                    incident_id=incident.id,
+                    detection_type=item["class_name"],
+                    confidence=0.95,
+                    frame_number=item["frame_logged"],
+                    detected_at=datetime.now(timezone.utc),
+                    location=f"POINT({item['longitude']} {item['latitude']})",
+                    detection_metadata={
+                        "timestamp_sec": item["timestamp_sec"], 
+                        "mask_pixels": item["mask_pixels"]
+                    }
+                )
+
+                # 3. Link the Evidence Image
+                create_evidence(
+                    db=db,
+                    incident_id=incident.id,
+                    evidence_type=EvidenceType.IMAGE,
+                    file_path=f"outputs/evidence/{item['evidence_file']}",
+                    description=f"Auto-captured {item['class_name']} by Drone AI",
+                    is_primary=True
+                )
+            print(f"  -> Successfully ingested {len(ai_data)} AI detections into the database.")
+        else:
+            print("  [SKIP] No hazard_telemetry.json found. Run the video pipeline first!")
 
     finally:
         db.close()

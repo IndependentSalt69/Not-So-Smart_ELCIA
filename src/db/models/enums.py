@@ -16,6 +16,7 @@ class IncidentType(str, enum.Enum):
     WATERLOGGING = "WATERLOGGING"
     POTHOLE = "POTHOLE"
     DRAINAGE_OVERFLOW = "DRAINAGE_OVERFLOW"
+    DAMAGED_FOOTPATH = "DAMAGED_FOOTPATH"
 
 
 class PriorityLevel(str, enum.Enum):
