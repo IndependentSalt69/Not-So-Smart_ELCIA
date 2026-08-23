@@ -1,738 +1,265 @@
 # CivicPulse
 
-### AI-Assisted Monsoon Civic Risk Intelligence & Response System
+### AI-Assisted Monsoon Civic Risk Intelligence and Response System
 
-> **ELCIA Smart City Drone-AI Challenge 2026**  
-> **Track:** Monsoon, Roads & Civic Infrastructure Intelligence
-
-CivicPulse is an **AI-assisted civic intelligence platform** designed to convert road and aerial video into **evidence-backed, prioritized infrastructure incidents**.
-
-The flagship use case is **waterlogging detection and prioritization**, with **pothole detection** as a secondary capability and **drainage overflow** as a future extension.
+**ELCIA Smart City Drone-AI Challenge 2026**  
+*Track: Monsoon, Roads & Civic Infrastructure Intelligence*  
+*Context: Electronics City, Bengaluru*
 
 ---
 
-## Core Product Story
+## Executive Summary
 
-**Detection → Evidence → Severity → Priority → Action → Verification → Closure**
+CivicPulse is an enterprise-grade AI civic intelligence and automated response platform designed to transform aerial drone and road surveillance video into structured, evidence-backed civic infrastructure incidents. 
 
-CivicPulse is designed to move beyond simply detecting an infrastructure problem and instead support the complete civic response workflow.
-
----
-
-# Problem
-
-During monsoon events, civic teams face difficulty continuously monitoring road and drainage conditions, determining which issues are most severe, and deciding which intervention should happen first.
-
-CivicPulse aims to provide a **visual intelligence layer** that transforms road and aerial video into structured civic incidents that can be reviewed, prioritized and tracked through a maintenance workflow.
-
-The initial problem context is **Electronics City**, with the architecture designed to generalize to other urban environments.
+The platform addresses severe monsoon-related urban challenges—specifically **waterlogging inundation** and **pothole road degradation**—by automating the full operational lifecycle: visual detection, spatial coordinate mapping, temporal deduplication, severity scoring, operational priority triage, human-in-the-loop verification, and resolution tracking.
 
 ---
 
-# Target Use Case
+## Current Implementation Status
 
-## Primary — Waterlogging
+CivicPulse is fully implemented, integrated, and verified across both backend and frontend components:
 
-Waterlogging is the **flagship capability** because it enables:
-
-- **Affected-area estimation**
-- **Temporal persistence analysis**
-- **Road obstruction assessment**
-- **Severity estimation**
-- **Operational prioritization**
-- **Evidence-backed alerts**
-
-## Secondary — Potholes
-
-Pothole detection extends the system toward **persistent road-surface maintenance**.
-
-## Future — Drainage Overflow
-
-Drainage overflow/blockage detection can be incorporated where the available video provides sufficient visual evidence.
+- **FastAPI Backend Services**: Production REST API endpoints for incident management, zone telemetry, AI video ingestion, and live analytics.
+- **PostgreSQL / PostGIS Database**: Relational schema with spatial extensions, Alembic migration history, and PostGIS geometry indexing.
+- **AI Computer Vision Pipeline**: Frame extraction, waterlogging segmentation, pothole detection, and temporal event association.
+- **React Operations Dashboard**: Interactive TypeScript dashboard featuring live Google Maps spatial tracking, real-time incident queues, AI Ingest Studio, and analytics telemetry.
+- **Verification Suite**: 37/37 backend pytest unit/integration tests passing; zero TypeScript compilation errors (`npm run check`).
 
 ---
 
-# System Architecture
+## System Architecture
 
 ```text
-                    INPUT
-                      │
-              Road / Drone Video
-                      │
-                      ▼
-              ┌─────────────────┐
-              │ Frame Sampling  │
-              └────────┬────────┘
-                       │
-                       ▼
-             ┌────────────────────┐
-             │ AI Detection / Seg │
-             │ Waterlogging       │
-             │ Pothole            │
-             └─────────┬──────────┘
-                       │
-                       ▼
-             ┌────────────────────┐
-             │Temporal Association│
-             │Tracking / Dedup    │ 
-             └─────────┬──────────┘
-                       │
-                       ▼
-              ┌─────────────────┐
-              │ Incident Engine │
-              └────────┬────────┘
-                       │
-          ┌────────────┼────────────┐
-          ▼            ▼            ▼
-      Evidence      Severity     Context
-          │            │            │
-          └────────────┼────────────┘
-                       ▼
-               Priority Engine
-                       │
-                       ▼
-                 FastAPI API
-                       │
-              ┌────────┴────────┐
-              ▼                 ▼
-        React Dashboard      Database
-              │
-              ▼
-       Human Verification
-              │
-       ┌──────┼─────────┐
-       ▼      ▼         ▼
-    Reject  Assign   Modify
-                       │
-                       ▼
-                 In Progress
-                       │
-                       ▼
-                Re-inspection
-                       │
-                       ▼
-                    Closed
+                                  INPUT
+                                    │
+                         Road / Drone Video Feed
+                                    │
+                                    ▼
+                        ┌───────────────────────┐
+                        │ Frame Sampling & Prep │
+                        └───────────┬───────────┘
+                                    │
+                                    ▼
+                        ┌───────────────────────┐
+                        │ AI Inference Engine   │
+                        │ • Waterlogging (Seg)  │
+                        │ • Pothole (Detect)    │
+                        └───────────┬───────────┘
+                                    │
+                                    ▼
+                        ┌───────────────────────┐
+                        │ Temporal Intelligence │
+                        │ • Frame Deduplication │
+                        │ • Persistence Tracking│
+                        └───────────┬───────────┘
+                                    │
+                                    ▼
+                        ┌───────────────────────┐
+                        │  Incident Generator   │
+                        │ • Spatial PostGIS Tag │
+                        │ • Severity & Priority │
+                        └───────────┬───────────┘
+                                    │
+                                    ▼
+                        ┌───────────────────────┐
+                        │ FastAPI REST Backend  │
+                        │ • PostgreSQL/PostGIS  │
+                        └───────────┬───────────┘
+                                    │
+                        ┌───────────┴───────────┐
+                        ▼                       ▼
+            React Operations Dashboard    Analytics Engine
+                        │
+                        ▼
+            Human-in-the-Loop Workflow
+            [DETECTED → VERIFIED → ASSIGNED → IN_PROGRESS → RE_INSPECTION → CLOSED]
 ```
 
 ---
 
-# AI Pipeline
+## Key Features
 
-## 1. Video Ingestion
+### 1. AI Video Ingestion Studio
+- Ingests drone and dashcam surveillance footage in real time.
+- Extracts visual evidence frames and runs automated detection models.
+- Generates structured incident objects with exact timestamp, location description, confidence metric, and bounding metadata.
 
-The system is designed to accept:
+### 2. Spatial Operations Center (Google Maps & PostGIS)
+- Renders incident hotspots using `@vis.gl/react-google-maps` with satellite hybrid and vector views.
+- Integrates PostGIS geometry points for precise longitude and latitude spatial queries across Electronics City Phase 1 and Phase 2 corridors.
+- Supports interactive fly-to controls, coordinate lookup, zone filtering, and dynamic incident info cards.
 
-- Road-level video
-- Elevated / aerial-style video
-- Monsoon-condition footage
-- Challenge-provided sample data
-- Locally captured footage
-- Permitted public datasets / videos
+### 3. Operational Severity & Priority Engine
+Decouples model detection confidence from operational intervention priority:
+- **Severity Score (0.0 – 10.0)**: Calculated from physical inundation extent, road obstruction, and duration.
+- **Priority Triage**:
+  - **P1 — Critical**: Immediate intervention required (e.g., major junction inundation).
+  - **P2 — High**: High-priority inspection and maintenance.
+  - **P3 — Routine**: Scheduled maintenance queue.
 
-The system **does not assume precise GPS metadata** when it is unavailable.
+### 4. Closed-Loop Incident Lifecycle Workflow
+Tracks incident progression across six formal state-machine statuses:
+1. `DETECTED`: Initial AI pipeline detection.
+2. `VERIFIED`: Confirmed by human operator.
+3. `ASSIGNED`: Allocated to municipal field team.
+4. `IN_PROGRESS`: On-site mitigation active.
+5. `RE_INSPECTION`: Quality assurance re-check.
+6. `CLOSED`: Resolved and archived.
 
----
-
-## 2. Waterlogging Detection
-
-Waterlogging is treated primarily as a **segmentation problem** to estimate:
-
-- Affected water region
-- Approximate road coverage
-- Spatial extent
-- Persistence across frames
-
-This allows the system to reason about the **extent and impact of waterlogging**, rather than only detecting it with a bounding box.
-
----
-
-## 3. Pothole Detection
-
-Potholes are treated as an **object-detection problem** providing:
-
-- Class
-- Confidence
-- Bounding region
-- Timestamp
-- Source / context
-
-The final model architecture will be selected after inspecting the available dataset and camera viewpoints.
+### 5. Live Analytics & Telemetry Engine
+- Aggregates live backend metrics via PostgreSQL SQL transformations.
+- Provides daily incident surge trends over rolling 7-day windows.
+- Visualizes zone vulnerability distributions and operational status breakdowns using Recharts.
 
 ---
 
-## 4. Temporal Intelligence
+## Technology Stack
 
-Repeated frame-level detections are aggregated into incidents to:
+### Backend
+- **Language**: Python 3.12
+- **Framework**: FastAPI (Asynchronous REST API)
+- **Database**: PostgreSQL 15 with PostGIS 3 extension
+- **ORM / Migrations**: SQLAlchemy 2.0, Alembic
+- **Testing**: Pytest, Httpx, AnyIO
 
-- Suppress duplicate alerts
-- Estimate persistence duration
-- Identify event start / end
-- Generate representative evidence frames or clips
+### Frontend
+- **Framework**: React 18, TypeScript, Vite
+- **Styling**: Tailwind CSS
+- **Mapping**: Google Maps Platform (`@vis.gl/react-google-maps`)
+- **Visualizations**: Recharts
+- **Icons & UI**: Lucide React, Shadcn/UI primitives
 
-```text
-Frame 1 ──┐
-Frame 2 ──┤
-Frame 3 ──┤──► ONE CIVIC INCIDENT
-Frame 4 ──┤
-Frame 5 ──┘
-```
-
-This allows the system to reason about an **event**, rather than treating every frame-level detection as a separate incident.
-
----
-
-## 5. Severity & Priority
-
-Severity considers:
-
-- Water extent
-- Persistence
-- Road obstruction
-- Road criticality
-
-```text
-Water Extent
-      +
-Persistence
-      +
-Road Obstruction
-      +
-Road Criticality
-      ↓
-Severity Score
-```
-
-Priority then combines **severity + operational context** to determine the recommended response level:
-
-| Priority | Meaning |
-|---|---|
-| **P1 — Critical** | Immediate / high-impact intervention |
-| **P2 — High** | High-priority inspection or maintenance |
-| **P3 — Routine** | Normal maintenance queue |
-
-The exact weights and thresholds will be calibrated using validation data.
+### AI & Computer Vision
+- **Frameworks**: PyTorch, OpenCV
+- **Models**: Segformer (Waterlogging Segmentation), YOLOv8 (Pothole Detection)
 
 ---
 
-## 6. Evidence Generation
+## API Reference
 
-Each incident is packaged with:
+The backend exposes full OpenAPI documentation at `/docs` when running. Key endpoints include:
 
-- Representative evidence frame
-- Short video clip where available
-- Timestamp
-- Source / zone
-- Model confidence
-- Severity
-- Priority
-- Recommended action
+### Incidents API
+- `GET /api/v1/incidents/`: List incidents with optional filtering by `zone_id`, `incident_type`, `status`, `priority`, and `min_severity`.
+- `POST /api/v1/incidents/`: Create a new incident.
+- `GET /api/v1/incidents/{id}`: Retrieve detailed incident metadata and evidence.
+- `PATCH /api/v1/incidents/{id}`: Update status, priority, or assigned team.
 
-This creates an **evidence-backed alert** rather than a detection-only output.
+### Zone Telemetry API
+- `GET /api/v1/zones/`: Retrieve list of operational zones (e.g., `EC-01`, `EC-02`, `EC-03`, `EC-04`).
 
----
+### Analytics API
+- `GET /api/v1/analytics/summary`: Aggregate metrics including active incidents, P1 critical count, and mean resolution time.
+- `GET /api/v1/analytics/trends`: Daily historical surge trends over 7-day rolling window.
+- `GET /api/v1/analytics/zones`: Per-zone incident counts broken down by priority level.
 
-# Dashboard Snapshot
-
-![Dashboard Screenshot](images/Dashboard_Image.png)
-
-
-# Incident Intelligence
-
-Each detected event is converted into a **structured civic incident**.
-
-### Example Incident
-
-```json
-{
-  "incident_id": "EC-001",
-  "type": "waterlogging",
-  "confidence": 0.94,
-  "severity": 8.7,
-  "priority": "P1",
-  "timestamp": "00:02:14",
-  "zone": "EC-04",
-  "duration_seconds": 182,
-  "evidence": "evidence/EC-001.jpg",
-  "recommended_action": "drainage_inspection",
-  "owner": "Drainage Operations",
-  "status": "VERIFIED"
-}
-```
-
-The schema is expected to evolve as the dataset and operational requirements are validated.
+### Ingestion & Inference API
+- `POST /api/v1/ingest/upload`: Upload raw surveillance video clip.
+- `POST /api/v1/inference/process`: Run computer vision pipeline on uploaded clip.
 
 ---
 
-# Severity vs Priority
+## Local Setup and Installation
 
-CivicPulse explicitly separates **confidence**, **severity**, and **priority**.
+### Prerequisites
+- Python 3.12+
+- Node.js 18+ and npm
+- PostgreSQL 15+ with PostGIS extension (or local SQLite/PostgreSQL configuration)
 
-### Confidence
-
-**How certain is the model that the event exists?**
-
-### Severity
-
-**How serious is the observed physical condition?**
-
-### Priority
-
-**How urgently should the civic team respond?**
-
-A moderate waterlogging event at a major junction may deserve higher operational priority than severe waterlogging on a low-traffic internal road.
-
----
-
-## Initial Severity Factors
-
-```text
-Water Extent
-      +
-Persistence
-      +
-Road Obstruction
-      +
-Road Criticality
-      ↓
-Severity Score
-```
-
-The exact weights and thresholds will be calibrated using validation data.
-
----
-
-## Priority Levels
-
-| Priority | Meaning |
-|---|---|
-| **P1 — Critical** | Immediate / high-impact intervention |
-| **P2 — High** | High-priority inspection or maintenance |
-| **P3 — Routine** | Normal maintenance queue |
-
----
-
-# Evidence-Backed Alerts
-
-Every important incident should contain enough information for an operator to verify it.
-
-### Expected Incident Information
-
-- **Event class**
-- **Model confidence**
-- **Severity**
-- **Priority**
-- **Timestamp**
-- **Source / zone**
-- **Evidence frame**
-- **Short video clip**
-- **Persistence**
-- **Recommended action**
-- **Owner**
-- **Workflow status**
-
-The goal is to move beyond:
-
-> **"Waterlogging detected."**
-
-toward:
-
-> **"Waterlogging detected here, at this time, with this evidence, at this severity, with this operational priority and this recommended response."**
-
----
-
-# Operator Workflow
-
-```text
-DETECTED
-   │
-   ▼
-VERIFIED
-   │
-   ▼
-ASSIGNED
-   │
-   ▼
-IN PROGRESS
-   │
-   ▼
-RE-INSPECTION
-   │
-   ▼
-CLOSED
-```
-
-The system is intended to create a **closed loop from visual detection to verified resolution**.
-
----
-
-# Dashboard
-
-The planned dashboard will provide a lightweight **civic operations interface**.
-
-### Dashboard Features
-
-- **Incident map**
-- **Active incident queue**
-- **Priority counts**
-- **Recent detections**
-- **Zone filters**
-- **Incident-type filters**
-- **Status filters**
-- **Visual evidence**
-- **Severity**
-- **Priority**
-- **Recommended action**
-- **Assigned owner**
-- **Workflow status**
-
-### Representative Incident Card
-
-```text
-┌─────────────────────────────────┐
-│ WATERLOGGING                    │
-│                                 │
-│ Severity: 8.7 / 10              │
-│ Priority: P1                    │
-│ Confidence: 94%                 │
-│ Zone: EC-04                     │
-│                                 │
-│ [ Evidence Frame / Short Clip ] │
-│                                 │
-│ Recommended Action:             │
-│ Drainage Inspection             │
-│                                 │
-│ Owner: Drainage Operations      │
-│ Status: ASSIGNED                │
-└─────────────────────────────────┘
-```
-
-The dashboard is designed to provide **maximum operational information with minimal interface complexity**.
-
----
-
-# Human-in-the-Loop
-
-CivicPulse is an **AI-assisted decision-support system**, not an autonomous civic authority.
-
-### AI provides
-
-- Detection
-- Evidence
-- Confidence
-- Severity estimate
-- Priority recommendation
-- Suggested action
-
-### Operators retain control over
-
-- Incident verification
-- Priority modification
-- Ownership
-- Status
-- Rejection
-- Closure
-
-Low-confidence or high-impact incidents can require **explicit human verification** before assignment.
-
----
-
-# Testing & Validation
-
-The system will be evaluated at both the **model level** and the **incident/workflow level**.
-
-## Test Conditions
-
-Testing will cover:
-
-- Heavy rain
-- Wet-road reflections
-- Low-light conditions
-- Partial occlusion
-- Vehicle obstruction
-- Low-contrast waterlogging
-- Partially submerged potholes
-- Varying camera viewpoints
-
----
-
-## Model Metrics
-
-Potential model-level metrics include:
-
-- **Precision**
-- **Recall**
-- **F1 Score**
-- **mAP**
-- **Segmentation metrics**, where applicable
-
----
-
-## Incident-Level Metrics
-
-The system will additionally measure:
-
-- **Incident-level recall**
-- **False alerts per hour**
-- **Missed incidents**
-- **Duplicate-incident rate**
-- **Detection-to-alert latency**
-- **Evidence completeness**
-
-### False Positive Example
-
-```text
-Wet-road reflection
-        ↓
-False waterlogging detection
-```
-
-### False Negative Example
-
-```text
-Vehicle blocks flooded region
-        ↓
-Waterlogging missed
-```
-
-Special attention will be given to these failure cases during validation.
-
----
-
-# Technology Stack
-
-| Layer | Proposed Technology |
-|---|---|
-| **Computer Vision** | Lightweight detection / segmentation model |
-| **Tracking** | ByteTrack / BoT-SORT or equivalent |
-| **Backend** | FastAPI |
-| **Database** | PostgreSQL / PostGIS |
-| **Dashboard** | React |
-| **Mapping** | Leaflet / MapLibre |
-| **Language** | Python |
-| **Evaluation** | Python |
-| **Deployment** | Local GPU → Edge-ready optimization |
-
-> **Note:** Final model and framework choices will be validated after dataset inspection and baseline evaluation.
-
----
-
-# Deployment & Compute Strategy
-
-The prototype will prioritize **lightweight local inference** and avoid unnecessary cloud dependency.
-
-### Development
-
-- Local GPU workstation for training / inference
-- Python-based ML pipeline
-- Optional cloud GPU / Colab for training experiments where required
-
-### Future Deployment Direction
-
-```text
-Camera / Drone
-      │
-      ▼
-Edge Inference
-      │
-      ▼
-Event Metadata + Evidence
-      │
-      ▼
-Central Dashboard
-```
-
-The architecture is designed with **future edge deployment** in mind.
-
----
-
-# Reproducibility
-
-The eventual repository will provide:
-
-- Installation instructions
-- Dependency specification
-- Model configuration
-- Sample input
-- Inference instructions
-- Evaluation scripts
-- Example outputs
-- Architecture documentation
-
-### Target End-to-End Usage
+### 1. Backend Setup
 
 ```bash
-python run.py --input sample.mp4
+# Clone repository
+git clone https://github.com/IndependentSalt69/ELCIA-Hackathon.git
+cd ELCIA-Hackathon
+
+# Create and activate virtual environment
+python -m venv venv
+# On Windows:
+.\venv\Scripts\activate
+# On Linux/macOS:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run database migrations
+alembic upgrade head
+
+# Start FastAPI development server
+uvicorn src.api.main:app --reload --port 8000
 ```
 
-### Expected Outputs
+The API will be available at `http://127.0.0.1:8000` (OpenAPI Swagger docs at `http://127.0.0.1:8000/docs`).
+
+### 2. Frontend Setup
+
+```bash
+# Navigate to client directory
+cd dashboard/client
+
+# Install dependencies
+npm install
+
+# Configure environment variables in dashboard/client/.env
+# VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+
+# Run frontend development server
+npm run dev
+```
+
+The React dashboard will be available at `http://localhost:5173`.
+
+---
+
+## Testing and Verification
+
+### Backend Automated Test Suite
+Run the full pytest suite (37 tests covering API endpoints, database migrations, repository patterns, and analytics aggregations):
+
+```bash
+python -m pytest
+```
+
+### Frontend Type Check
+Run TypeScript static analysis across the frontend codebase:
+
+```bash
+cd dashboard/client
+npm run check
+```
+
+---
+
+## Repository Structure
 
 ```text
-outputs/
-├── annotated_video.mp4
-├── incidents.json
-└── evidence/
-    ├── EC-001.jpg
-    └── EC-002.jpg
+.
+├── src/
+│   ├── api/                # FastAPI router definitions, endpoints, schemas
+│   ├── core/               # App configuration, security, logging
+│   ├── db/                 # SQLAlchemy session setup, PostGIS models, migrations
+│   ├── ml/                 # Detection models, frame extraction, inference code
+│   └── repositories/       # Data access layer for incidents, zones, analytics
+├── dashboard/
+│   └── client/             # React + Vite TypeScript frontend application
+│       ├── src/
+│       │   ├── components/ # Map, Queue, Analytics, Ingest Studio UI
+│       │   ├── services/   # Axios API client services
+│       │   ├── hooks/      # React custom hooks
+│       │   └── types/      # TypeScript interfaces
+├── tests/                  # Pytest test suite (unit, integration, DB migrations)
+├── docs/                   # System design logs, integration logs, QA bugfix logs
+├── alembic.ini             # Alembic migration configuration
+├── requirements.txt        # Python dependency manifest
+└── README.md               # Project documentation
 ```
 
 ---
 
-# Project Status
+## License and Acknowledgments
 
-> **Proposal / Pre-Build Stage**
+Developed as part of the **ELCIA Smart City Drone-AI Challenge 2026** under the *Monsoon, Roads & Civic Infrastructure Intelligence* track.
 
-### Current Focus
-
-- [x] Problem definition
-- [x] System architecture
-- [x] AI pipeline design
-- [x] Severity / priority framework
-- [x] Evaluation strategy
-- [x] Implementation planning
-
-### Planned Next Stages
-
-- [ ] Dataset reconnaissance
-- [ ] Data preprocessing
-- [ ] Waterlogging baseline
-- [ ] Pothole baseline
-- [ ] Temporal association
-- [ ] Incident generation
-- [ ] Severity scoring
-- [ ] Priority engine
-- [ ] Evidence generation
-- [ ] Dashboard
-- [ ] Backend API
-- [ ] Evaluation
-- [ ] End-to-end demo
-- [ ] Edge optimization
-
----
-
-# Roadmap
-
-### Phase 1 — Dataset & Baseline
-
-Understand available videos, labels, viewpoints and data quality.
-
-### Phase 2 — Detection
-
-Build the initial waterlogging and pothole detection models.
-
-### Phase 3 — Temporal Intelligence
-
-Convert frame-level detections into persistent incidents.
-
-### Phase 4 — Civic Intelligence
-
-Add severity, priority, evidence and contextual reasoning.
-
-### Phase 5 — Operations
-
-Build the dashboard, assignment and closure workflow.
-
-### Phase 6 — Validation
-
-Evaluate the system on unseen clips and challenging environmental conditions.
-
-### Phase 7 — Demonstration
-
-Package the complete pipeline into a reproducible, demonstration-ready prototype.
-
----
-
-# Risks & Limitations
-
-## Rain & Reflections
-
-Wet surfaces can resemble waterlogged regions.
-
-**Mitigation:** temporal persistence, contextual logic and confidence thresholds.
-
----
-
-## Occlusion
-
-Vehicles and pedestrians may hide affected regions.
-
-**Mitigation:** multi-frame association and evidence review.
-
----
-
-## Geolocation
-
-Sample videos may lack precise GPS metadata.
-
-**Mitigation:** use source / zone identifiers rather than fabricating coordinates.
-
----
-
-## Domain Shift
-
-Performance may vary across:
-
-- Camera height
-- Weather
-- Lighting
-- Road design
-- Viewpoint
-
-**Mitigation:** validate on unseen viewpoints and maintain a retraining / fine-tuning workflow.
-
----
-
-## AI Uncertainty
-
-Model confidence does not automatically represent civic severity.
-
-**Mitigation:** explicitly separate **confidence, severity and operational priority**.
-
----
-
-# Project Principles
-
-### 1. Detect Early
-
-Identify visible infrastructure risks before they become larger operational problems.
-
-### 2. Prove With Evidence
-
-Important alerts should contain visual and contextual evidence.
-
-### 3. Prioritize Intelligently
-
-Severity alone should not determine operational priority.
-
-### 4. Keep Humans in the Loop
-
-AI assists civic teams; it does not replace operational judgment.
-
-### 5. Close the Loop
-
-Support assignment, action, re-inspection and closure.
-
----
-
-# Core Product Story
-
-## OBSERVE → UNDERSTAND → PRIORITIZE → ACT → VERIFY
-
-> **CivicPulse transforms visual observations into actionable civic intelligence.**
-
----
-
-# ELCIA Smart City Drone-AI Challenge
-
-**Challenge:** ELCIA Smart City Drone-AI Challenge 2026  
-**Selected Track:** Monsoon, Roads & Civic Infrastructure Intelligence  
-**Context:** Electronics City
-
-This project is currently at the **proposal / pre-build stage** and is intended to evolve into a working prototype during the build phase.
-
----
-
-## License
-
-This project is being developed as part of the **ELCIA Smart City Drone-AI Challenge 2026**.
-
-License and usage terms will be finalized as the project progresses.
+Copyright 2026 CivicPulse Team.
