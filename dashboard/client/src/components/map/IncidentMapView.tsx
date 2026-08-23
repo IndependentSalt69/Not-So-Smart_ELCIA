@@ -360,8 +360,8 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
                         incident.priority === 'P1'
                           ? 'bg-red-600 border-white ring-4 ring-red-500/30'
                           : incident.priority === 'P2'
-                          ? 'bg-orange-500 border-white ring-2 ring-orange-500/30'
-                          : 'bg-amber-500 border-white ring-2 ring-amber-500/30',
+                            ? 'bg-orange-500 border-white ring-2 ring-orange-500/30'
+                            : 'bg-amber-500 border-white ring-2 ring-amber-500/30',
                         isSelected && 'scale-125 ring-4 ring-white'
                       )}
                     >

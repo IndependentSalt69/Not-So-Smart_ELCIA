@@ -284,6 +284,16 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
           </div>
 
           <div className="relative h-72 xl:h-80 2xl:h-96 w-full flex items-center justify-center">
+            {/* Absolute Center Overlay for Donut Hole Label */}
+            <div className="absolute top-[37%] left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center pointer-events-none z-10 select-none">
+              <span className="text-zinc-900 dark:text-white font-black font-mono text-3xl xl:text-4xl leading-none">
+                {totalStatusCount}
+              </span>
+              <span className="text-zinc-500 dark:text-zinc-400 font-bold uppercase text-[11px] xl:text-xs tracking-wider mt-1">
+                Total Events
+              </span>
+            </div>
+
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -305,24 +315,6 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
                   ))}
                 </Pie>
                 <Tooltip content={<CustomDonutTooltip />} />
-                <text
-                  x="50%"
-                  y="42%"
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="fill-zinc-900 dark:fill-white font-black font-mono text-3xl xl:text-4xl select-none"
-                >
-                  {totalStatusCount}
-                </text>
-                <text
-                  x="50%"
-                  y="51%"
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="fill-zinc-500 dark:fill-zinc-400 font-bold uppercase text-xs tracking-wider select-none"
-                >
-                  Total Events
-                </text>
                 <Legend
                   wrapperStyle={{ fontSize: '13px', fontWeight: 600, paddingTop: '12px' }}
                   iconType="circle"

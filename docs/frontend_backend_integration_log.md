@@ -392,5 +392,27 @@ Identify root causes and apply minimal, targeted fixes for 3 bugs found during m
 * **Pytest Suite (`python -m pytest`):** Passed **37 / 37 tests in 0.88s**.
 * **Integration Verification (`verify_qa_fixes.ts`):** Passed 5/5 verification steps (`getIncidents` for `all`, `waterlogging`, `pothole`, and `createIncident` POST to live backend database).
 
+---
+
+## Dashboard QA UI Fix — Analytics Donut Center Alignment
+
+**Date:** August 23, 2026  
+**Status:** Completed & Verified  
+
+### 1. Root Cause
+In `AnalyticsDashboard.tsx`, the Operational Status Distribution donut chart rendered center label text (`totalStatusCount` and `"Total Events"`) using SVG `<text>` elements embedded inside `<PieChart>`. When Recharts rendered the chart legend below the pie, SVG container width offsets and text-anchor baseline metrics caused the center text to shift to the left of the donut hole.
+
+### 2. File Modified
+* [`dashboard/client/src/components/analytics/AnalyticsDashboard.tsx`](file:///d:/Civicpulse/dashboard/client/src/components/analytics/AnalyticsDashboard.tsx)
+
+### 3. Fix Applied
+* Replaced SVG `<text>` elements inside `<PieChart>` with a dedicated HTML absolute flexbox overlay positioned at `top-[37%] left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center pointer-events-none z-10 select-none` and adjusted `<Pie cy="38%">`.
+* Accounted for the 2-line chart legend height at the bottom of the container to ensure dead-center vertical and horizontal positioning of `{totalStatusCount}` and `"TOTAL EVENTS"` inside the donut hole.
+
+### 4. Verification Results
+* **TypeScript Check (`npm run check`):** Passed with **0 errors**.
+* **Visual / Responsive Verification:** Verified that `{totalStatusCount}` and `"TOTAL EVENTS"` are centered dead in the donut hole across all responsive window resizes.
+
+
 
 

@@ -73,13 +73,12 @@ export const MiniMapWidget: React.FC<MiniMapWidgetProps> = ({
                 onClick={() => onSelectIncident(incident)}
               >
                 <div
-                  className={`w-4 h-4 rounded-full border-2 border-white shadow-md cursor-pointer ${
-                    incident.priority === 'P1'
+                  className={`w-4 h-4 rounded-full border-2 border-white shadow-md cursor-pointer ${incident.priority === 'P1'
                       ? 'bg-red-500 animate-ping'
                       : incident.priority === 'P2'
-                      ? 'bg-orange-500'
-                      : 'bg-amber-400'
-                  }`}
+                        ? 'bg-orange-500'
+                        : 'bg-amber-400'
+                    }`}
                 />
               </AdvancedMarker>
             ))}
