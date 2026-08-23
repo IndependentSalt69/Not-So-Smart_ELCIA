@@ -10,21 +10,106 @@
 
 ## Executive Summary
 
-CivicPulse is an enterprise-grade AI civic intelligence and automated response platform designed to transform aerial drone and road surveillance video into structured, evidence-backed civic infrastructure incidents. 
+CivicPulse's core backend, database, frontend integration, and analytics workflows are implemented and locally verified.
 
-The platform addresses severe monsoon-related urban challenges—specifically **waterlogging inundation** and **pothole road degradation**—by automating the full operational lifecycle: visual detection, spatial coordinate mapping, temporal deduplication, severity scoring, operational priority triage, human-in-the-loop verification, and resolution tracking.
+The platform addresses severe monsoon-related urban challenges—specifically **waterlogging inundation** and **pothole road degradation**—by automating the operational response workflow: visual observation, spatial coordinate mapping, temporal deduplication, severity scoring, operational priority triage, human-in-the-loop verification, and resolution tracking.
 
 ---
 
-## Current Implementation Status
+## Current Status
 
-CivicPulse is fully implemented, integrated, and verified across both backend and frontend components:
+### Verified
+- ✅ **Core FastAPI Backend**: REST API endpoints for incident management, zone telemetry, and analytics workflows.
+- ✅ **PostgreSQL + PostGIS Database**: Spatial database schema with Alembic migration lifecycle management.
+- ✅ **Incident Lifecycle Workflow**: Full state machine (`DETECTED`, `VERIFIED`, `REJECTED`, `ASSIGNED`, `IN_PROGRESS`, `RE_INSPECTION`, `CLOSED`).
+- ✅ **Complete Subresource APIs**: Full CRUD and lookup endpoints for Evidence, Detections, Assignments, Inspections, and History audit trails.
+- ✅ **Frontend ↔ Backend Integration**: Centralized TypeScript API service layer (`api.ts`) connecting React components to live backend endpoints.
+- ✅ **Real-Time Analytics Engine**: Database-side SQL aggregations for summary KPIs, 7-day surge trends, and zone priority breakdowns.
+- ✅ **Automated Test Suite**: 37/37 backend pytest tests passing across API, database, migration, and repository layers.
+- ✅ **Frontend Static Analysis**: 0 TypeScript compilation errors (`npm run check`).
+- ✅ **Hard Dashboard QA**: Validated camera jitter fixes, incident publishing flows, and type filter behavior.
 
-- **FastAPI Backend Services**: Production REST API endpoints for incident management, zone telemetry, AI video ingestion, and live analytics.
-- **PostgreSQL / PostGIS Database**: Relational schema with spatial extensions, Alembic migration history, and PostGIS geometry indexing.
-- **AI Computer Vision Pipeline**: Frame extraction, waterlogging segmentation, pothole detection, and temporal event association.
-- **React Operations Dashboard**: Interactive TypeScript dashboard featuring live Google Maps spatial tracking, real-time incident queues, AI Ingest Studio, and analytics telemetry.
-- **Verification Suite**: 37/37 backend pytest unit/integration tests passing; zero TypeScript compilation errors (`npm run check`).
+### Remaining Work
+- 🟡 **Google Maps Production Configuration**: Browser API key, billing, and referrer restriction setup.
+- 🟡 **Dedicated Media File Serving**: Binary file storage and streaming for raw video clips and evidence images.
+- 🟡 **Drone Trajectory & Telemetry Storage**: `LINESTRING` schema extension for full flight path tracking.
+- 🟡 **Production Deployment**: Cloud infrastructure provisioning and domain deployment.
+- 🟡 **Final End-to-End Live Validation**: Field demo validation under live monsoon footage.
+
+---
+
+## Operational Workflow
+
+CivicPulse moves beyond simple object detection to provide a closed-loop civic response pipeline:
+
+```text
+  Video / AI Observation
+            │
+            ▼
+        Detection
+            │
+            ▼
+    Incident Generated
+            │
+            ▼
+    Human Verification  ────────► [ REJECTED ]
+            │
+            ▼
+       Assignment
+            │
+            ▼
+     Field Inspection
+            │
+            ▼
+    Status Progression  ( IN_PROGRESS → RE_INSPECTION )
+            │
+            ▼
+         Closure
+            │
+            ▼
+        Analytics
+```
+
+---
+
+## Geospatial Data Model
+
+CivicPulse uses PostGIS geometries to model spatial infrastructure data accurately:
+
+- **Incident $\rightarrow$ Representative `POINT`**: Each civic incident is stored with a single representative geospatial coordinate (`EPSG:4326` latitude/longitude) indicating the primary location of interest.
+- **Detection $\rightarrow$ Frame-level `POINT` + Timestamp**: Individual AI detection observations record frame-specific bounding centroids and timestamps.
+- **Zone $\rightarrow$ `POLYGON`**: Municipal operational boundaries (e.g., `EC-01`, `EC-02`, `EC-03`, `EC-04`) are defined as spatial polygon enclosures.
+- **Drone Flight $\rightarrow$ Future `LINESTRING`**: Planned trajectory storage for drone flight telemetry paths.
+
+*Note: Because a surveillance drone passes through many coordinates during a flight, individual incidents hold a representative point location rather than a full trajectory path.*
+
+---
+
+## Incident Lifecycle State Machine
+
+Incidents transition through a strict state machine with full audit trail history:
+
+```text
+          DETECTED
+          /      \
+  VERIFIED        REJECTED
+     │
+  ASSIGNED
+     │
+IN_PROGRESS
+     │
+RE_INSPECTION
+     │
+  CLOSED
+```
+
+- **`DETECTED`**: Initial AI pipeline observation.
+- **`VERIFIED`**: Confirmed by human operator.
+- **`REJECTED`**: Marked invalid or duplicate by operator (supported and tested in backend DB).
+- **`ASSIGNED`**: Dispatched to municipal field response team.
+- **`IN_PROGRESS`**: On-site mitigation active.
+- **`RE_INSPECTION`**: Field work completed, awaiting quality check.
+- **`CLOSED`**: Resolution verified and archived.
 
 ---
 
@@ -33,7 +118,7 @@ CivicPulse is fully implemented, integrated, and verified across both backend an
 ```text
                                   INPUT
                                     │
-                         Road / Drone Video Feed
+                         Surveillance Video Feed
                                     │
                                     ▼
                         ┌───────────────────────┐
@@ -50,14 +135,14 @@ CivicPulse is fully implemented, integrated, and verified across both backend an
                                     ▼
                         ┌───────────────────────┐
                         │ Temporal Intelligence │
-                        │ • Frame Deduplication │
+                        │ • Deduplication       │
                         │ • Persistence Tracking│
                         └───────────┬───────────┘
                                     │
                                     ▼
                         ┌───────────────────────┐
                         │  Incident Generator   │
-                        │ • Spatial PostGIS Tag │
+                        │ • Representative Point│
                         │ • Severity & Priority │
                         └───────────┬───────────┘
                                     │
@@ -73,99 +158,117 @@ CivicPulse is fully implemented, integrated, and verified across both backend an
                         │
                         ▼
             Human-in-the-Loop Workflow
-            [DETECTED → VERIFIED → ASSIGNED → IN_PROGRESS → RE_INSPECTION → CLOSED]
+            [DETECTED → VERIFIED / REJECTED → ASSIGNED → IN_PROGRESS → RE_INSPECTION → CLOSED]
 ```
 
 ---
 
-## Key Features
+## AI Ingest Studio vs. ML Pipeline
 
-### 1. AI Video Ingestion Studio
-- Ingests drone and dashcam surveillance footage in real time.
-- Extracts visual evidence frames and runs automated detection models.
-- Generates structured incident objects with exact timestamp, location description, confidence metric, and bounding metadata.
+CivicPulse distinguishes between the dashboard ingestion interface and the backend ML pipeline:
 
-### 2. Spatial Operations Center (Google Maps & PostGIS)
-- Renders incident hotspots using `@vis.gl/react-google-maps` with satellite hybrid and vector views.
-- Integrates PostGIS geometry points for precise longitude and latitude spatial queries across Electronics City Phase 1 and Phase 2 corridors.
-- Supports interactive fly-to controls, coordinate lookup, zone filtering, and dynamic incident info cards.
+- **Dashboard Ingestion Workflow**: Provides an interactive UI studio for uploading surveillance clips, previewing detections, and publishing resulting incident payloads into the live operations queue via `POST /api/v1/incidents/`.
+- **ML Inference Pipeline**: The underlying computer vision pipeline (YOLOv8 & Segformer) responsible for frame-by-frame segmentation, bounding box detection, and temporal event association.
 
-### 3. Operational Severity & Priority Engine
-Decouples model detection confidence from operational intervention priority:
-- **Severity Score (0.0 – 10.0)**: Calculated from physical inundation extent, road obstruction, and duration.
-- **Priority Triage**:
-  - **P1 — Critical**: Immediate intervention required (e.g., major junction inundation).
-  - **P2 — High**: High-priority inspection and maintenance.
-  - **P3 — Routine**: Scheduled maintenance queue.
+---
 
-### 4. Closed-Loop Incident Lifecycle Workflow
-Tracks incident progression across six formal state-machine statuses:
-1. `DETECTED`: Initial AI pipeline detection.
-2. `VERIFIED`: Confirmed by human operator.
-3. `ASSIGNED`: Allocated to municipal field team.
-4. `IN_PROGRESS`: On-site mitigation active.
-5. `RE_INSPECTION`: Quality assurance re-check.
-6. `CLOSED`: Resolved and archived.
+## API Reference
 
-### 5. Live Analytics & Telemetry Engine
-- Aggregates live backend metrics via PostgreSQL SQL transformations.
-- Provides daily incident surge trends over rolling 7-day windows.
-- Visualizes zone vulnerability distributions and operational status breakdowns using Recharts.
+The backend exposes FastAPI REST API endpoints. Key endpoints include:
+
+### Incidents
+- `GET /api/v1/incidents/`: List incidents with optional filtering by `zone_id`, `incident_type`, `status`, `priority`, and `min_severity`.
+- `POST /api/v1/incidents/`: Create a new incident.
+- `GET /api/v1/incidents/{id}`: Retrieve detailed incident metadata.
+- `PATCH /api/v1/incidents/{id}`: Update incident details.
+- `PATCH /api/v1/incidents/{id}/status`: Update lifecycle status and append status-history audit entry.
+
+### Evidence Subresource
+- `POST /api/v1/incidents/{id}/evidence`: Attach visual evidence metadata to an incident.
+- `GET /api/v1/incidents/{id}/evidence`: Retrieve evidence assets associated with an incident.
+
+### Detections Subresource
+- `POST /api/v1/incidents/{id}/detections`: Record frame-level AI detection data.
+- `GET /api/v1/incidents/{id}/detections`: Retrieve raw frame-level detection records for an incident.
+
+### Assignments Subresource
+- `POST /api/v1/incidents/{id}/assignments`: Assign incident to field response team.
+- `GET /api/v1/incidents/{id}/assignments`: Retrieve field team assignment records for an incident.
+
+### Inspections Subresource
+- `POST /api/v1/incidents/{id}/inspections`: Log field inspection results.
+- `GET /api/v1/incidents/{id}/inspections`: Retrieve inspection history for an incident.
+
+### History Audit Subresource
+- `GET /api/v1/incidents/{id}/history`: Retrieve status transition audit history trail.
+
+### Zone Telemetry
+- `GET /api/v1/zones/`: Retrieve list of operational zones (`EC-01` through `EC-04`).
+
+### Analytics
+- `GET /api/v1/analytics/summary`: Aggregate metrics (active count, P1 critical count, mean resolution time).
+- `GET /api/v1/analytics/trends`: 7-day rolling daily surge trends.
+- `GET /api/v1/analytics/zones`: Per-zone incident counts categorized by priority level.
+
+---
+
+## Analytics Engine & Data Limitations
+
+Analytics metrics are computed strictly via database-side SQL aggregations using PostgreSQL and SQLAlchemy.
+
+### Deliberate Telemetry Limitations
+To ensure data integrity, the system does not fabricate unmeasured metrics:
+- **`waterlogged_area_sqm` $\rightarrow$ Unavailable / N/A**: Physical inundated surface area is not directly measured in the current schema.
+- **`rainfall_mm` $\rightarrow$ Unavailable / N/A**: Rainfall gauge telemetry is not currently stored.
+
+---
+
+## Geospatial Visualization (Google Maps)
+
+The dashboard provides a Google Maps-based geospatial visualization of PostGIS-backed incident locations:
+
+- **Features**: Dynamic marker clustering, P1 critical pulse animation, zone boundaries, fly-to camera controllers, and InfoWindow details.
+- **Configuration Note**: A valid browser Google Maps API key (`VITE_GOOGLE_MAPS_API_KEY`) with appropriate domain restrictions is required for production usage.
 
 ---
 
 ## Technology Stack
 
 ### Backend
-- **Language**: Python 3.12
+- **Language**: Python 3.x
 - **Framework**: FastAPI (Asynchronous REST API)
-- **Database**: PostgreSQL 15 with PostGIS 3 extension
+- **Database**: PostgreSQL with PostGIS extension
 - **ORM / Migrations**: SQLAlchemy 2.0, Alembic
 - **Testing**: Pytest, Httpx, AnyIO
 
 ### Frontend
-- **Framework**: React 18, TypeScript, Vite
+- **Framework**: React, TypeScript, Vite
 - **Styling**: Tailwind CSS
-- **Mapping**: Google Maps Platform (`@vis.gl/react-google-maps`)
+- **Mapping**: `@vis.gl/react-google-maps`
 - **Visualizations**: Recharts
-- **Icons & UI**: Lucide React, Shadcn/UI primitives
+- **API Client Layer**: Centralized TypeScript API service layer (`api.ts`)
 
-### AI & Computer Vision
-- **Frameworks**: PyTorch, OpenCV
+### Computer Vision
+- **Libraries**: PyTorch, OpenCV
 - **Models**: Segformer (Waterlogging Segmentation), YOLOv8 (Pothole Detection)
 
 ---
 
-## API Reference
+## Testing and Hard Dashboard QA
 
-The backend exposes full OpenAPI documentation at `/docs` when running. Key endpoints include:
+### Automated Tests
+- **Backend Pytest Suite**: 37/37 tests passing (`pytest`) covering API endpoints, database migrations, repository patterns, and analytics aggregations.
+- **Frontend Type Check**: 0 TypeScript compilation errors (`npm run check`).
 
-### Incidents API
-- `GET /api/v1/incidents/`: List incidents with optional filtering by `zone_id`, `incident_type`, `status`, `priority`, and `min_severity`.
-- `POST /api/v1/incidents/`: Create a new incident.
-- `GET /api/v1/incidents/{id}`: Retrieve detailed incident metadata and evidence.
-- `PATCH /api/v1/incidents/{id}`: Update status, priority, or assigned team.
-
-### Zone Telemetry API
-- `GET /api/v1/zones/`: Retrieve list of operational zones (e.g., `EC-01`, `EC-02`, `EC-03`, `EC-04`).
-
-### Analytics API
-- `GET /api/v1/analytics/summary`: Aggregate metrics including active incidents, P1 critical count, and mean resolution time.
-- `GET /api/v1/analytics/trends`: Daily historical surge trends over 7-day rolling window.
-- `GET /api/v1/analytics/zones`: Per-zone incident counts broken down by priority level.
-
-### Ingestion & Inference API
-- `POST /api/v1/ingest/upload`: Upload raw surveillance video clip.
-- `POST /api/v1/inference/process`: Run computer vision pipeline on uploaded clip.
+### Hard Dashboard QA Verification
+The operations dashboard was stress-tested and validated against three critical issues:
+1. **Google Maps Camera Jitter & Marker Safety**: Stabilized camera controller with primitive ref comparison to eliminate pan jumps; added coordinate null-safety guards.
+2. **AI Ingest Incident Publishing**: Connected AI Ingest Studio to `POST /api/v1/incidents/` so newly published incidents instantly persist and appear in live queues.
+3. **Incident Type Filter Disparity**: Fixed empty array handling (`items: []`) to prevent premature mock fallback; implemented backend DB auto-seeding.
 
 ---
 
-## Local Setup and Installation
-
-### Prerequisites
-- Python 3.12+
-- Node.js 18+ and npm
-- PostgreSQL 15+ with PostGIS extension (or local SQLite/PostgreSQL configuration)
+## Local Setup and Environment Configuration
 
 ### 1. Backend Setup
 
@@ -174,12 +277,13 @@ The backend exposes full OpenAPI documentation at `/docs` when running. Key endp
 git clone https://github.com/IndependentSalt69/ELCIA-Hackathon.git
 cd ELCIA-Hackathon
 
-# Create and activate virtual environment
-python -m venv venv
-# On Windows:
-.\venv\Scripts\activate
+# Create and activate virtual environment (.venv)
+python -m venv .venv
+
+# On Windows (PowerShell):
+.\.venv\Scripts\Activate.ps1
 # On Linux/macOS:
-source venv/bin/activate
+source .venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -187,11 +291,9 @@ pip install -r requirements.txt
 # Run database migrations
 alembic upgrade head
 
-# Start FastAPI development server
-uvicorn src.api.main:app --reload --port 8000
+# Start FastAPI server
+python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8000
 ```
-
-The API will be available at `http://127.0.0.1:8000` (OpenAPI Swagger docs at `http://127.0.0.1:8000/docs`).
 
 ### 2. Frontend Setup
 
@@ -202,33 +304,32 @@ cd dashboard/client
 # Install dependencies
 npm install
 
-# Configure environment variables in dashboard/client/.env
-# VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+# Create environment configuration in dashboard/client/.env
+```
 
-# Run frontend development server
+Add the following to `dashboard/client/.env`:
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
+```
+
+*Security Note: Do not commit real API keys or database credentials to version control.*
+
+```bash
+# Start frontend development server
 npm run dev
 ```
 
-The React dashboard will be available at `http://localhost:5173`.
-
 ---
 
-## Testing and Verification
+## Current Limitations
 
-### Backend Automated Test Suite
-Run the full pytest suite (37 tests covering API endpoints, database migrations, repository patterns, and analytics aggregations):
-
-```bash
-python -m pytest
-```
-
-### Frontend Type Check
-Run TypeScript static analysis across the frontend codebase:
-
-```bash
-cd dashboard/client
-npm run check
-```
+- **Evidence Media Serving**: Evidence files are currently represented by backend metadata records and fallback previews; dedicated binary media file streaming is pending.
+- **Google Maps Key Requirement**: Map rendering requires a valid browser API key and billing setup.
+- **Drone Trajectory Storage**: Drone flight paths (`LINESTRING`) are not yet stored in the database.
+- **Rainfall Telemetry**: Physical rainfall depth measurements are not integrated into the current schema.
+- **Physical Waterlogged Area**: Inundation area ($m^2$) is not directly measured in the current database schema.
 
 ---
 
@@ -258,7 +359,7 @@ npm run check
 │           ├── data/                 # Data transformers and mock fallbacks
 │           ├── hooks/                # Custom React hooks (useIncidents, useAnalytics)
 │           ├── pages/                # Main view pages (Dashboard, Incidents, Maps)
-│           ├── services/             # Axios API services (api.ts, incidentService.ts)
+│           ├── services/             # Axios/Fetch API services (api.ts, incidentService.ts)
 │           └── types/                # TypeScript type definitions (incident.ts)
 ├── docs/                             # Project Architecture & QA Logs
 │   ├── backend_analytics_implementation.md
