@@ -20,6 +20,7 @@ htmlcov/
 # Datasets & Sample Media (Keep repo light)
 data/
 data_raw/
+sanity_check_visuals/
 unified_4class_dataset/
 pothole-segmentation-1/
 coco_converted/
