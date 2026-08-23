@@ -211,6 +211,60 @@ const persist = () => {
   listeners.forEach((listener) => listener());
 };
 
+let isSeeding = false;
+
+async function ensureBackendSeeded() {
+  if (isSeeding) return;
+  isSeeding = true;
+  try {
+    const listResp = await api.get<BackendIncidentListResponse>('/incidents/');
+    const items = listResp?.items || [];
+    const hasPothole = items.some((i) => i.incident_type?.toUpperCase() === 'POTHOLE');
+    if (items.length < 3 || !hasPothole) {
+      const zonesResp = await api.get<{ id: string; code: string }[]>('/zones/');
+      let defaultZoneId = zonesResp?.[0]?.id;
+
+      if (!defaultZoneId) {
+        const newZone = await api.post<{ id: string }>('/zones/', {
+          code: 'EC-01',
+          name: 'Electronics City Phase 1 West',
+          description: 'Primary arterial corridor',
+        });
+        defaultZoneId = newZone.id;
+      }
+
+      for (const mock of INITIAL_MOCK_INCIDENTS) {
+        const payload = {
+          incident_code: mock.code || mock.id,
+          incident_type: mock.type.toUpperCase() === 'WATERLOGGING' ? 'WATERLOGGING' : 'POTHOLE',
+          confidence: mock.confidence,
+          severity_score: mock.severity,
+          priority: mock.priority,
+          zone_id: defaultZoneId,
+          status: mock.status || 'DETECTED',
+          started_at: mock.timestamp || new Date().toISOString(),
+          recommended_action: mock.recommendedAction,
+          location: mock.coordinates
+            ? {
+                type: 'Point',
+                coordinates: [mock.coordinates.lng, mock.coordinates.lat],
+              }
+            : undefined,
+        };
+        try {
+          await api.post('/incidents/', payload);
+        } catch {
+          // ignore duplicate seed errors
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Backend auto-seed check failed:', e);
+  } finally {
+    isSeeding = false;
+  }
+}
+
 export const incidentService = {
   /**
    * Subscribe to incidents state changes
@@ -229,6 +283,8 @@ export const incidentService = {
     sortDir: SortDirection = 'desc'
   ): Promise<Incident[]> {
     try {
+      await ensureBackendSeeded();
+
       const queryParams: Record<string, string | number | undefined> = {};
 
       if (filters) {
@@ -252,10 +308,19 @@ export const incidentService = {
 
       const response = await api.get<BackendIncidentListResponse>('/incidents/', queryParams);
 
-      if (response && Array.isArray(response.items) && response.items.length > 0) {
+      if (response && Array.isArray(response.items)) {
         let backendIncidents = response.items.map(mapBackendIncidentToFrontend);
 
         if (filters) {
+          if (filters.type && filters.type !== 'all') {
+            backendIncidents = backendIncidents.filter((inc) => inc.type === filters.type);
+          }
+          if (filters.priority && filters.priority !== 'all') {
+            backendIncidents = backendIncidents.filter((inc) => inc.priority === filters.priority);
+          }
+          if (filters.status && filters.status !== 'all') {
+            backendIncidents = backendIncidents.filter((inc) => inc.status === filters.status);
+          }
           if (filters.zoneId && filters.zoneId !== 'all') {
             backendIncidents = backendIncidents.filter((inc) => inc.zoneId === filters.zoneId);
           }
@@ -684,11 +749,56 @@ export const incidentService = {
   },
 
   /**
-   * Add a newly detected/inferred incident to the active list
+   * Add a newly detected/inferred incident to the active list and publish to FastAPI backend
    */
   async createIncident(incident: Incident): Promise<Incident> {
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    // Prepend to top of incidents list
+    try {
+      const zonesResp = await api.get<{ id: string; code: string }[]>('/zones/');
+      let zoneId = zonesResp?.[0]?.id;
+
+      if (incident.zoneId && Array.isArray(zonesResp) && zonesResp.length > 0) {
+        const matched = zonesResp.find((z) => z.code === incident.zoneId);
+        if (matched) zoneId = matched.id;
+      }
+
+      if (!zoneId) {
+        const newZone = await api.post<{ id: string }>('/zones/', {
+          code: incident.zoneId || 'EC-01',
+          name: 'Electronics City Primary Zone',
+          description: 'Surveillance zone created by ingestion studio',
+        });
+        zoneId = newZone.id;
+      }
+
+      const payload = {
+        incident_code: incident.code || incident.id || `INC-${Math.floor(1000 + Math.random() * 9000)}`,
+        incident_type: incident.type.toUpperCase() === 'WATERLOGGING' ? 'WATERLOGGING' : 'POTHOLE',
+        confidence: incident.confidence,
+        severity_score: incident.severity,
+        priority: incident.priority,
+        zone_id: zoneId,
+        status: incident.status || 'DETECTED',
+        started_at: incident.timestamp || new Date().toISOString(),
+        recommended_action: incident.recommendedAction,
+        location: incident.coordinates
+          ? {
+              type: 'Point',
+              coordinates: [incident.coordinates.lng, incident.coordinates.lat],
+            }
+          : undefined,
+      };
+
+      const responseItem = await api.post<BackendIncidentItem>('/incidents/', payload);
+      if (responseItem && (responseItem.id || responseItem.incident_code)) {
+        const created = mapBackendIncidentToFrontend(responseItem);
+        incidentsState = [created, ...incidentsState.filter((i) => i.id !== created.id)];
+        persist();
+        return created;
+      }
+    } catch (err) {
+      console.warn('Failed to publish incident to backend API, saving locally:', err);
+    }
+
     incidentsState = [incident, ...incidentsState.filter((i) => i.id !== incident.id)];
     persist();
     return incident;

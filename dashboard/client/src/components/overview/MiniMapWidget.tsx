@@ -17,10 +17,22 @@ export const MiniMapWidget: React.FC<MiniMapWidgetProps> = ({
   onOpenFullMap,
   onSelectIncident,
 }) => {
-  const envKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+  const envKey =
+    import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
+    import.meta.env.VITE_FRONTEND_FORGE_API_KEY ||
+    '';
   const [apiKey] = useState<string>(() => {
     return localStorage.getItem('civicpulse_gmaps_key') || envKey;
   });
+
+  const validIncidents = incidents.filter(
+    (i) =>
+      i.coordinates &&
+      typeof i.coordinates.lat === 'number' &&
+      !isNaN(i.coordinates.lat) &&
+      typeof i.coordinates.lng === 'number' &&
+      !isNaN(i.coordinates.lng)
+  );
 
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-xs flex flex-col h-full">
@@ -54,7 +66,7 @@ export const MiniMapWidget: React.FC<MiniMapWidgetProps> = ({
             disableDefaultUI={true}
             className="w-full h-full"
           >
-            {incidents.map((incident) => (
+            {validIncidents.map((incident) => (
               <AdvancedMarker
                 key={incident.id}
                 position={{ lat: incident.coordinates.lat, lng: incident.coordinates.lng }}

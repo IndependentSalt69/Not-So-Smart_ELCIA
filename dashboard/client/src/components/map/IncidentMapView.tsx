@@ -127,12 +127,23 @@ const MapFlyToController: React.FC<{
   targetZoom?: number;
 }> = ({ targetCoords, targetZoom = 16 }) => {
   const map = useMap();
+  const prevCoordsRef = useRef<{ lat: number; lng: number; zoom: number } | null>(null);
 
   useEffect(() => {
-    if (map && targetCoords) {
-      map.panTo(targetCoords);
-      if (targetZoom) {
-        map.setZoom(targetZoom);
+    if (map && targetCoords && typeof targetCoords.lat === 'number' && typeof targetCoords.lng === 'number') {
+      const prev = prevCoordsRef.current;
+      const isDifferent =
+        !prev ||
+        Math.abs(prev.lat - targetCoords.lat) > 0.00001 ||
+        Math.abs(prev.lng - targetCoords.lng) > 0.00001 ||
+        prev.zoom !== targetZoom;
+
+      if (isDifferent) {
+        map.panTo(targetCoords);
+        if (targetZoom) {
+          map.setZoom(targetZoom);
+        }
+        prevCoordsRef.current = { lat: targetCoords.lat, lng: targetCoords.lng, zoom: targetZoom };
       }
     }
   }, [map, targetCoords, targetZoom]);
@@ -167,7 +178,10 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
   const [customPin, setCustomPin] = useState<{ lat: number; lng: number; label: string } | null>(null);
 
   // API Key management (from .env or localStorage)
-  const envKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+  const envKey =
+    import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
+    import.meta.env.VITE_FRONTEND_FORGE_API_KEY ||
+    '';
   const [apiKey] = useState<string>(() => {
     return localStorage.getItem('civicpulse_gmaps_key') || envKey;
   });
@@ -185,9 +199,18 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
     { id: 'roadmap', label: 'Street Road' },
   ];
 
-  const displayedIncidents = selectedZone === 'all'
-    ? incidents
-    : incidents.filter((i) => i.zoneId === selectedZone);
+  const displayedIncidents = (
+    selectedZone === 'all'
+      ? incidents
+      : incidents.filter((i) => i.zoneId === selectedZone)
+  ).filter(
+    (i) =>
+      i.coordinates &&
+      typeof i.coordinates.lat === 'number' &&
+      !isNaN(i.coordinates.lat) &&
+      typeof i.coordinates.lng === 'number' &&
+      !isNaN(i.coordinates.lng)
+  );
 
   // Fly to zone
   const handleZoneSelect = (zoneId: ZoneId | 'all') => {
