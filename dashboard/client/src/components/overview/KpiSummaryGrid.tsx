@@ -62,7 +62,10 @@ export const KpiSummaryGrid: React.FC<KpiSummaryGridProps> = ({ kpis, onFilterCl
     {
       id: 'waterlogging',
       title: 'Waterlogged Surface',
-      value: `${kpis?.waterloggedAreaSqm ?? 0} m²`,
+      value:
+        kpis?.waterloggedAreaSqm !== null && kpis?.waterloggedAreaSqm !== undefined
+          ? `${kpis.waterloggedAreaSqm} m²`
+          : 'N/A',
       subtext: 'Active road inundation area',
       icon: Waves,
       iconColor: 'text-cyan-600 dark:text-cyan-400',

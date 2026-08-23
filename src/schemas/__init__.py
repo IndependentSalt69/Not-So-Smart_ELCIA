@@ -18,6 +18,15 @@ from src.schemas.assignment import AssignmentCreate, AssignmentResponse
 from src.schemas.inspection import InspectionCreate, InspectionResponse
 from src.schemas.history import StatusHistoryResponse
 from src.schemas.health import HealthResponse, DatabaseHealthResponse
+from src.schemas.analytics import (
+    StatusDistributionItem,
+    PriorityDistributionItem,
+    AnalyticsKPI,
+    AnalyticsSummaryResponse,
+    AnalyticsTrendItem,
+    ZoneAnalyticsResponse,
+    ZoneAnalyticsItem,
+)
 
 __all__ = [
     "ZoneCreate",
@@ -42,4 +51,12 @@ __all__ = [
     "StatusHistoryResponse",
     "HealthResponse",
     "DatabaseHealthResponse",
+    "StatusDistributionItem",
+    "PriorityDistributionItem",
+    "AnalyticsKPI",
+    "AnalyticsSummaryResponse",
+    "AnalyticsTrendItem",
+    "ZoneAnalyticsResponse",
+    "ZoneAnalyticsItem",
 ]
+

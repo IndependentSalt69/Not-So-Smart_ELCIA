@@ -251,4 +251,116 @@ Inspect backend API routes, Pydantic schemas, repositories, and ORM models to de
   - Result: **31 / 31 passed in 0.79s** (0 regressions).
 
 ### 6. Recommended Next Step
-* Proceed to **Phase 9B: Backend Analytics Endpoints Implementation & Frontend Wiring**.
+* Proceed to **Phase 9B: Backend Analytics Endpoints Implementation**.
+
+---
+
+## Phase 9B: Backend Analytics Implementation (`GET /api/v1/analytics/*`)
+
+**Date:** August 23, 2026  
+**Status:** Completed & Verified  
+
+### 1. Objective
+Create three dedicated backend analytics REST API endpoints (`GET /api/v1/analytics/summary`, `GET /api/v1/analytics/trends`, `GET /api/v1/analytics/zones`) performing real-time database-side SQL aggregation through SQLAlchemy 2.0 without loading full datasets into Python memory or altering frontend files.
+
+### 2. Files Inspected
+* `src/api/routes/__init__.py`, `incidents.py`, `health.py`, `users.py`, `zones.py`
+* `src/api/main.py`
+* `src/schemas/__init__.py`, `incident.py`, `zone.py`
+* `src/repositories/__init__.py`, `incidents.py`, `zones.py`
+* `src/db/models/incident.py`, `zone.py`, `enums.py`
+* `tests/conftest.py`, `tests/api/test_api.py`, `tests/repositories/test_repositories.py`
+
+### 3. Files Created
+* `src/schemas/analytics.py` (Pydantic models: `AnalyticsKPI`, `AnalyticsSummaryResponse`, `StatusDistributionItem`, `PriorityDistributionItem`, `AnalyticsTrendItem`, `ZoneAnalyticsResponse`)
+* `src/repositories/analytics.py` (Database-side SQL aggregation repository functions: `get_analytics_summary`, `get_analytics_trends`, `get_analytics_zones`)
+* `src/api/routes/analytics.py` (FastAPI router with endpoints `/summary`, `/trends`, `/zones`)
+* `tests/api/test_analytics.py` (Unit & integration test suite)
+* `docs/backend_analytics_implementation.md` (Technical implementation documentation)
+
+### 4. Files Modified
+* `src/schemas/__init__.py` (Re-exported analytics Pydantic schemas)
+* `src/repositories/__init__.py` (Re-exported analytics repository functions)
+* `src/api/routes/__init__.py` (Registered `analytics_router` inside main `api_router`)
+* `docs/frontend_backend_integration_log.md` (Updated integration log)
+
+### 5. New Endpoints Implemented
+1. `GET /api/v1/analytics/summary` -> Returns `AnalyticsSummaryResponse` with KPIs (`total_active_incidents`, `critical_p1_count`, `high_p2_count`, `routine_p3_count`, `pending_verification_count`, `pothole_clusters_count`, `mean_time_to_resolution_hours`, `waterlogged_area_sqm`), status distribution, priority distribution.
+2. `GET /api/v1/analytics/trends?days=7` -> Returns `List[AnalyticsTrendItem]` with daily aggregated incident counts (`waterlogging`, `potholes`, `rainfall_mm`). Validates `1 <= days <= 90`.
+3. `GET /api/v1/analytics/zones` -> Returns `List[ZoneAnalyticsResponse]` grouped by municipal zone (`active_incidents`, `p1_count`, `p2_count`, `p3_count`, `waterlogged_area_sqm`).
+
+### 6. SQL Aggregation Strategy
+* **Summary Metrics:** Computed via single SQLAlchemy `select(func.count(case(...)), func.avg(...))` query over the `incidents` table.
+* **Status & Priority Distributions:** Computed using `GROUP BY incidents.status` and `GROUP BY incidents.priority`.
+* **Daily Trends:** Computed using `GROUP BY func.date(created_at)` over requested sliding `days` window, generating continuous date output.
+* **Zone Breakdown:** Computed joining `zones` and `incidents` with `GROUP BY zone.id, zone.code, zone.name` and conditional `case(...)` aggregations.
+
+### 7. Waterlogged Area & Weather Telemetry Methodology
+* **Waterlogged Area (`waterlogged_area_sqm`)**: DB schema does not store physical flood polygon surface area measurements in $m^2$. Returned explicitly as `null` in schema.
+* **Rainfall (`rainfall_mm`)**: DB schema does not record weather gauge telemetry. Returned explicitly as `null` in schema.
+
+### 8. Verification Results
+* **Pytest Suite:** Executed `.\venv\Scripts\python.exe -m pytest -v` $\rightarrow$ **37 / 37 passed in 0.78s** (100% pass rate, 0 regressions).
+* **Manual HTTP API Verification:** Tested live endpoints against running server via `Invoke-WebRequest`:
+  - `GET /api/v1/analytics/summary` $\rightarrow$ Returned 200 OK with valid SQL aggregated JSON metrics.
+  - `GET /api/v1/analytics/trends?days=7` $\rightarrow$ Returned 200 OK with 7 date trend items.
+  - `GET /api/v1/analytics/zones` $\rightarrow$ Returned 200 OK with zone risk metrics.
+* **OpenAPI Verification:** Checked `http://127.0.0.1:8000/openapi.json` and `/docs` $\rightarrow$ All endpoints and Pydantic response models rendered cleanly.
+
+### 9. Recommended Next Step
+* Proceed to **Phase 9C: Frontend Analytics Integration**.
+
+---
+
+## Phase 9C: Frontend Analytics Integration (`GET /api/v1/analytics/*`)
+
+**Date:** August 23, 2026  
+**Status:** Completed & Verified  
+
+### 1. Objective
+Connect the frontend analytics dashboard, hooks, and services to live FastAPI backend analytics endpoints (`GET /api/v1/analytics/summary`, `GET /api/v1/analytics/trends`, `GET /api/v1/analytics/zones`) via `api.ts`, remove mock analytics data dependencies, and enforce strict null handling for unmeasured physical metrics.
+
+### 2. Files Inspected
+* `dashboard/client/src/services/analyticsService.ts`
+* `dashboard/client/src/hooks/useAnalytics.ts`
+* `dashboard/client/src/components/analytics/AnalyticsDashboard.tsx`
+* `dashboard/client/src/components/overview/OverviewTab.tsx`
+* `dashboard/client/src/components/overview/KpiSummaryGrid.tsx`
+* `dashboard/client/src/data/mockAnalytics.ts`
+* `dashboard/client/src/types/analytics.ts`
+* `dashboard/client/src/services/api.ts`
+
+### 3. Files Created / Deleted
+* **Created:**
+  - `dashboard/scratch/verify_phase9c.ts` (Integration verification script)
+  - `docs/frontend_analytics_integration.md` (Technical documentation)
+* **Deleted:**
+  - `dashboard/client/src/data/mockAnalytics.ts` (Removed unused mock analytics fixture file)
+
+### 4. Files Modified
+* `dashboard/client/src/types/analytics.ts` (Added nullable types for `waterloggedAreaSqm`, `meanTimeToResolutionHours`, `rainfallMm`, added `zoneCode`, defined `BackendAnalyticsSummary`, `BackendAnalyticsKPI`, `BackendAnalyticsTrendItem`, `BackendZoneAnalyticsItem`)
+* `dashboard/client/src/services/analyticsService.ts` (Wired `getAnalyticsSummary()`, `getAnalyticsTrends()`, `getAnalyticsZones()` to issue live `api.get()` calls to `/analytics/summary`, `/analytics/trends`, `/analytics/zones` and map snake_case to camelCase)
+* `dashboard/client/src/components/analytics/AnalyticsDashboard.tsx` (Updated KPI display cards, tooltips, and charts to display `"N/A"` for null metrics without fabricating numbers)
+* `dashboard/client/src/components/overview/KpiSummaryGrid.tsx` (Updated `waterloggedAreaSqm` card to display `"N/A"` when `null`)
+* `docs/frontend_backend_integration_log.md` (Updated work log)
+
+### 5. Endpoints Connected
+1. `GET /api/v1/analytics/summary` -> Connected to `analyticsService.getAnalyticsSummary()`
+2. `GET /api/v1/analytics/trends?days=7` -> Connected to `analyticsService.getAnalyticsTrends()`
+3. `GET /api/v1/analytics/zones` -> Connected to `analyticsService.getAnalyticsZones()`
+
+### 6. Field Mappings & Null Handling
+* Snake_case backend metrics mapped to camelCase frontend types (`total_active_incidents` $\rightarrow$ `totalActiveIncidents`, `critical_p1_count` $\rightarrow$ `criticalP1Count`, etc.).
+* `waterlogged_area_sqm` ($null$) $\rightarrow$ Rendered as `"N/A"` in KPI summary cards with subtitle `"Physical area not measured"`.
+* `rainfall_mm` ($null$) $\rightarrow$ Tooltips display `"N/A"`. No fake numbers or zero rainfall values are fabricated.
+
+### 7. Verification Results
+* **TypeScript Check (`npm run check`):** Executed `npm run check` (`tsc --noEmit`) $\rightarrow$ **0 errors**.
+* **Integration Verification (`verify_phase9c.ts`):** Executed `npx tsx scratch/verify_phase9c.ts` $\rightarrow$ All 3 analytics service methods fetched and mapped live backend API data cleanly.
+* **Pytest Suite:** Executed `.\venv\Scripts\python.exe -m pytest -v` $\rightarrow$ **37 / 37 passed**.
+* **Mock Cleanup:** `mockAnalytics.ts` removed completely.
+
+### 8. Recommended Next Step
+* CivicPulse Phase 9 (Backend & Frontend Analytics) is fully complete, verified, and operational.
+
+

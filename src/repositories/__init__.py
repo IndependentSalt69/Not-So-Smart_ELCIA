@@ -44,6 +44,11 @@ from src.repositories.history import (
     create_status_history,
     list_incident_status_history,
 )
+from src.repositories.analytics import (
+    get_analytics_summary,
+    get_analytics_trends,
+    get_analytics_zones,
+)
 
 __all__ = [
     # ZONES
@@ -78,4 +83,9 @@ __all__ = [
     # STATUS HISTORY
     "create_status_history",
     "list_incident_status_history",
+    # ANALYTICS
+    "get_analytics_summary",
+    "get_analytics_trends",
+    "get_analytics_zones",
 ]
+

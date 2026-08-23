@@ -1,17 +1,9 @@
 import { AnalyticsSummary } from '@/types/analytics';
 import {
-  Activity,
-  AlertCircle,
   BarChart3,
-  Calendar,
-  CheckCircle2,
   Clock,
-  Compass,
-  Droplets,
-  Layers,
   MapPin,
   ShieldCheck,
-  Sparkles,
   TrendingUp,
   Waves,
 } from 'lucide-react';
@@ -37,7 +29,7 @@ interface AnalyticsDashboardProps {
   loading?: boolean;
 }
 
-// Custom Tooltip for Donut Chart with high contrast white text and color bullet
+// Custom Tooltip for Donut Chart
 const CustomDonutTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0];
@@ -53,11 +45,6 @@ const CustomDonutTooltip = ({ active, payload }: any) => {
             {data.value}
           </span>
         </div>
-        {data.payload.percentage && (
-          <div className="text-xs text-slate-300 font-mono pl-6">
-            {data.payload.percentage}% of active lifecycle
-          </div>
-        )}
       </div>
     );
   }
@@ -73,17 +60,23 @@ const CustomTrendTooltip = ({ active, payload, label }: any) => {
           📅 {label}
         </div>
         <div className="space-y-1.5">
-          {payload.map((item: any, idx: number) => (
-            <div key={idx} className="flex items-center justify-between gap-3 text-xs xl:text-sm">
-              <span className="flex items-center gap-2 text-slate-300 font-semibold capitalize">
-                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                {item.name}:
-              </span>
-              <span className="font-mono font-bold text-white text-sm">
-                {item.value} {item.name === 'rainfall' ? 'mm' : ''}
-              </span>
-            </div>
-          ))}
+          {payload.map((item: any, idx: number) => {
+            const valDisplay =
+              item.value !== null && item.value !== undefined
+                ? `${item.value} ${item.name === 'rainfall' ? 'mm' : ''}`
+                : 'N/A';
+            return (
+              <div key={idx} className="flex items-center justify-between gap-3 text-xs xl:text-sm">
+                <span className="flex items-center gap-2 text-slate-300 font-semibold capitalize">
+                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                  {item.name}:
+                </span>
+                <span className="font-mono font-bold text-white text-sm">
+                  {valDisplay}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -94,11 +87,12 @@ const CustomTrendTooltip = ({ active, payload, label }: any) => {
 // Custom Tooltip for Zone Breakdown Bar Chart
 const CustomBarTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
+    const zoneName = payload[0]?.payload?.zoneName || label;
     return (
-      <div className="bg-slate-950/95 border border-slate-700/80 px-4 py-3.5 rounded-2xl shadow-2xl backdrop-blur-md text-white text-sm space-y-2.5 z-50 min-w-[200px]">
+      <div className="bg-slate-950/95 border border-slate-700/80 px-4 py-3.5 rounded-2xl shadow-2xl backdrop-blur-md text-white text-sm space-y-2.5 z-50 min-w-[220px]">
         <div className="font-bold text-emerald-400 border-b border-slate-800 pb-1.5 font-mono text-sm flex items-center gap-2">
-          <MapPin className="w-4 h-4" />
-          <span>Zone {label}</span>
+          <MapPin className="w-4 h-4 shrink-0" />
+          <span className="truncate">{zoneName}</span>
         </div>
         <div className="space-y-1.5">
           {payload.map((item: any, idx: number) => (
@@ -131,8 +125,18 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
 
   const { kpis, trend, zoneMetrics, statusDistribution } = analytics;
 
-  const STATUS_COLORS = ['#E11D48', '#0D9488', '#D97706', '#059669', '#0891B2', '#64748B'];
+  const STATUS_COLORS = ['#E11D48', '#0D9488', '#D97706', '#059669', '#0891B2', '#64748B', '#EF4444'];
   const totalStatusCount = statusDistribution.reduce((acc, curr) => acc + curr.count, 0);
+
+  const waterloggedDisplay =
+    kpis.waterloggedAreaSqm !== null && kpis.waterloggedAreaSqm !== undefined
+      ? `${kpis.waterloggedAreaSqm} m²`
+      : 'N/A';
+
+  const meanResolutionDisplay =
+    kpis.meanTimeToResolutionHours !== null && kpis.meanTimeToResolutionHours !== undefined
+      ? `${kpis.meanTimeToResolutionHours} hrs`
+      : 'N/A';
 
   return (
     <div className="space-y-6">
@@ -143,7 +147,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
           <span>Monsoon & Road Intelligence Analytics</span>
         </h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-1">
-          Comprehensive seasonal correlation between drone detections, precipitation, and resolution velocity.
+          Comprehensive seasonal telemetry aggregated live from PostgreSQL backend tables.
         </p>
       </div>
 
@@ -155,8 +159,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
           </div>
           <div>
             <div className="text-xs xl:text-sm font-bold text-zinc-500 dark:text-zinc-400">Total Inundated Road Area</div>
-            <div className="text-2xl xl:text-3xl font-black font-mono text-zinc-900 dark:text-white my-0.5">{kpis.waterloggedAreaSqm} m²</div>
-            <div className="text-xs text-teal-600 dark:text-teal-400 font-bold">Across Phase 1 & 2</div>
+            <div className="text-2xl xl:text-3xl font-black font-mono text-zinc-900 dark:text-white my-0.5">{waterloggedDisplay}</div>
+            <div className="text-xs text-teal-600 dark:text-teal-400 font-bold">Physical area not measured</div>
           </div>
         </div>
 
@@ -166,7 +170,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
           </div>
           <div>
             <div className="text-xs xl:text-sm font-bold text-zinc-500 dark:text-zinc-400">Mean Time to Resolution</div>
-            <div className="text-2xl xl:text-3xl font-black font-mono text-zinc-900 dark:text-white my-0.5">{kpis.meanTimeToResolutionHours} hrs</div>
+            <div className="text-2xl xl:text-3xl font-black font-mono text-zinc-900 dark:text-white my-0.5">{meanResolutionDisplay}</div>
             <div className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">From Detection to Clear</div>
           </div>
         </div>
@@ -187,22 +191,22 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
             <ShieldCheck className="w-7 h-7" />
           </div>
           <div>
-            <div className="text-xs xl:text-sm font-bold text-zinc-500 dark:text-zinc-400">AI Detection Precision</div>
-            <div className="text-2xl xl:text-3xl font-black font-mono text-zinc-900 dark:text-white my-0.5">94.2%</div>
-            <div className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">Operator Verified Accuracy</div>
+            <div className="text-xs xl:text-sm font-bold text-zinc-500 dark:text-zinc-400">Active Incidents</div>
+            <div className="text-2xl xl:text-3xl font-black font-mono text-zinc-900 dark:text-white my-0.5">{kpis.totalActiveIncidents}</div>
+            <div className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">Unresolved Live Incidents</div>
           </div>
         </div>
       </div>
 
-      {/* Row 1: Monsoon Rainfall vs Detection Volume Trend */}
+      {/* Row 1: Daily Incident Surge Trend */}
       <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 xl:p-8 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-base xl:text-lg font-bold text-zinc-900 dark:text-white tracking-tight">
-              Precipitation vs. Incident Surge Trend (7-Day Rolling)
+              Daily Incident Surge Trend (7-Day Window)
             </h3>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
-              Correlation between millimeter rainfall volume and autonomous waterlogging / pothole alerts.
+              Live backend daily incident aggregation for waterlogging vs. potholes.
             </p>
           </div>
           <div className="flex items-center gap-4 text-xs xl:text-sm font-bold">
@@ -211,9 +215,6 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
             </span>
             <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
               <span className="w-3 h-3 rounded-full bg-amber-500" /> Potholes
-            </span>
-            <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-              <span className="w-3 h-3 rounded-full bg-slate-400" /> Rainfall (mm)
             </span>
           </div>
         </div>
@@ -251,7 +252,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
               Zone Vulnerability & Priority Breakdown
             </h3>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
-              Incident count categorized by P1, P2, P3 across Electronics City zones.
+              Incident count categorized by P1, P2, P3 across operational zones.
             </p>
           </div>
 
@@ -259,7 +260,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={zoneMetrics} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
-                <XAxis dataKey="zoneId" tick={{ fontSize: 13, fontWeight: 600, fill: '#64748b' }} stroke="#94a3b8" dy={4} />
+                <XAxis dataKey="zoneCode" tick={{ fontSize: 13, fontWeight: 600, fill: '#64748b' }} stroke="#94a3b8" dy={4} />
                 <YAxis tick={{ fontSize: 13, fontWeight: 600, fill: '#64748b' }} stroke="#94a3b8" />
                 <Tooltip content={<CustomBarTooltip />} />
                 <Legend wrapperStyle={{ fontSize: '13px', fontWeight: 600, paddingTop: '10px' }} />
@@ -278,11 +279,10 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
               Operational Status Distribution
             </h3>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
-              Current state machine breakdown of active incidents.
+              Current state machine breakdown of incidents.
             </p>
           </div>
 
-          {/* Donut Chart with Exact Centered Metric Counter */}
           <div className="relative h-72 xl:h-80 2xl:h-96 w-full flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -299,13 +299,12 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
                   {statusDistribution.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      fill={STATUS_COLORS[index % STATUS_COLORS.length]}
+                      fill={entry.color || STATUS_COLORS[index % STATUS_COLORS.length]}
                       stroke="transparent"
                     />
                   ))}
                 </Pie>
                 <Tooltip content={<CustomDonutTooltip />} />
-                {/* Geometrically centered SVG text locked to Pie center (50%, 45%) */}
                 <text
                   x="50%"
                   y="42%"
