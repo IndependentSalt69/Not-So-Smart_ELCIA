@@ -469,6 +469,74 @@ Safely filters `null`, `undefined`, `NaN`, non-numeric strings, and out-of-range
 ### 8. Known Limitations
 - Google Maps rendering requires a valid browser API key (`VITE_GOOGLE_MAPS_API_KEY`). Unauthenticated environments render the clean application-level fallback container.
 
+---
+
+## Phase 10B: Real Evidence Media Serving
+
+**Date:** August 24, 2026  
+**Status:** Completed & Verified  
+
+### 1. Objective
+Expose real ML-generated evidence frame snapshots (`outputs/evidence/*.jpg`) via FastAPI static media serving (`/static/evidence/`) and enable the React frontend `EvidenceViewer` component to display real photographic evidence with seamless fallback handling.
+
+### 2. Files Inspected
+* **Backend:**
+  - `src/api/main.py`
+  - `src/core/config.py`
+  - `src/schemas/evidence.py`
+  - `src/db/models/evidence.py`
+  - `src/repositories/evidence.py`
+* **Frontend:**
+  - `dashboard/client/src/services/incidentService.ts`
+  - `dashboard/client/src/components/detail/EvidenceViewer.tsx`
+  - `dashboard/client/src/types/incident.ts`
+  - `dashboard/client/src/services/api.ts`
+
+### 3. Files Modified / Created
+* **Modified:**
+  - `src/api/main.py` (Mounted `StaticFiles(directory=settings.EVIDENCE_DIR)` under `/static/evidence` and `/evidence`)
+  - `dashboard/client/src/services/api.ts` (Exported `getBaseUrl()` and `getMediaBaseUrl()`)
+  - `dashboard/client/src/types/incident.ts` (Added optional `mediaUrl?: string` field to `EvidenceAsset`)
+  - `dashboard/client/src/services/incidentService.ts` (Added `getEvidenceMediaUrl(filePath)` helper and mapped `mediaUrl` in `getIncidentEvidence`)
+  - `dashboard/client/src/components/detail/EvidenceViewer.tsx` (Integrated real `mediaUrl` image rendering with `imageLoadError` state and graceful fallback)
+* **Created:**
+  - `tests/api/test_evidence_static.py` (Backend static serving & path traversal security tests)
+  - `scratch/verify_phase_10b.ts` (Frontend URL construction & file verification script)
+  - `docs/evidence_media_integration.md` (Detailed media integration architecture documentation)
+
+### 4. Media Route & Mount Configuration
+* Route: `/static/evidence/{filename}`
+* Mount Implementation:
+  ```python
+  os.makedirs(settings.EVIDENCE_DIR, exist_ok=True)
+  app.mount(
+      "/static/evidence",
+      StaticFiles(directory=settings.EVIDENCE_DIR),
+      name="static_evidence",
+  )
+  ```
+* Base URL Resolution: Derived from `VITE_API_BASE_URL` (stripping `/api/v1` $\rightarrow$ `http://127.0.0.1:8000/static/evidence/<filename>`).
+
+### 5. Security & Path Traversal Validation
+* **Restricted Directory Scope**: Only `outputs/evidence/` is exposed; other project folders (`models/`, `data_raw/`, `src/`, root `outputs/`) return 404.
+* **Path Traversal Rejection**: Traversal strings such as `../` or `%2e%2e/` are rejected by Starlette's `StaticFiles` path verification.
+* **Database Isolation**: The database continues storing relative paths (`outputs/evidence/hazard_3_LOW.jpg`), preventing arbitrary filesystem disclosures.
+
+### 6. Frontend Mapping & Fallback Behavior
+1. `incidentService.getIncidentEvidence` maps `item.file_path` to `mediaUrl` using `getEvidenceMediaUrl`.
+2. `EvidenceViewer` attempts to load `mediaUrl`.
+3. If the asset loads successfully, a green `"REAL EVIDENCE CAPTURE"` indicator is shown.
+4. If the media URL fails (404, network error), the `onError` handler flips `imageLoadError(true)` and gracefully displays the SVG preview with a `"PREVIEW FALLBACK"` badge without crashing or retrying indefinitely.
+
+### 7. Test Results
+* **Backend Pytest Suite**: `.venv\Scripts\python.exe -m pytest` $\rightarrow$ **41 / 41 passed** (including 4 new static media serving & security tests).
+* **Frontend TypeScript Check**: `npm run check` $\rightarrow$ **0 compilation errors**.
+* **Integration Verification Script**: `npx tsx --tsconfig dashboard/tsconfig.json scratch/verify_phase_10b.ts` $\rightarrow$ **4 / 4 passed** (URL construction, HTTP passthrough, empty safety, disk file verification).
+
+### 8. Known Limitations
+* For multi-node cloud deployments, `outputs/evidence/` will transition to an AWS S3 / Google Cloud Storage bucket with signed CDN URLs. The frontend `getEvidenceMediaUrl` already supports direct `http://` and `https://` URLs out of the box.
+
+
 
 
 

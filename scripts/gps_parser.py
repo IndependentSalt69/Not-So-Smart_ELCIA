@@ -38,7 +38,7 @@ def parse_dji_srt(srt_path: str):
     return gps_data
 
 if __name__ == "__main__":
-    test_file = "data_raw/demo_video.srt"
+    test_file = "data_raw/full_demo_video.srt"
     data = parse_dji_srt(test_file)
     print(f"Successfully extracted {len(data)} GPS points!")
     if data:

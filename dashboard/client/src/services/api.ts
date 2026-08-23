@@ -2,7 +2,7 @@
  * Reusable HTTP API Client for CivicPulse FastAPI Backend Integration
  */
 
-const getBaseUrl = (): string => {
+export const getBaseUrl = (): string => {
   try {
     if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) {
       return import.meta.env.VITE_API_BASE_URL as string;
@@ -12,6 +12,15 @@ const getBaseUrl = (): string => {
     return process.env.VITE_API_BASE_URL as string;
   }
   return 'http://127.0.0.1:8000/api/v1';
+};
+
+export const getMediaBaseUrl = (): string => {
+  const apiBase = getBaseUrl();
+  try {
+    return new URL(apiBase).origin;
+  } catch {
+    return 'http://127.0.0.1:8000';
+  }
 };
 
 const BASE_URL = getBaseUrl();

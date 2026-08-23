@@ -1,6 +1,27 @@
 import { generateSvgFrame, INITIAL_MOCK_INCIDENTS } from '@/data/mockIncidents';
 import { canTransition } from '@/lib/stateMachine';
-import { api, ApiError } from '@/services/api';
+import { api, ApiError, getMediaBaseUrl } from '@/services/api';
+
+/**
+ * Convert backend relative evidence path to browser-accessible static media URL
+ */
+export function getEvidenceMediaUrl(filePath?: string | null): string {
+  if (!filePath) return '';
+  if (
+    filePath.startsWith('http://') ||
+    filePath.startsWith('https://') ||
+    filePath.startsWith('data:')
+  ) {
+    return filePath;
+  }
+
+  // Extract filename only (e.g. "outputs/evidence/hazard_3_LOW.jpg" -> "hazard_3_LOW.jpg")
+  const cleanFilename = filePath.replace(/^.*[\\\/]/, '');
+  if (!cleanFilename) return '';
+
+  const origin = getMediaBaseUrl();
+  return `${origin}/static/evidence/${cleanFilename}`;
+}
 import {
   Assignment,
   AssignmentCreatePayload,
@@ -426,6 +447,7 @@ export const incidentService = {
           incidentId: item.incident_id,
           evidenceType: item.evidence_type,
           filePath: item.file_path,
+          mediaUrl: getEvidenceMediaUrl(item.file_path),
           capturedAt: item.captured_at,
           description: item.description,
           isPrimary: item.is_primary,

@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { incidentService } from '@/services/incidentService';
+import { getEvidenceMediaUrl, incidentService } from '@/services/incidentService';
 import { DetectionObservation, EvidenceAsset, Incident } from '@/types/incident';
 import {
   Camera,
@@ -30,6 +30,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
   const [evidenceList, setEvidenceList] = useState<EvidenceAsset[]>([]);
   const [detectionsList, setDetectionsList] = useState<DetectionObservation[]>([]);
   const [loadingEvidence, setLoadingEvidence] = useState<boolean>(true);
+  const [imageLoadError, setImageLoadError] = useState<boolean>(false);
   const totalFrames = 120;
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -63,6 +64,13 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
     };
   }, [incident.id]);
 
+  const primaryEvidence = evidenceList.find((e) => e.isPrimary) || evidenceList[0];
+
+  // Reset image error state on incident or evidence asset switch
+  useEffect(() => {
+    setImageLoadError(false);
+  }, [incident.id, primaryEvidence?.id, primaryEvidence?.filePath]);
+
   // Playback timer simulation for frame stepping
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -93,17 +101,17 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
     setCurrentFrame(0);
   };
 
-  const primaryEvidence = evidenceList.find((e) => e.isPrimary) || evidenceList[0];
-  const isBrowserUrl =
-    primaryEvidence?.filePath?.startsWith('http://') ||
-    primaryEvidence?.filePath?.startsWith('https://') ||
-    primaryEvidence?.filePath?.startsWith('data:');
+  const mediaUrl =
+    primaryEvidence?.mediaUrl ||
+    (primaryEvidence?.filePath ? getEvidenceMediaUrl(primaryEvidence.filePath) : null);
 
-  const activeImage = isBrowserUrl
-    ? primaryEvidence.filePath
-    : showOverlay && incident.evidenceOverlay
-    ? incident.evidenceOverlay
-    : incident.evidenceFrame;
+  const fallbackImage =
+    showOverlay && incident.evidenceOverlay
+      ? incident.evidenceOverlay
+      : incident.evidenceFrame;
+
+  const isUsingFallback = !mediaUrl || imageLoadError;
+  const activeImage = !isUsingFallback ? mediaUrl : fallbackImage;
 
   const isWater = incident.type === 'waterlogging';
 
@@ -203,6 +211,12 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
           <img
             src={activeImage}
             alt={incident.code || incident.id}
+            onError={() => {
+              if (mediaUrl && !imageLoadError) {
+                console.warn(`Evidence media failed to load at '${mediaUrl}', falling back to simulated preview.`);
+                setImageLoadError(true);
+              }
+            }}
             className="w-full h-full object-contain"
           />
         ) : (
@@ -221,6 +235,11 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
               <img
                 src={activeImage}
                 alt={incident.code || incident.id}
+                onError={() => {
+                  if (mediaUrl && !imageLoadError) {
+                    setImageLoadError(true);
+                  }
+                }}
                 className="w-full h-full object-contain filter contrast-125"
               />
             )}
@@ -232,6 +251,19 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
             </div>
           </div>
         )}
+
+        {/* Media source indicator badge */}
+        {!isUsingFallback && mediaUrl ? (
+          <div className="absolute top-3 right-3 bg-emerald-950/85 text-emerald-300 border border-emerald-700 font-mono text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1.5 shadow-md">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>REAL EVIDENCE CAPTURE</span>
+          </div>
+        ) : isUsingFallback && primaryEvidence ? (
+          <div className="absolute top-3 right-3 bg-amber-950/85 text-amber-300 border border-amber-700 font-mono text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1.5 shadow-md">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            <span>PREVIEW FALLBACK</span>
+          </div>
+        ) : null}
 
         {/* HUD Stamp Over Canvas */}
         <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between text-xs font-mono text-zinc-300 bg-black/80 px-3.5 py-2 rounded-xl backdrop-blur-md border border-zinc-800">

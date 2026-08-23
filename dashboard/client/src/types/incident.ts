@@ -64,6 +64,7 @@ export interface EvidenceAsset {
   incidentId: string;
   evidenceType: 'IMAGE' | 'VIDEO' | 'CLIP';
   filePath: string;
+  mediaUrl?: string;
   capturedAt?: string | null;
   description?: string | null;
   isPrimary: boolean;
