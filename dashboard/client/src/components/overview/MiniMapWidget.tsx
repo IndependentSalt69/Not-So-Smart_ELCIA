@@ -1,8 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Incident } from '@/types/incident';
-import { AdvancedMarker, APIProvider, Map } from '@vis.gl/react-google-maps';
+import { AdvancedMarker, APIProvider, Map, useMap } from '@vis.gl/react-google-maps';
 import { ArrowUpRight, Compass, Navigation } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface MiniMapWidgetProps {
   incidents: Incident[];
@@ -11,6 +11,56 @@ interface MiniMapWidgetProps {
 }
 
 const ELCIA_CENTER = { lat: 12.8450, lng: 77.6650 };
+
+// Controller to fit bounds dynamically on mini map preview
+const MiniMapCameraController: React.FC<{ incidents: Incident[] }> = ({ incidents }) => {
+  const map = useMap();
+  const lastFittedKeyRef = useRef<string>('');
+
+  const validIncidents = incidents.filter(
+    (i) =>
+      i &&
+      i.coordinates &&
+      typeof i.coordinates.lat === 'number' &&
+      !isNaN(i.coordinates.lat) &&
+      typeof i.coordinates.lng === 'number' &&
+      !isNaN(i.coordinates.lng)
+  );
+
+  const coordsKey = validIncidents
+    .map((i) => `${Number(i.coordinates.lat).toFixed(5)},${Number(i.coordinates.lng).toFixed(5)}`)
+    .sort()
+    .join('|');
+
+  useEffect(() => {
+    if (!map) return;
+    if (coordsKey === lastFittedKeyRef.current && coordsKey !== '') return;
+
+    lastFittedKeyRef.current = coordsKey;
+
+    if (validIncidents.length === 1) {
+      const single = validIncidents[0].coordinates;
+      map.panTo({ lat: Number(single.lat), lng: Number(single.lng) });
+      map.setZoom(14);
+    } else if (validIncidents.length > 1) {
+      if (window.google?.maps?.LatLngBounds) {
+        const bounds = new window.google.maps.LatLngBounds();
+        validIncidents.forEach((inc) => {
+          bounds.extend({
+            lat: Number(inc.coordinates.lat),
+            lng: Number(inc.coordinates.lng),
+          });
+        });
+        map.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
+      }
+    } else if (validIncidents.length === 0) {
+      map.panTo(ELCIA_CENTER);
+      map.setZoom(13);
+    }
+  }, [map, coordsKey, validIncidents]);
+
+  return null;
+};
 
 export const MiniMapWidget: React.FC<MiniMapWidgetProps> = ({
   incidents,
@@ -27,6 +77,7 @@ export const MiniMapWidget: React.FC<MiniMapWidgetProps> = ({
 
   const validIncidents = incidents.filter(
     (i) =>
+      i &&
       i.coordinates &&
       typeof i.coordinates.lat === 'number' &&
       !isNaN(i.coordinates.lat) &&
@@ -66,6 +117,7 @@ export const MiniMapWidget: React.FC<MiniMapWidgetProps> = ({
             disableDefaultUI={true}
             className="w-full h-full"
           >
+            <MiniMapCameraController incidents={validIncidents} />
             {validIncidents.map((incident) => (
               <AdvancedMarker
                 key={incident.id}

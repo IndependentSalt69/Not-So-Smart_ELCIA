@@ -413,6 +413,63 @@ In `AnalyticsDashboard.tsx`, the Operational Status Distribution donut chart ren
 * **TypeScript Check (`npm run check`):** Passed with **0 errors**.
 * **Visual / Responsive Verification:** Verified that `{totalStatusCount}` and `"TOTAL EVENTS"` are centered dead in the donut hole across all responsive window resizes.
 
+---
+
+## Phase 10A: Data-Driven Map Centering
+
+**Date:** August 24, 2026  
+**Status:** Completed & Verified  
+
+### 1. Objective
+Eliminate hard-coded geographic centers (e.g. permanent Electronics City / Vadodara centers) and implement dynamic, data-driven map bounds centering based on the actual incident coordinates returned by the backend.
+
+### 2. Files Inspected
+- `dashboard/client/src/components/map/IncidentMapView.tsx`
+- `dashboard/client/src/components/overview/MiniMapWidget.tsx`
+- `dashboard/client/src/components/CivicPulseDashboard.tsx`
+- `dashboard/client/src/hooks/useIncidents.ts`
+- `dashboard/client/src/services/incidentService.ts`
+- `dashboard/client/src/types/incident.ts`
+
+### 3. Files Modified
+- `dashboard/client/src/components/map/IncidentMapView.tsx`
+- `dashboard/client/src/components/overview/MiniMapWidget.tsx`
+
+### 4. Viewport Behavior Analysis
+- **Previous Viewport Behavior**: The Google Maps component was initialized with static default center `{ lat: 12.8450, lng: 77.6650 }` and zone selection used static hard-coded dictionaries (`ZONE_CENTERS`). Map camera movements only occurred when clicking specific markers or zone selector pills.
+- **New Viewport Behavior**:
+  1. The map camera controller (`MapCameraController` / `MiniMapCameraController`) inspects the valid coordinates of incidents dynamically returned by the backend API.
+  2. On initial load or dataset change, it calculates a `google.maps.LatLngBounds` containing all valid incident coordinates and executes `map.fitBounds(bounds, padding)`.
+  3. If exactly 1 valid incident is present, it centers on that point with a sensible zoom level (`zoom = 15`) to prevent extreme `fitBounds` zooming.
+  4. If 0 valid incidents are present, it falls back gracefully to a default map view without crashing or inventing city coordinates.
+  5. The dataset key (`coordsKey`) is serialized and memoized to prevent `fitBounds` from firing repeatedly on unrelated React re-renders (e.g., opening drawer, filter change, analytics state updates).
+
+### 5. Coordinate Validation Logic
+Implemented `isValidCoordinate(lat, lng)` helper:
+```ts
+const isValidCoordinate = (lat: any, lng: any): boolean => {
+  const numLat = typeof lat === 'number' ? lat : parseFloat(lat);
+  const numLng = typeof lng === 'number' ? lng : parseFloat(lng);
+  return !isNaN(numLat) && !isNaN(numLng) && isFinite(numLat) && isFinite(numLng);
+};
+```
+Safely filters `null`, `undefined`, `NaN`, non-numeric strings, and out-of-range values before passing to Google Maps API.
+
+### 6. `fitBounds` Stabilization & Selected-Incident Fly-To
+- Manual user actions (marker clicks, manual GPS input) set `manualTarget` and `manualZoom`.
+- `MapCameraController` maintains `lastManualTargetRef` and `lastFittedKeyRef`.
+- When a user selects a marker, the controller executes `map.panTo` and `map.setZoom(17)`.
+- Because the underlying dataset key (`coordsKey`) does not change during marker inspection or drawer opening, `fitBounds` does NOT override or reset the user's fly-to view.
+
+### 7. Tests & Verification
+1. **Automated TypeScript Check**: `npm run check` $\rightarrow$ **0 compilation errors**.
+2. **Logic & Edge Case Test Suite**: `npx tsx scratch/verify_phase_10a.ts` $\rightarrow$ **4/4 unit tests passed** (verified invalid/NaN coordinate filtering, dataset key stabilization, Vadodara dynamic bounds derivation, single-incident zoom handling).
+3. **Manual Viewport Verification**: Confirmed that incident dataset coordinates dynamically drive Google Maps bounds without hard-coded city defaults.
+
+### 8. Known Limitations
+- Google Maps rendering requires a valid browser API key (`VITE_GOOGLE_MAPS_API_KEY`). Unauthenticated environments render the clean application-level fallback container.
+
+
 
 
 

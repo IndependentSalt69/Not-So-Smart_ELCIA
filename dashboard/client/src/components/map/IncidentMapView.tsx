@@ -121,45 +121,93 @@ function SlidingSegmentedControl<T extends string>({
   );
 }
 
-// Controller to smoothly pan & zoom map to any target coordinate
-const MapFlyToController: React.FC<{
-  targetCoords: { lat: number; lng: number } | null;
-  targetZoom?: number;
-}> = ({ targetCoords, targetZoom = 16 }) => {
-  const map = useMap();
-  const prevCoordsRef = useRef<{ lat: number; lng: number; zoom: number } | null>(null);
-
-  useEffect(() => {
-    if (map && targetCoords && typeof targetCoords.lat === 'number' && typeof targetCoords.lng === 'number') {
-      const prev = prevCoordsRef.current;
-      const isDifferent =
-        !prev ||
-        Math.abs(prev.lat - targetCoords.lat) > 0.00001 ||
-        Math.abs(prev.lng - targetCoords.lng) > 0.00001 ||
-        prev.zoom !== targetZoom;
-
-      if (isDifferent) {
-        map.panTo(targetCoords);
-        if (targetZoom) {
-          map.setZoom(targetZoom);
-        }
-        prevCoordsRef.current = { lat: targetCoords.lat, lng: targetCoords.lng, zoom: targetZoom };
-      }
-    }
-  }, [map, targetCoords, targetZoom]);
-
-  return null;
+// Helper to validate numeric coordinates and prevent NaN / null / string crashes
+const isValidCoordinate = (lat: any, lng: any): boolean => {
+  const numLat = typeof lat === 'number' ? lat : parseFloat(lat);
+  const numLng = typeof lng === 'number' ? lng : parseFloat(lng);
+  return !isNaN(numLat) && !isNaN(numLng) && isFinite(numLat) && isFinite(numLng);
 };
 
-// Electronics City Coordinates Center
-const ELCIA_CENTER = { lat: 12.8450, lng: 77.6650 };
+// Safe fallback center if 0 valid coordinates exist (preserves existing default fallback without inventing cities)
+const DEFAULT_FALLBACK_CENTER = { lat: 12.8450, lng: 77.6650 };
 
-const ZONE_CENTERS: Record<string, { lat: number; lng: number; zoom: number }> = {
-  'all': { lat: 12.8450, lng: 77.6650, zoom: 14 },
-  'EC-01': { lat: 12.8420, lng: 77.6600, zoom: 16 },
-  'EC-02': { lat: 12.8490, lng: 77.6680, zoom: 16 },
-  'EC-03': { lat: 12.8380, lng: 77.6780, zoom: 16 },
-  'EC-04': { lat: 12.8450, lng: 77.6630, zoom: 16 },
+// Controller to handle data-driven fitBounds and manual fly-to stabilization
+const MapCameraController: React.FC<{
+  incidents: Incident[];
+  manualTarget: { lat: number; lng: number } | null;
+  manualZoom?: number;
+}> = ({ incidents, manualTarget, manualZoom }) => {
+  const map = useMap();
+  const lastFittedKeyRef = useRef<string>('');
+  const lastManualTargetRef = useRef<{ lat: number; lng: number; zoom?: number } | null>(null);
+
+  // Filter valid incidents
+  const validIncidents = incidents.filter(
+    (i) => i && i.coordinates && isValidCoordinate(i.coordinates.lat, i.coordinates.lng)
+  );
+
+  // Stable serialized key representing the dataset coordinates
+  const coordsKey = validIncidents
+    .map((i) => `${Number(i.coordinates.lat).toFixed(5)},${Number(i.coordinates.lng).toFixed(5)}`)
+    .sort()
+    .join('|');
+
+  // Handle manual target fly-to (e.g. marker click, custom GPS feed)
+  useEffect(() => {
+    if (!map || !manualTarget) return;
+    if (!isValidCoordinate(manualTarget.lat, manualTarget.lng)) return;
+
+    const prev = lastManualTargetRef.current;
+    const targetLat = Number(manualTarget.lat);
+    const targetLng = Number(manualTarget.lng);
+    const zoom = manualZoom || 17;
+
+    const isDifferent =
+      !prev ||
+      Math.abs(prev.lat - targetLat) > 0.00001 ||
+      Math.abs(prev.lng - targetLng) > 0.00001 ||
+      prev.zoom !== zoom;
+
+    if (isDifferent) {
+      map.panTo({ lat: targetLat, lng: targetLng });
+      map.setZoom(zoom);
+      lastManualTargetRef.current = { lat: targetLat, lng: targetLng, zoom };
+    }
+  }, [map, manualTarget, manualZoom]);
+
+  // Handle data-driven fitBounds (runs when valid coordinate dataset changes)
+  useEffect(() => {
+    if (!map) return;
+    if (coordsKey === lastFittedKeyRef.current && coordsKey !== '') return;
+
+    lastFittedKeyRef.current = coordsKey;
+    lastManualTargetRef.current = null;
+
+    if (validIncidents.length === 1) {
+      // Single valid incident: center on it with sensible zoom
+      const single = validIncidents[0].coordinates;
+      map.panTo({ lat: Number(single.lat), lng: Number(single.lng) });
+      map.setZoom(15);
+    } else if (validIncidents.length > 1) {
+      // Two or more valid incidents: fit bounds
+      if (window.google?.maps?.LatLngBounds) {
+        const bounds = new window.google.maps.LatLngBounds();
+        validIncidents.forEach((inc) => {
+          bounds.extend({
+            lat: Number(inc.coordinates.lat),
+            lng: Number(inc.coordinates.lng),
+          });
+        });
+        map.fitBounds(bounds, { top: 60, right: 60, bottom: 60, left: 60 });
+      }
+    } else if (validIncidents.length === 0 && coordsKey === '') {
+      // 0 valid incidents: use safe fallback center
+      map.panTo(DEFAULT_FALLBACK_CENTER);
+      map.setZoom(13);
+    }
+  }, [map, coordsKey, validIncidents]);
+
+  return null;
 };
 
 export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
@@ -169,8 +217,8 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
   const [selectedZone, setSelectedZone] = useState<ZoneId | 'all'>('all');
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [mapType, setMapType] = useState<'hybrid' | 'roadmap'>('hybrid');
-  const [targetCoords, setTargetCoords] = useState<{ lat: number; lng: number } | null>(ELCIA_CENTER);
-  const [targetZoom, setTargetZoom] = useState<number>(14);
+  const [manualTarget, setManualTarget] = useState<{ lat: number; lng: number } | null>(null);
+  const [manualZoom, setManualZoom] = useState<number | undefined>(undefined);
 
   // Manual GPS coordinate input feed state
   const [customLat, setCustomLat] = useState<string>('12.8412');
@@ -205,19 +253,16 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
       : incidents.filter((i) => i.zoneId === selectedZone)
   ).filter(
     (i) =>
+      i &&
       i.coordinates &&
-      typeof i.coordinates.lat === 'number' &&
-      !isNaN(i.coordinates.lat) &&
-      typeof i.coordinates.lng === 'number' &&
-      !isNaN(i.coordinates.lng)
+      isValidCoordinate(i.coordinates.lat, i.coordinates.lng)
   );
 
-  // Fly to zone
+  // Select zone (resets manual target so data-driven fitBounds runs for the zone)
   const handleZoneSelect = (zoneId: ZoneId | 'all') => {
     setSelectedZone(zoneId);
-    const centerConfig = ZONE_CENTERS[zoneId] || ZONE_CENTERS.all;
-    setTargetCoords({ lat: centerConfig.lat, lng: centerConfig.lng });
-    setTargetZoom(centerConfig.zoom);
+    setSelectedIncident(null);
+    setManualTarget(null);
   };
 
   // Fly to manual coordinates fed by user
@@ -225,9 +270,9 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
     e.preventDefault();
     const lat = parseFloat(customLat);
     const lng = parseFloat(customLng);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      setTargetCoords({ lat, lng });
-      setTargetZoom(18);
+    if (isValidCoordinate(lat, lng)) {
+      setManualTarget({ lat, lng });
+      setManualZoom(18);
       setCustomPin({ lat, lng, label: `Custom GPS Point: ${lat.toFixed(4)}, ${lng.toFixed(4)}` });
     }
   };
@@ -235,8 +280,8 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
   // Focus on incident
   const handleMarkerClick = (incident: Incident) => {
     setSelectedIncident(incident);
-    setTargetCoords({ lat: incident.coordinates.lat, lng: incident.coordinates.lng });
-    setTargetZoom(17);
+    setManualTarget({ lat: incident.coordinates.lat, lng: incident.coordinates.lng });
+    setManualZoom(17);
   };
 
   return (
@@ -310,16 +355,20 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
       <div className="relative h-[calc(100vh-230px)] min-h-[600px] 2xl:min-h-[780px] rounded-3xl overflow-hidden border border-zinc-200/80 dark:border-zinc-800 shadow-xl flex items-center justify-center bg-slate-950">
         <APIProvider apiKey={apiKey}>
           <Map
-            defaultCenter={ELCIA_CENTER}
-            defaultZoom={14}
+            defaultCenter={DEFAULT_FALLBACK_CENTER}
+            defaultZoom={13}
             mapId="DEMO_MAP_ID"
             mapTypeId={mapType}
             gestureHandling={'greedy'}
             disableDefaultUI={false}
             className="w-full h-full"
           >
-            {/* Map Camera Controller for Coordinate Fly-To */}
-            <MapFlyToController targetCoords={targetCoords} targetZoom={targetZoom} />
+            {/* Map Camera Controller for Data-Driven fitBounds & Fly-To */}
+            <MapCameraController
+              incidents={displayedIncidents}
+              manualTarget={manualTarget}
+              manualZoom={manualZoom}
+            />
 
             {/* Custom Manual Pin (if fed) */}
             {customPin && (
