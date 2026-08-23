@@ -236,24 +236,82 @@ npm run check
 
 ```text
 .
-├── src/
-│   ├── api/                # FastAPI router definitions, endpoints, schemas
-│   ├── core/               # App configuration, security, logging
-│   ├── db/                 # SQLAlchemy session setup, PostGIS models, migrations
-│   ├── ml/                 # Detection models, frame extraction, inference code
-│   └── repositories/       # Data access layer for incidents, zones, analytics
+├── alembic/                          # Alembic database migration environment
+│   ├── versions/                     # Revision migration scripts (PostGIS tables)
+│   ├── env.py                        # Migration runner setup
+│   └── script.py.mako                # Migration template
 ├── dashboard/
-│   └── client/             # React + Vite TypeScript frontend application
-│       ├── src/
-│       │   ├── components/ # Map, Queue, Analytics, Ingest Studio UI
-│       │   ├── services/   # Axios API client services
-│       │   ├── hooks/      # React custom hooks
-│       │   └── types/      # TypeScript interfaces
-├── tests/                  # Pytest test suite (unit, integration, DB migrations)
-├── docs/                   # System design logs, integration logs, QA bugfix logs
-├── alembic.ini             # Alembic migration configuration
-├── requirements.txt        # Python dependency manifest
-└── README.md               # Project documentation
+│   └── client/                       # React 18 + Vite TypeScript Frontend App
+│       ├── public/                   # Static public assets & drone icons
+│       └── src/
+│           ├── components/           # React UI Component Modules
+│           │   ├── analytics/        # Analytics charts & KPI summary cards
+│           │   ├── common/           # Priority badges, status pills, sliding controls
+│           │   ├── detail/           # Incident evidence inspection & triage modal
+│           │   ├── incidents/        # Incident Queue, filter bars, card lists
+│           │   ├── ingestion/        # AI Ingest Studio & video clip processing UI
+│           │   ├── layout/           # Sidebar navigation, header, status badges
+│           │   ├── map/              # Google Maps spatial operations center
+│           │   ├── overview/         # Executive summary widgets & mini map
+│           │   └── ui/               # Reusable UI primitives (Buttons, Dialogs)
+│           ├── contexts/             # React context providers
+│           ├── data/                 # Data transformers and mock fallbacks
+│           ├── hooks/                # Custom React hooks (useIncidents, useAnalytics)
+│           ├── pages/                # Main view pages (Dashboard, Incidents, Maps)
+│           ├── services/             # Axios API services (api.ts, incidentService.ts)
+│           └── types/                # TypeScript type definitions (incident.ts)
+├── docs/                             # Project Architecture & QA Logs
+│   ├── backend_analytics_implementation.md
+│   ├── dashboard_qa_bugfix_log.md
+│   └── frontend_backend_integration_log.md
+├── scripts/                          # Utility & maintenance scripts
+│   ├── auto_seed_backend.ts          # Automated backend database seeder
+│   └── verify_qa_fixes.ts            # Integration & verification suite
+├── src/                              # FastAPI Python Backend Application
+│   ├── api/                          # REST API Layer
+│   │   ├── dependencies.py           # FastAPI dependency injectors
+│   │   ├── main.py                   # Application entrypoint & CORS middleware
+│   │   └── routes/                   # Route handlers (incidents, zones, analytics, health)
+│   ├── core/                         # Core App Configurations
+│   │   ├── config.py                 # Pydantic environment settings
+│   │   └── logging.py                # Structured logging configuration
+│   ├── db/                           # Database & ORM Infrastructure
+│   │   ├── base.py                   # SQLAlchemy Base model class
+│   │   ├── session.py                # Database connection session maker
+│   │   └── models/                   # PostGIS & SQLAlchemy ORM Models
+│   │       ├── incident.py           # Core Incident entity schema
+│   │       ├── zone.py               # Operational Zone entity schema
+│   │       ├── detection.py          # Frame-level AI detection records
+│   │       ├── evidence.py           # Visual evidence frame references
+│   │       ├── assignment.py         # Municipal field team allocation
+│   │       └── history.py            # Audit log state transitions
+│   ├── detection/                    # Computer Vision Detection Pipeline
+│   │   ├── depth_estimator.py        # Water depth & severity estimation
+│   │   ├── severity_analyzer.py      # Multi-factor severity scoring algorithm
+│   │   ├── video_tracker.py          # Frame-level tracking & video processing
+│   │   └── yolo_segmentation.py      # Segformer/YOLOv8 inference engine
+│   ├── repositories/                 # Data Access Object (DAO) Pattern Layer
+│   │   ├── analytics.py              # Aggregation SQL queries for summary/trends/zones
+│   │   ├── incidents.py              # CRUD operations for incidents
+│   │   ├── zones.py                  # Operational zone telemetry lookup
+│   │   └── evidence.py               # Frame & clip metadata access
+│   ├── schemas/                      # Pydantic Data Validation Schemas
+│   │   ├── analytics.py              # Analytics request/response DTOs
+│   │   ├── incident.py               # Incident DTOs
+│   │   └── zone.py                   # Zone DTOs
+│   ├── severity/                     # Priority & Severity Scoring Engine
+│   │   └── scoring_engine.py         # Multi-factor operational scoring logic
+│   └── tracking/                     # Temporal Association Engine
+│       └── temporal_filter.py        # Frame-to-incident deduplication logic
+├── tests/                            # Pytest Automated Test Suite
+│   ├── api/                          # REST API route test suites
+│   ├── db/                           # Database migration & lifecycle tests
+│   ├── integration/                  # End-to-end integration test suites
+│   └── repositories/                 # Repository layer query tests
+├── alembic.ini                       # Alembic environment configuration
+├── pytest.ini                        # Pytest framework settings
+├── requirements.txt                  # Python dependency specifications
+└── README.md                         # Project documentation
 ```
 
 ---
