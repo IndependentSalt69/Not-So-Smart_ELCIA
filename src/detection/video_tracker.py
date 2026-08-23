@@ -60,16 +60,24 @@ class HazardVideoPipeline:
                 track_id = det["track_id"]
                 poly = det["mask_polygon"]
                 area = det["mask_area_px"]
+                cls_id = det["class_id"]  # Get the unified class ID (0, 1, 2, or 3)
 
                 # Check for valid ID, mask, AND that it is larger than our noise filter
                 if track_id is not None and poly is not None and area > self.min_area_pixels:
-                    
+            
                     # If we haven't analyzed this hazard yet, do it IMMEDIATELY
                     if track_id not in self.logged_hazard_ids:
                         self.logged_hazard_ids.add(track_id)
-                        
-                        # Compute Depth and Severity (This slows down processing to ensure accuracy)
-                        depth_map = self.depth_estimator.estimate_depth(frame)
+                
+                        # Initialize default metrics
+                        depth_map = None
+                
+                        # ONLY run MiDaS depth calculation if it's a Pothole (Class ID 1)
+                        if cls_id == 1:
+                            print(f"[AI Engine] Pothole detected (ID: {track_id}). Running depth estimation...")
+                            depth_map = self.depth_estimator.estimate_depth(frame)
+                
+                        # Compute severity (handles depth_map being present or None)
                         metrics = self.severity_analyzer.calculate_hazard_severity(poly, depth_map, frame.shape)
                         
                         # Extract Evidence Snapshot

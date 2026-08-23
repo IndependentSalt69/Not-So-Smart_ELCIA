@@ -26,6 +26,8 @@ class YOLOSegmentor:
         self.target_classes = target_classes or {
             0: "waterlogging",
             1: "pothole",
+            2: "drainage_overflow",
+            3: "damaged_footpath"
         }
         print(f"[AI Engine] Loading YOLO Segmentation Model from: {self.model_path}")
         self.model = YOLO(self.model_path)
@@ -103,8 +105,10 @@ class YOLOSegmentor:
     def draw_detections(self, frame: np.ndarray, detections: List[Dict[str, Any]]) -> np.ndarray:
         annotated = frame.copy()
         color_palette = {
-            "waterlogging": (235, 150, 50),
-            "pothole": (40, 50, 230),
+            "waterlogging": (235, 150, 50),     # Orange/Blue
+            "pothole": (40, 50, 230),           # Red
+            "drainage_overflow": (0, 255, 255), # Yellow
+            "damaged_footpath": (0, 255, 0)     # Green
         }
         default_color = (0, 255, 0)
 

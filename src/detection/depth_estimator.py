@@ -9,10 +9,16 @@ import numpy as np
 class DepthEstimator:
     def __init__(self, model_type="DPT_Large"):
         print(f"[AI Engine] Loading {model_type} Depth Model...")
-        if torch.backends.mps.is_available():
+        
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda")
+            print("[AI Engine] Using NVIDIA CUDA Acceleration.")
+        elif torch.backends.mps.is_available():
             self.device = torch.device("mps")
+            print("[AI Engine] Using Apple Silicon MPS Acceleration.")
         else:
             self.device = torch.device("cpu")
+            print("[AI Engine] Warning: Using CPU for depth estimation (this will be slow).")
             
         # Load high-precision DPT model
         self.midas = torch.hub.load("intel-isl/MiDaS", model_type, trust_repo=True)

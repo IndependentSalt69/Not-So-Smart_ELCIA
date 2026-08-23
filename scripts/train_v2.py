@@ -4,10 +4,16 @@ Trains a production-grade model locally on Apple Silicon.
 """
 from roboflow import Roboflow
 from ultralytics import YOLO
+import os
+from dotenv import load_dotenv
+
+# Load secret variables from the local .env file
+load_dotenv()
+api_key = os.getenv("ROBOFLOW_API_KEY")
 
 def main():
     print("[INFO] Connecting to Roboflow...")
-    rf = Roboflow(api_key="6AWVvJaGJ5ZLM6zFEmLr")
+    rf = Roboflow(api_key=api_key)
     project = rf.workspace("pothole-ipd").project("ipd-pothole-detection-2")
     version = project.version(4)
     

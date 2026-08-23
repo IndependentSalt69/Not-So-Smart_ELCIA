@@ -19,6 +19,8 @@ htmlcov/
 
 # Datasets & Sample Media (Keep repo light)
 data/
+data_raw/
+unified_4class_dataset/
 pothole-segmentation-1/
 coco_converted/
 ipd-pothole-detection-*/
@@ -40,3 +42,5 @@ data/*
 data/samples/*
 !data/samples/.gitkeep
 !data/samples/*.txt
+
+.env
