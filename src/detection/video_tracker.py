@@ -5,14 +5,16 @@ Optimized for Drone Footage: Immediate capture with area-based noise filtering.
 """
 import cv2
 import json
+import datetime
 from pathlib import Path
 
 from src.detection.yolo_segmentation import YOLOSegmentor
 from src.detection.depth_estimator import DepthEstimator
 from src.detection.severity_analyzer import SeverityAnalyzer
+from scripts.gps_parser import parse_dji_srt
 
 class HazardVideoPipeline:
-    def __init__(self, weights_path="models/production/civicpulse_best.pt", output_dir="outputs"):
+    def __init__(self, weights_path="models/production/civicpulse_best.pt", output_dir="outputs", srt_path=None):
         self.output_dir = Path(output_dir)
         self.evidence_dir = self.output_dir / "evidence"
         self.evidence_dir.mkdir(parents=True, exist_ok=True)
@@ -22,12 +24,31 @@ class HazardVideoPipeline:
         self.depth_estimator = DepthEstimator(model_type="DPT_Large")
         self.severity_analyzer = SeverityAnalyzer()
         
+        # GPS Telemetry data
+        self.gps_data = []
+        if srt_path:
+            print(f"[INFO] Loading GPS Telemetry from {srt_path}...")
+            self.gps_data = parse_dji_srt(srt_path)
+        
         # State tracking
         self.logged_hazard_ids = set()
         self.telemetry_log = []
-        
-        # Drone Optimization: Minimum pixel area to filter out camera noise/glitches
         self.min_area_pixels = 150 
+
+    def _get_gps_for_time(self, seconds: float):
+        """Finds the matching GPS coordinate for a given timestamp in seconds."""
+        if not self.gps_data:
+            return {"lat": None, "lon": None}
+            
+        target_time = str(datetime.timedelta(seconds=int(seconds)))
+        if len(target_time) < 8:
+            target_time = "0" + target_time
+            
+        for point in self.gps_data:
+            if point["time"].startswith(target_time):
+                return {"lat": point["lat"], "lon": point["lon"]}
+                
+        return {"lat": self.gps_data[-1]["lat"], "lon": self.gps_data[-1]["lon"]}
 
     def process_video(self, video_path: str, output_video_path: str = "outputs/demo_tracked_output.mp4"):
         cap = cv2.VideoCapture(video_path)
@@ -51,6 +72,7 @@ class HazardVideoPipeline:
                 break
             
             frame_idx += 1
+            current_time_sec = frame_idx / fps
             
             # Get tracked detections and draw standard annotations
             detections = self.segmentor.track_frame(frame, persist=True)
@@ -86,9 +108,16 @@ class HazardVideoPipeline:
                         cv2.imwrite(str(evidence_filepath), frame)
 
                         # Append to Telemetry Record
+                        # 1. Look up GPS location for the current video timestamp
+                        gps_loc = self._get_gps_for_time(current_time_sec)
+
+                        # 2. Append coordinates and timestamp into the dictionary
                         log_entry = {
                             "hazard_id": track_id,
                             "frame_logged": frame_idx,
+                            "timestamp_sec": round(current_time_sec, 2),
+                            "latitude": gps_loc["lat"],
+                            "longitude": gps_loc["lon"],
                             "class_name": det["class_name"],
                             "risk_level": metrics["risk_level"],
                             "severity_score": metrics["severity_score"],
@@ -98,7 +127,7 @@ class HazardVideoPipeline:
                             "evidence_file": evidence_filename
                         }
                         self.telemetry_log.append(log_entry)
-                        print(f"[DRONE CAPTURE] {det['class_name'].upper()} (ID: {track_id}) | Area: {area}px | Sev: {metrics['severity_score']}/100")
+                        print(f"[DRONE CAPTURE] {det['class_name'].upper()} (ID: {track_id}) @ Lat: {gps_loc['lat']}, Lon: {gps_loc['lon']}")
 
                 # Draw a "Logged" marker on the video if we successfully recorded it
                 if track_id in self.logged_hazard_ids:
