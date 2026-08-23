@@ -299,7 +299,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
                 <Pie
                   data={statusDistribution}
                   cx="50%"
-                  cy="45%"
+                  cy="42%"
                   innerRadius={72}
                   outerRadius={108}
                   paddingAngle={5}
