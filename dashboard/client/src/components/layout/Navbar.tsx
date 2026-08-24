@@ -144,7 +144,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-xl shadow-xs transition-colors duration-300">
+      <header className="sticky top-0 z-40 w-full border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl shadow-xs transition-colors duration-300">
         <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-16">
           <div className="flex items-center justify-between h-16 xl:h-20">
             {/* Brand and ELCIA Badge */}
@@ -167,11 +167,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span className="font-black text-lg xl:text-xl tracking-tight text-zinc-900 dark:text-white">
                     CivicPulse
                   </span>
-                  <span className="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full bg-emerald-50/90 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200 border border-emerald-200/80 dark:border-emerald-700/80 shadow-2xs">
+                  <span className="text-xs uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50/90 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200 border border-emerald-200/80 dark:border-emerald-700/80 shadow-2xs">
                     ELCIA 2026
                   </span>
                 </div>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 font-semibold hidden sm:block tracking-tight">
+                <p className="text-xs xl:text-sm text-zinc-500 dark:text-zinc-400 font-semibold hidden sm:block tracking-tight">
                   Autonomous Aerial Monsoon & Road Intelligence
                 </p>
               </div>
@@ -202,7 +202,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     }}
                     onClick={() => handleNavClick(item.id)}
                     className={cn(
-                      'relative z-10 flex items-center gap-2 px-4 py-2 rounded-xl text-xs xl:text-sm font-bold transition-colors duration-200 select-none cursor-pointer group',
+                      'relative z-10 flex items-center gap-2 px-3.5 xl:px-4 py-2 rounded-xl text-xs xl:text-sm font-bold transition-colors duration-200 select-none cursor-pointer group',
                       isActive
                         ? 'text-zinc-950 dark:text-white'
                         : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white'
@@ -210,7 +210,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     <Icon
                       className={cn(
-                        'w-4 h-4 transition-all duration-300',
+                        'w-4 h-4 xl:w-4.5 xl:h-4.5 transition-all duration-300',
                         isActive
                           ? 'text-emerald-600 dark:text-emerald-400 scale-110'
                           : 'text-zinc-400 dark:text-zinc-500 group-hover:text-emerald-500'
@@ -220,7 +220,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {item.badge && (
                       <span
                         className={cn(
-                          'text-[10px] px-2 py-0.5 rounded-full font-black tracking-tight transition-transform duration-200 group-hover:scale-105',
+                          'text-xs px-2 py-0.5 rounded-full font-bold tracking-tight transition-transform duration-200 group-hover:scale-105',
                           item.id === 'map'
                             ? 'bg-red-500 text-white shadow-sm shadow-red-500/40 animate-pulse'
                             : item.id === 'ingest'
@@ -240,13 +240,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Telemetry & Live Clock */}
             <div className="flex items-center gap-2 sm:gap-3.5">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/50 border border-emerald-200/90 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold shadow-2xs">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/50 border border-emerald-200/90 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-xs xl:text-sm font-bold shadow-2xs">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
                 <span className="hidden sm:inline tracking-tight">Drone Swarm Active (4/4)</span>
                 <span className="sm:hidden font-mono font-bold">4/4 Swarm</span>
               </div>
 
-              <div className="hidden lg:flex items-center gap-2 text-xs font-mono font-bold text-zinc-700 dark:text-zinc-300 bg-zinc-100/90 dark:bg-zinc-900/90 px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs">
+              <div className="hidden lg:flex items-center gap-2 text-xs xl:text-sm font-mono font-bold text-zinc-700 dark:text-zinc-300 bg-zinc-100/90 dark:bg-zinc-900/90 px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs">
                 <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>{timeStr || '00:00:00 IST'}</span>
               </div>
@@ -274,7 +274,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Drawer Panel Container (Left to Right Slide) */}
         <div
           className={cn(
-            'fixed inset-y-0 left-0 w-[82%] max-w-xs bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 shadow-2xl z-50 flex flex-col justify-between transform transition-transform duration-300 ease-out',
+            'fixed inset-y-0 left-0 w-[84%] max-w-xs bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 shadow-2xl z-50 flex flex-col justify-between transform transition-transform duration-300 ease-out',
             isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           )}
         >
@@ -283,13 +283,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="p-5 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white shadow-md shadow-emerald-500/25">
-                  <Radio className="w-4 h-4 animate-pulse" />
+                  <Radio className="w-4.5 h-4.5 animate-pulse" />
                 </div>
                 <div>
                   <div className="font-black text-sm tracking-tight text-zinc-900 dark:text-white">
                     CivicPulse Command
                   </div>
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">
+                  <span className="text-xs uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">
                     ELCIA City Grid
                   </span>
                 </div>
@@ -306,7 +306,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Navigation Options List */}
             <div className="p-4 space-y-2">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 px-2 mb-2">
+              <div className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 px-2 mb-2">
                 Operations Views & Tools
               </div>
 
@@ -333,16 +333,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                             : 'bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 group-hover:text-emerald-500'
                         )}
                       >
-                        <Icon className="w-4 h-4" />
+                        <Icon className="w-4.5 h-4.5" />
                       </div>
 
                       <div className="min-w-0">
-                        <div className="text-xs font-bold truncate">
+                        <div className="text-sm font-bold truncate">
                           {item.label}
                         </div>
                         <div
                           className={cn(
-                            'text-[10px] truncate',
+                            'text-xs truncate',
                             isActive
                               ? 'text-zinc-300 dark:text-zinc-600'
                               : 'text-zinc-400 dark:text-zinc-500'
@@ -357,7 +357,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       {item.badge && (
                         <span
                           className={cn(
-                            'text-[10px] px-2 py-0.5 rounded-full font-bold',
+                            'text-xs px-2 py-0.5 rounded-full font-bold',
                             item.id === 'map'
                               ? 'bg-red-500 text-white'
                               : item.id === 'ingest'
@@ -372,7 +372,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       )}
                       <ChevronRight
                         className={cn(
-                          'w-3.5 h-3.5 opacity-60',
+                          'w-4 h-4 opacity-60',
                           isActive ? 'text-white dark:text-zinc-900' : 'text-zinc-400'
                         )}
                       />
@@ -385,15 +385,15 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Bottom Footer inside Drawer */}
           <div className="p-4 border-t border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/30 space-y-2.5">
-            <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
+            <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 font-semibold">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                 Drone Swarm (4/4 Active)
               </span>
-              <span className="font-mono text-[11px]">{timeStr}</span>
+              <span className="font-mono text-xs">{timeStr}</span>
             </div>
 
-            <div className="text-[10px] text-zinc-400 dark:text-zinc-500 leading-tight">
+            <div className="text-xs text-zinc-400 dark:text-zinc-500 leading-relaxed">
               Electronics City Industrial Township Authority (ELCIA) • Autonomous Monsoon Response System
             </div>
           </div>

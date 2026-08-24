@@ -10,12 +10,14 @@ import { ZoneId } from '@/types/incident';
 import {
   Activity,
   AlertCircle,
+  AlertTriangle,
   Camera,
   CheckCircle2,
   ChevronRight,
   CloudRain,
   Compass,
   Download,
+  Droplets,
   Eye,
   FileVideo,
   Gauge,
@@ -167,11 +169,11 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-950 via-zinc-900 to-emerald-950/70 text-white p-6 sm:p-8 xl:p-10 shadow-md border border-zinc-800/80">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-semibold">
-              <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs xl:text-sm font-semibold">
+              <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
               <span>YOLOv8 + SAM Sensor Pipeline • Live Ingestion Studio</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl xl:text-4xl font-black tracking-tight text-white">
+            <h1 className="text-2xl sm:text-3xl xl:text-4xl 2xl:text-5xl font-black tracking-tight text-white">
               Drone Vision AI Ingestion & Inference Studio
             </h1>
             <p className="text-sm xl:text-base text-slate-300 leading-relaxed">
@@ -179,14 +181,14 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15">
+          <div className="flex items-center gap-3.5 shrink-0 bg-white/10 backdrop-blur-md p-4 xl:p-5 rounded-2xl border border-white/15">
             <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
               <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <div className="text-xs font-medium text-slate-300">Model Pipeline</div>
-              <div className="text-lg font-black text-white">YOLOv8 + SAM 2.1</div>
-              <div className="text-[11px] text-emerald-300 font-medium">1080p Real-time 60FPS</div>
+              <div className="text-xs font-semibold text-slate-300">Model Pipeline</div>
+              <div className="text-lg xl:text-xl font-black text-white">YOLOv8 + SAM 2.1</div>
+              <div className="text-xs text-emerald-300 font-bold">1080p Real-time 60FPS</div>
             </div>
           </div>
         </div>
@@ -195,10 +197,10 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
       {/* Preset Fast-Picker */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+          <h3 className="text-xs xl:text-sm font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
             Quick-Select Sample Drone Feeds (1-Click Demo)
           </h3>
-          <span className="text-[11px] text-zinc-500 font-medium">Or upload custom media below</span>
+          <span className="text-xs text-zinc-500 font-medium">Or upload custom media below</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
@@ -209,7 +211,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                 key={preset.id}
                 onClick={() => handleSelectPreset(preset)}
                 className={cn(
-                  'p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 relative shadow-xs',
+                  'p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-3.5 relative shadow-xs',
                   isSelected
                     ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-500 ring-2 ring-emerald-500/20'
                     : 'bg-white dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300'
@@ -217,7 +219,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
               >
                 <div
                   className={cn(
-                    'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-base',
+                    'w-11 h-11 rounded-xl flex items-center justify-center shrink-0 text-base',
                     preset.type === 'waterlogging'
                       ? 'bg-teal-100 dark:bg-teal-900/60 text-teal-600'
                       : preset.type === 'pothole'
@@ -225,13 +227,19 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                       : 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600'
                   )}
                 >
-                  {preset.type === 'waterlogging' ? '🌊' : preset.type === 'pothole' ? '⚠️' : '🟢'}
+                  {preset.type === 'waterlogging' ? (
+                    <Droplets className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                  ) : preset.type === 'pothole' ? (
+                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  ) : (
+                    <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  )}
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-bold text-zinc-900 dark:text-white truncate">
+                  <div className="text-sm font-bold text-zinc-900 dark:text-white truncate">
                     {preset.title}
                   </div>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-2 mt-0.5">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 mt-0.5 font-medium">
                     {preset.description}
                   </p>
                 </div>
@@ -248,8 +256,8 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
           {/* Dropzone Container */}
           <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
-                <UploadCloud className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <h3 className="text-sm xl:text-base font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
+                <UploadCloud className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Upload Drone Footage</span>
               </h3>
               <input
@@ -263,7 +271,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={handleBrowseClick}
-                className="h-8 text-xs font-semibold rounded-xl border-zinc-300 dark:border-zinc-700"
+                className="h-8.5 text-xs xl:text-sm font-semibold rounded-xl border-zinc-300 dark:border-zinc-700 cursor-pointer"
               >
                 Browse Files
               </Button>
@@ -277,10 +285,10 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
               <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto transition-transform group-hover:scale-110">
                 {mediaType === 'video' ? <FileVideo className="w-6 h-6" /> : <ImageIcon className="w-6 h-6" />}
               </div>
-              <div className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
+              <div className="text-xs xl:text-sm font-bold text-zinc-800 dark:text-zinc-200">
                 {mediaFile ? mediaFile.name : 'Drag & drop drone aerial photo or video clip'}
               </div>
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
                 Supports High-Res JPG, PNG, WEBP, MP4, MOV up to 100MB
               </p>
             </div>
@@ -288,71 +296,71 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
 
           {/* Flight Telemetry Form */}
           <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-xs space-y-4">
-            <h3 className="text-sm font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
-              <Compass className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <h3 className="text-sm xl:text-base font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
+              <Compass className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
               <span>Flight Telemetry & Spatial Metadata</span>
             </h3>
 
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               <div>
-                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
+                <label className="text-xs xl:text-sm font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
                   Surveillance Zone:
                 </label>
                 <Select
                   value={telemetry.zoneId}
                   onValueChange={(val: ZoneId) => setTelemetry({ ...telemetry, zoneId: val })}
                 >
-                  <SelectTrigger className="h-9 rounded-xl text-xs bg-zinc-50 dark:bg-zinc-800/50 border-zinc-300 dark:border-zinc-700">
+                  <SelectTrigger className="h-10 rounded-xl text-xs xl:text-sm bg-zinc-50 dark:bg-zinc-800/50 border-zinc-300 dark:border-zinc-700">
                     <SelectValue placeholder="Select Zone" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="EC-01">EC-01: Phase 1 West / Hosur Arterial</SelectItem>
-                    <SelectItem value="EC-02">EC-02: Phase 1 East Commercial Belt</SelectItem>
-                    <SelectItem value="EC-03">EC-03: Phase 2 Tech Park Boulevard</SelectItem>
-                    <SelectItem value="EC-04">EC-04: Main Junction Corridor & Flyover</SelectItem>
+                    <SelectItem value="EC-01" className="text-xs xl:text-sm">EC-01: Phase 1 West / Hosur Arterial</SelectItem>
+                    <SelectItem value="EC-02" className="text-xs xl:text-sm">EC-02: Phase 1 East Commercial Belt</SelectItem>
+                    <SelectItem value="EC-03" className="text-xs xl:text-sm">EC-03: Phase 2 Tech Park Boulevard</SelectItem>
+                    <SelectItem value="EC-04" className="text-xs xl:text-sm">EC-04: Main Junction Corridor & Flyover</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
+                <label className="text-xs xl:text-sm font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
                   Road / Junction Description:
                 </label>
                 <Input
                   value={telemetry.locationDescription}
                   onChange={(e) => setTelemetry({ ...telemetry, locationDescription: e.target.value })}
                   placeholder="e.g. Hosur Road Flyover Underpass"
-                  className="h-9 rounded-xl text-xs bg-zinc-50 dark:bg-zinc-800/50 border-zinc-300 dark:border-zinc-700"
+                  className="h-10 rounded-xl text-xs xl:text-sm bg-zinc-50 dark:bg-zinc-800/50 border-zinc-300 dark:border-zinc-700"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
+                  <label className="text-xs xl:text-sm font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
                     Drone Swarm ID:
                   </label>
                   <Input
                     value={telemetry.droneId}
                     onChange={(e) => setTelemetry({ ...telemetry, droneId: e.target.value })}
-                    className="h-9 rounded-xl text-xs font-mono bg-zinc-50 dark:bg-zinc-800/50 border-zinc-300 dark:border-zinc-700"
+                    className="h-10 rounded-xl text-xs xl:text-sm font-mono bg-zinc-50 dark:bg-zinc-800/50 border-zinc-300 dark:border-zinc-700"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
+                  <label className="text-xs xl:text-sm font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
                     Flight Altitude (m):
                   </label>
                   <Input
                     type="number"
                     value={telemetry.altitudeMeters}
                     onChange={(e) => setTelemetry({ ...telemetry, altitudeMeters: Number(e.target.value) })}
-                    className="h-9 rounded-xl text-xs font-mono bg-zinc-50 dark:bg-zinc-800/50 border-zinc-300 dark:border-zinc-700"
+                    className="h-10 rounded-xl text-xs xl:text-sm font-mono bg-zinc-50 dark:bg-zinc-800/50 border-zinc-300 dark:border-zinc-700"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
+                  <label className="text-xs xl:text-sm font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
                     Latitude:
                   </label>
                   <Input
@@ -365,11 +373,11 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                         coordinates: { ...telemetry.coordinates, lat: Number(e.target.value) },
                       })
                     }
-                    className="h-9 rounded-xl text-xs font-mono bg-zinc-50 dark:bg-zinc-800/50 border-zinc-300 dark:border-zinc-700"
+                    className="h-10 rounded-xl text-xs xl:text-sm font-mono bg-zinc-50 dark:bg-zinc-800/50 border-zinc-300 dark:border-zinc-700"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
+                  <label className="text-xs xl:text-sm font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
                     Longitude:
                   </label>
                   <Input
@@ -382,7 +390,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                         coordinates: { ...telemetry.coordinates, lng: Number(e.target.value) },
                       })
                     }
-                    className="h-9 rounded-xl text-xs font-mono bg-zinc-50 dark:bg-zinc-800/50 border-zinc-300 dark:border-zinc-700"
+                    className="h-10 rounded-xl text-xs xl:text-sm font-mono bg-zinc-50 dark:bg-zinc-800/50 border-zinc-300 dark:border-zinc-700"
                   />
                 </div>
               </div>
@@ -417,7 +425,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
             <div className="flex items-center justify-between px-5 py-3.5 bg-zinc-900 border-b border-zinc-800">
               <div className="flex items-center gap-2">
                 <Camera className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-bold text-zinc-200">
+                <span className="text-xs xl:text-sm font-bold text-zinc-200">
                   {inferenceResult ? 'Inference Output & Mask Overlay' : 'Raw Drone Sensor Feed Preview'}
                 </span>
               </div>
@@ -448,7 +456,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
               />
 
               {/* In-Flight Telemetry Stamp Overlay */}
-              <div className="absolute bottom-3 left-4 right-4 bg-black/75 backdrop-blur-xs px-3.5 py-1.5 rounded-xl border border-zinc-800 flex items-center justify-between text-[11px] font-mono text-zinc-400">
+              <div className="absolute bottom-3 left-4 right-4 bg-black/75 backdrop-blur-xs px-3.5 py-1.5 rounded-xl border border-zinc-800 flex items-center justify-between text-xs font-mono text-zinc-300">
                 <div className="flex items-center gap-2">
                   <span className="text-emerald-400 font-bold">{telemetry.droneId}</span>
                   <span>•</span>
@@ -468,7 +476,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
           {/* AI Inference Progress Visualizer Bar */}
           {isAnalyzing && (
             <div className="p-5 rounded-3xl bg-zinc-900 border border-zinc-800 text-white shadow-md space-y-3 animate-in fade-in">
-              <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center justify-between text-xs xl:text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
                   <span className="font-bold text-emerald-400">{currentStage}</span>
@@ -502,11 +510,13 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                         : 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600'
                     )}
                   >
-                    {inferenceResult.type === 'waterlogging'
-                      ? '🌊'
-                      : inferenceResult.type === 'pothole'
-                      ? '⚠️'
-                      : '✅'}
+                    {inferenceResult.type === 'waterlogging' ? (
+                      <Droplets className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+                    ) : inferenceResult.type === 'pothole' ? (
+                      <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                    ) : (
+                      <ShieldCheck className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                    )}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
@@ -524,10 +534,10 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <div className="text-[11px] font-mono text-zinc-400 font-bold">AI Confidence</div>
-                    <div className="text-lg font-black text-zinc-900 dark:text-white">
+                    <div className="text-xs font-mono text-zinc-400 font-bold">AI Confidence</div>
+                    <div className="text-xl font-black font-mono text-zinc-900 dark:text-white">
                       {Math.round(inferenceResult.confidence * 100)}%
                     </div>
                   </div>
@@ -537,34 +547,34 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
 
               {/* Metrics Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/50">
-                  <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium block">Severity Score</span>
-                  <span className="text-lg font-black text-zinc-900 dark:text-white">
+                <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/50">
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400 font-semibold block">Severity Score</span>
+                  <span className="text-xl font-black font-mono text-zinc-900 dark:text-white">
                     {inferenceResult.severity.toFixed(1)} / 10
                   </span>
                 </div>
-                <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/50">
-                  <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium block">Inundation Area</span>
-                  <span className="text-lg font-black text-teal-600 dark:text-teal-400">
+                <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/50">
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400 font-semibold block">Inundation Area</span>
+                  <span className="text-xl font-black font-mono text-teal-600 dark:text-teal-400">
                     {inferenceResult.waterAreaSqm ? `${inferenceResult.waterAreaSqm} m²` : 'N/A'}
                   </span>
                 </div>
-                <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/50">
-                  <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium block">Lane Obstruction</span>
-                  <span className="text-lg font-black text-red-600 dark:text-red-400">
+                <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/50">
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400 font-semibold block">Lane Obstruction</span>
+                  <span className="text-xl font-black font-mono text-red-600 dark:text-red-400">
                     {inferenceResult.severityFactors.roadObstruction.toFixed(1)} / 10
                   </span>
                 </div>
-                <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/50">
-                  <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium block">Assigned Zone</span>
-                  <span className="text-lg font-black font-mono text-zinc-900 dark:text-white">
+                <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/50">
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400 font-semibold block">Assigned Zone</span>
+                  <span className="text-xl font-black font-mono text-zinc-900 dark:text-white">
                     {inferenceResult.telemetry.zoneId}
                   </span>
                 </div>
               </div>
 
               {/* Recommended Action */}
-              <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/60 text-xs">
+              <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/60 text-xs xl:text-sm">
                 <span className="font-bold text-emerald-900 dark:text-emerald-200 block mb-1">
                   Recommended Mitigation Protocol:
                 </span>
@@ -579,9 +589,9 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                   variant="outline"
                   size="sm"
                   onClick={handleExportJson}
-                  className="w-full sm:w-auto h-9 text-xs font-semibold rounded-xl border-zinc-300 dark:border-zinc-700"
+                  className="w-full sm:w-auto h-10 text-xs xl:text-sm font-semibold rounded-xl border-zinc-300 dark:border-zinc-700 cursor-pointer"
                 >
-                  <Download className="w-3.5 h-3.5 mr-1.5" />
+                  <Download className="w-4 h-4 mr-2" />
                   <span>Download GeoJSON Report</span>
                 </Button>
 
@@ -589,7 +599,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                   <Button
                     onClick={handlePublishIncident}
                     disabled={isPublishing}
-                    className="w-full sm:w-auto h-10 px-5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/25"
+                    className="w-full sm:w-auto h-11 px-6 text-xs xl:text-sm font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/25 cursor-pointer"
                   >
                     <Send className="w-4 h-4 mr-2" />
                     <span>Publish Incident to Operations Queue</span>

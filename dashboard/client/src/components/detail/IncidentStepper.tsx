@@ -63,10 +63,10 @@ export const IncidentStepper: React.FC<IncidentStepperProps> = ({
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-xs space-y-5">
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+        <h4 className="text-sm xl:text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
           Lifecycle Workflow Progression
         </h4>
-        <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+        <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
           Step {currentStepIndex >= 0 ? currentStepIndex + 1 : '-'}/6
         </span>
       </div>
@@ -80,12 +80,12 @@ export const IncidentStepper: React.FC<IncidentStepperProps> = ({
           const isPending = currentStepIndex < idx;
 
           return (
-            <div key={step} className="flex-1 flex flex-col items-center min-w-[70px] relative group">
+            <div key={step} className="flex-1 flex flex-col items-center min-w-[76px] relative group">
               {/* Connector line */}
               {idx < LIFECYCLE_STEPS.length - 1 && (
                 <div
                   className={cn(
-                    'absolute top-4 left-1/2 right-0 w-full h-0.5 -z-0 transition-colors',
+                    'absolute top-4.5 left-1/2 right-0 w-full h-0.5 -z-0 transition-colors',
                     isCompleted ? 'bg-emerald-500' : 'bg-zinc-200 dark:bg-zinc-800'
                   )}
                 />
@@ -94,7 +94,7 @@ export const IncidentStepper: React.FC<IncidentStepperProps> = ({
               {/* Step Circle */}
               <div
                 className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all relative z-10',
+                  'w-9 h-9 rounded-full flex items-center justify-center text-xs xl:text-sm font-bold transition-all relative z-10',
                   isCompleted
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : isCurrent
@@ -103,7 +103,7 @@ export const IncidentStepper: React.FC<IncidentStepperProps> = ({
                 )}
               >
                 {isCompleted ? (
-                  <Check className="w-4 h-4 text-white stroke-3" />
+                  <Check className="w-4.5 h-4.5 text-white stroke-3" />
                 ) : (
                   <span>{idx + 1}</span>
                 )}
@@ -112,9 +112,9 @@ export const IncidentStepper: React.FC<IncidentStepperProps> = ({
               {/* Label */}
               <span
                 className={cn(
-                  'text-[10px] mt-2 font-semibold text-center leading-tight transition-colors',
+                  'text-xs mt-2 font-bold text-center leading-tight transition-colors',
                   isCurrent
-                    ? 'text-zinc-900 dark:text-white font-bold'
+                    ? 'text-zinc-900 dark:text-white'
                     : isCompleted
                     ? 'text-emerald-600 dark:text-emerald-400'
                     : 'text-zinc-400 dark:text-zinc-500'
@@ -129,26 +129,26 @@ export const IncidentStepper: React.FC<IncidentStepperProps> = ({
 
       {/* Action CTA to advance lifecycle */}
       {action && (
-        <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800/60 flex items-center justify-between gap-3">
-          <div className="text-xs text-zinc-500 dark:text-zinc-400">
-            Next operational step: <span className="font-semibold text-zinc-800 dark:text-zinc-200">{action.label}</span>
+        <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800/60 flex items-center justify-between gap-3 flex-wrap">
+          <div className="text-xs xl:text-sm text-zinc-600 dark:text-zinc-400">
+            Next operational step: <span className="font-bold text-zinc-900 dark:text-zinc-100">{action.label}</span>
           </div>
 
           <Button
             size="sm"
             onClick={() => handleAdvance(action.nextStatus, action.notes)}
             disabled={loading}
-            className={cn('h-8 px-3 rounded-lg text-xs font-bold shadow-xs', action.btnClass)}
+            className={cn('h-9 px-3.5 rounded-xl text-xs xl:text-sm font-bold shadow-xs cursor-pointer', action.btnClass)}
           >
-            <action.icon className="w-3.5 h-3.5 mr-1" />
+            <action.icon className="w-4 h-4 mr-1.5" />
             <span>{action.label}</span>
           </Button>
         </div>
       )}
 
       {currentStatus === 'CLOSED' && (
-        <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 flex items-center gap-2 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+        <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 flex items-center gap-2.5 text-xs xl:text-sm font-bold text-emerald-800 dark:text-emerald-300">
+          <ShieldCheck className="w-4.5 h-4.5 text-emerald-600" />
           <span>Incident successfully resolved and verified clear by aerial drone surveillance.</span>
         </div>
       )}

@@ -59,26 +59,26 @@ export const SeverityExplainer: React.FC<SeverityExplainerProps> = ({ incident }
       {/* Header with Overall Score & Priority */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-100 dark:border-zinc-800/60">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-            <Sparkles className="w-4 h-4" />
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <Sparkles className="w-4.5 h-4.5" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-zinc-900 dark:text-white">
+            <h4 className="text-sm xl:text-base font-bold text-zinc-900 dark:text-white">
               AI Severity & Priority Explainability
             </h4>
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
               Multi-factor sensor fusion model (4 contributing vectors)
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <div className="text-right">
             <div className="text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400">
               Severity Score
             </div>
-            <div className="text-lg font-black text-zinc-900 dark:text-white">
-              {incident.severity.toFixed(1)} <span className="text-xs text-zinc-400">/ 10</span>
+            <div className="text-xl xl:text-2xl font-black font-mono text-zinc-900 dark:text-white">
+              {incident.severity.toFixed(1)} <span className="text-xs font-semibold text-zinc-400">/ 10</span>
             </div>
           </div>
           <PriorityBadge priority={incident.priority} />
@@ -92,31 +92,31 @@ export const SeverityExplainer: React.FC<SeverityExplainerProps> = ({ incident }
           return (
             <div
               key={factor.id}
-              className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/50 space-y-2"
+              className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/50 space-y-2.5"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className={cn('w-6 h-6 rounded-lg flex items-center justify-center shrink-0', factor.bgColor, factor.textColor)}>
-                    <Icon className="w-3.5 h-3.5" />
+                  <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', factor.bgColor, factor.textColor)}>
+                    <Icon className="w-4 h-4" />
                   </div>
-                  <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">
+                  <span className="text-xs xl:text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">
                     {factor.name}
                   </span>
                 </div>
-                <span className="font-mono text-xs font-bold text-zinc-900 dark:text-zinc-100 shrink-0">
+                <span className="font-mono text-xs xl:text-sm font-bold text-zinc-900 dark:text-zinc-100 shrink-0">
                   {factor.score.toFixed(1)} / 10
                 </span>
               </div>
 
               {/* Progress bar */}
-              <div className="w-full bg-zinc-200 dark:bg-zinc-700 h-1.5 rounded-full overflow-hidden">
+              <div className="w-full bg-zinc-200 dark:bg-zinc-700 h-2 rounded-full overflow-hidden">
                 <div
                   style={{ width: `${(factor.score / 10) * 100}%` }}
                   className={cn('h-full rounded-full transition-all duration-300', factor.color)}
                 />
               </div>
 
-              <div className="text-[11px] text-zinc-600 dark:text-zinc-400 font-medium truncate">
+              <div className="text-xs text-zinc-600 dark:text-zinc-400 font-medium truncate">
                 {factor.label}
               </div>
             </div>
@@ -126,14 +126,14 @@ export const SeverityExplainer: React.FC<SeverityExplainerProps> = ({ incident }
 
       {/* Reasoning List */}
       {severityFactors.explanation && severityFactors.explanation.length > 0 && (
-        <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800/60 space-y-2">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-800 dark:text-zinc-200">
-            <Info className="w-3.5 h-3.5 text-emerald-500" />
+        <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800/60 space-y-2">
+          <div className="flex items-center gap-1.5 text-xs xl:text-sm font-bold text-zinc-800 dark:text-zinc-200">
+            <Info className="w-4 h-4 text-emerald-500" />
             <span>Operational Reasoning Summary</span>
           </div>
           <ul className="space-y-1.5 pl-1">
             {severityFactors.explanation.map((exp, idx) => (
-              <li key={idx} className="flex items-start gap-2 text-xs text-zinc-600 dark:text-zinc-400">
+              <li key={idx} className="flex items-start gap-2 text-xs xl:text-sm text-zinc-700 dark:text-zinc-300">
                 <span className="text-emerald-500 font-bold mt-0.5">•</span>
                 <span>{exp}</span>
               </li>

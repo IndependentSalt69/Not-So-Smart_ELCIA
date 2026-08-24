@@ -4,10 +4,12 @@ import { cn } from '@/lib/utils';
 import { getEvidenceMediaUrl, incidentService } from '@/services/incidentService';
 import { DetectionObservation, EvidenceAsset, Incident } from '@/types/incident';
 import {
+  AlertTriangle,
   Camera,
   ChevronLeft,
   ChevronRight,
   Cpu,
+  Droplets,
   FileCode2,
   Maximize2,
   Pause,
@@ -336,8 +338,18 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
           </div>
         </div>
 
-        <div className="text-[11px] font-mono text-zinc-400">
-          {isWater ? '🌊 Water Extent: 78%' : '⚠️ Depth: ~18cm'}
+        <div className="text-xs font-mono text-zinc-300">
+          {isWater ? (
+            <span className="flex items-center gap-1.5 text-teal-400">
+              <Droplets className="w-3.5 h-3.5" />
+              <span>Water Extent: 78%</span>
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-amber-400">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span>Depth: ~18cm</span>
+            </span>
+          )}
         </div>
       </div>
     </div>

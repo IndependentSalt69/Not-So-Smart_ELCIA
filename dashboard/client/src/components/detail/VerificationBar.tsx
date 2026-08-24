@@ -77,13 +77,13 @@ export const VerificationBar: React.FC<VerificationBarProps> = ({
 
       {showRejectForm ? (
         <div className="space-y-3 pt-2">
-          <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+          <div className="text-xs xl:text-sm font-semibold text-zinc-800 dark:text-zinc-200">
             Select rejection rationale:
           </div>
           <select
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
-            className="w-full h-9 rounded-xl text-xs bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 px-3 font-medium text-zinc-800 dark:text-zinc-200"
+            className="w-full h-10 rounded-xl text-xs xl:text-sm bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 px-3.5 font-medium text-zinc-800 dark:text-zinc-200"
           >
             <option value="Optical reflection / Specular glare on wet road">
               Optical reflection / Specular glare on wet road
@@ -106,7 +106,7 @@ export const VerificationBar: React.FC<VerificationBarProps> = ({
               variant="ghost"
               size="sm"
               onClick={() => setShowRejectForm(false)}
-              className="h-8 text-xs font-semibold"
+              className="h-9 text-xs xl:text-sm font-bold cursor-pointer"
             >
               Cancel
             </Button>
@@ -115,7 +115,7 @@ export const VerificationBar: React.FC<VerificationBarProps> = ({
               size="sm"
               onClick={handleReject}
               disabled={loading}
-              className="h-8 text-xs font-semibold rounded-lg"
+              className="h-9 text-xs xl:text-sm font-bold rounded-xl cursor-pointer"
             >
               Confirm Rejection
             </Button>
@@ -127,10 +127,10 @@ export const VerificationBar: React.FC<VerificationBarProps> = ({
             onClick={handleVerify}
             disabled={loading}
             size="sm"
-            className="flex-1 h-9 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+            className="flex-1 h-10 rounded-xl text-xs xl:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
           >
             <CheckCircle2 className="w-4 h-4 mr-1.5" />
-            <span>✓ Verify Incident</span>
+            <span>Verify Incident</span>
           </Button>
 
           <Button
@@ -138,10 +138,10 @@ export const VerificationBar: React.FC<VerificationBarProps> = ({
             size="sm"
             onClick={() => setShowRejectForm(true)}
             disabled={loading}
-            className="h-9 rounded-xl text-xs font-semibold border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+            className="h-10 rounded-xl text-xs xl:text-sm font-bold border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
           >
             <XCircle className="w-4 h-4 mr-1.5" />
-            <span>✕ Reject (False Positive)</span>
+            <span>Reject (False Positive)</span>
           </Button>
         </div>
       )}

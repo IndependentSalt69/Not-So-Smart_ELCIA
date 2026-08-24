@@ -4,11 +4,9 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from '@/components/ui/dialog';
 import { Incident, IncidentStatus } from '@/types/incident';
-import { Clock, History, MapPin, Navigation, UserCheck, X } from 'lucide-react';
+import { AlertTriangle, Droplets, History, MapPin, X } from 'lucide-react';
 import React from 'react';
 import { AssignmentSection } from './AssignmentSection';
 import { EvidenceViewer } from './EvidenceViewer';
@@ -47,11 +45,16 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
         <div className="sticky top-0 z-30 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">
-              <span className="text-xl font-black font-mono tracking-tight text-zinc-900 dark:text-white">
+              <span className="text-2xl font-black font-mono tracking-tight text-zinc-900 dark:text-white">
                 {incident.code || incident.id}
               </span>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
-                {isWater ? '🌊 Waterlogging' : '⚠️ Pothole'}
+              <span className="px-3 py-1 rounded-full text-xs xl:text-sm font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                {isWater ? (
+                  <Droplets className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                ) : (
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                )}
+                <span>{isWater ? 'Waterlogging' : 'Pothole'}</span>
               </span>
             </div>
             <PriorityBadge priority={incident.priority} />
@@ -63,7 +66,7 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="h-8 w-8 p-0 rounded-full text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+              className="h-8 w-8 p-0 rounded-full text-zinc-500 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -75,18 +78,18 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
           {/* Location Summary Header */}
           <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
             <div className="space-y-1 min-w-0">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                <MapPin className="w-3.5 h-3.5" />
+              <div className="flex items-center gap-1.5 text-xs xl:text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                <MapPin className="w-4 h-4" />
                 <span>
                   {incident.zoneId} — {incident.zone}
                 </span>
               </div>
-              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              <p className="text-sm xl:text-base font-bold text-zinc-900 dark:text-zinc-100">
                 {incident.locationDescription}
               </p>
             </div>
 
-            <div className="flex items-center gap-3 text-xs font-mono text-zinc-500 dark:text-zinc-400 shrink-0 bg-zinc-50 dark:bg-zinc-800/60 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700">
+            <div className="flex items-center gap-3 text-xs xl:text-sm font-mono font-semibold text-zinc-600 dark:text-zinc-300 shrink-0 bg-zinc-50 dark:bg-zinc-800/60 px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700">
               <span>LAT: {incident.coordinates.lat.toFixed(4)}°N</span>
               <span>•</span>
               <span>LNG: {incident.coordinates.lng.toFixed(4)}°E</span>
@@ -96,14 +99,14 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
           {/* Verification Callout if in DETECTED state */}
           <VerificationBar
             incident={incident}
-            onVerify={onVerify}
-            onReject={onReject}
+            onVerify={onVerify!}
+            onReject={onReject!}
           />
 
           {/* Assignment Section if in VERIFIED state */}
           <AssignmentSection
             incident={incident}
-            onAssign={onAssign}
+            onAssign={onAssign!}
           />
 
           {/* Main Visual Evidence Viewer */}
@@ -112,7 +115,7 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
           {/* Lifecycle Stepper */}
           <IncidentStepper
             incident={incident}
-            onUpdateStatus={onUpdateStatus}
+            onUpdateStatus={onUpdateStatus!}
           />
 
           {/* Field Inspections & Verification Section */}
@@ -124,21 +127,21 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
           {/* Audit History Timeline */}
           {incident.history && incident.history.length > 0 && (
             <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-xs space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-zinc-900 dark:text-white">
+              <div className="flex items-center gap-2 text-sm font-bold text-zinc-900 dark:text-white">
                 <History className="w-4 h-4 text-emerald-500" />
                 <span>Verification & Operations Audit Trail</span>
               </div>
 
               <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60 pl-2">
                 {incident.history.map((entry, idx) => (
-                  <div key={idx} className="py-2.5 flex items-start gap-3 text-xs">
+                  <div key={idx} className="py-2.5 flex items-start gap-3 text-xs xl:text-sm">
                     <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
                     <div className="flex-1 space-y-0.5">
                       <div className="flex items-center justify-between flex-wrap gap-2">
-                        <span className="font-bold text-zinc-800 dark:text-zinc-200">
+                        <span className="font-bold text-zinc-900 dark:text-zinc-100">
                           {entry.actor}
                         </span>
-                        <span className="text-[11px] font-mono text-zinc-400">
+                        <span className="text-xs font-mono text-zinc-400">
                           {new Date(entry.timestamp).toLocaleTimeString([], {
                             hour: '2-digit',
                             minute: '2-digit',

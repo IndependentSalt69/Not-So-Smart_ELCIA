@@ -1,6 +1,7 @@
 import { AnalyticsSummary } from '@/types/analytics';
 import {
   BarChart3,
+  Calendar,
   Clock,
   MapPin,
   ShieldCheck,
@@ -56,8 +57,9 @@ const CustomTrendTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-slate-950/95 border border-slate-700/80 px-4 py-3.5 rounded-2xl shadow-2xl backdrop-blur-md text-white text-sm space-y-2.5 z-50 min-w-[200px]">
-        <div className="font-bold text-slate-200 border-b border-slate-800 pb-1.5 font-mono text-xs">
-          📅 {label}
+        <div className="font-bold text-slate-200 border-b border-slate-800 pb-1.5 font-mono text-xs flex items-center gap-1.5">
+          <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+          <span>{label}</span>
         </div>
         <div className="space-y-1.5">
           {payload.map((item: any, idx: number) => {
@@ -154,45 +156,45 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
       {/* 4 Summary Highlight Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5">
         <div className="p-5 xl:p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
-          <div className="w-13 h-13 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 flex items-center justify-center shrink-0">
+          <div className="w-14 h-14 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 flex items-center justify-center shrink-0">
             <Waves className="w-7 h-7" />
           </div>
           <div>
             <div className="text-xs xl:text-sm font-bold text-zinc-500 dark:text-zinc-400">Total Inundated Road Area</div>
-            <div className="text-2xl xl:text-3xl font-black font-mono text-zinc-900 dark:text-white my-0.5">{waterloggedDisplay}</div>
+            <div className="text-3xl xl:text-4xl font-black font-mono text-zinc-900 dark:text-white my-1">{waterloggedDisplay}</div>
             <div className="text-xs text-teal-600 dark:text-teal-400 font-bold">Physical area not measured</div>
           </div>
         </div>
 
         <div className="p-5 xl:p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
-          <div className="w-13 h-13 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
             <Clock className="w-7 h-7" />
           </div>
           <div>
             <div className="text-xs xl:text-sm font-bold text-zinc-500 dark:text-zinc-400">Mean Time to Resolution</div>
-            <div className="text-2xl xl:text-3xl font-black font-mono text-zinc-900 dark:text-white my-0.5">{meanResolutionDisplay}</div>
+            <div className="text-3xl xl:text-4xl font-black font-mono text-zinc-900 dark:text-white my-1">{meanResolutionDisplay}</div>
             <div className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">From Detection to Clear</div>
           </div>
         </div>
 
         <div className="p-5 xl:p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
-          <div className="w-13 h-13 rounded-2xl bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 flex items-center justify-center shrink-0">
+          <div className="w-14 h-14 rounded-2xl bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 flex items-center justify-center shrink-0">
             <TrendingUp className="w-7 h-7" />
           </div>
           <div>
             <div className="text-xs xl:text-sm font-bold text-zinc-500 dark:text-zinc-400">P1 Critical Hotspots</div>
-            <div className="text-2xl xl:text-3xl font-black font-mono text-zinc-900 dark:text-white my-0.5">{kpis.criticalP1Count}</div>
+            <div className="text-3xl xl:text-4xl font-black font-mono text-zinc-900 dark:text-white my-1">{kpis.criticalP1Count}</div>
             <div className="text-xs text-red-600 dark:text-red-400 font-bold">High priority triage</div>
           </div>
         </div>
 
         <div className="p-5 xl:p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-4">
-          <div className="w-13 h-13 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
             <ShieldCheck className="w-7 h-7" />
           </div>
           <div>
             <div className="text-xs xl:text-sm font-bold text-zinc-500 dark:text-zinc-400">Active Incidents</div>
-            <div className="text-2xl xl:text-3xl font-black font-mono text-zinc-900 dark:text-white my-0.5">{kpis.totalActiveIncidents}</div>
+            <div className="text-3xl xl:text-4xl font-black font-mono text-zinc-900 dark:text-white my-1">{kpis.totalActiveIncidents}</div>
             <div className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">Unresolved Live Incidents</div>
           </div>
         </div>

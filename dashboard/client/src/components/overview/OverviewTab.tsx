@@ -1,6 +1,6 @@
 import { Incident, IncidentFilters } from '@/types/incident';
 import { AnalyticsSummary } from '@/types/analytics';
-import { CloudRain, ShieldCheck, Sparkles, Zap } from 'lucide-react';
+import { CloudRain, ShieldCheck, Sparkles, TrendingDown, Zap } from 'lucide-react';
 import React from 'react';
 import { KpiSummaryGrid } from './KpiSummaryGrid';
 import { MiniMapWidget } from './MiniMapWidget';
@@ -64,10 +64,11 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               <ShieldCheck className="w-7 h-7 xl:w-8 xl:h-8" />
             </div>
             <div>
-              <div className="text-xs xl:text-sm font-medium text-slate-300">Mean Resolution Velocity</div>
-              <div className="text-2xl xl:text-3xl font-black text-white">1.4 Hours</div>
-              <div className="text-[11px] xl:text-xs text-emerald-300 font-semibold mt-0.5">
-                ↓ 38% vs. manual inspection
+              <div className="text-xs xl:text-sm font-semibold text-slate-300">Mean Resolution Velocity</div>
+              <div className="text-2xl xl:text-3xl font-black font-mono text-white">1.4 Hours</div>
+              <div className="text-xs text-emerald-300 font-bold mt-0.5 flex items-center gap-1">
+                <TrendingDown className="w-3.5 h-3.5 text-emerald-400" />
+                <span>38% vs. manual inspection</span>
               </div>
             </div>
           </div>

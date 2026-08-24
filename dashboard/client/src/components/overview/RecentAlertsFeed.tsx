@@ -2,7 +2,7 @@ import { PriorityBadge } from '@/components/common/PriorityBadge';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Incident } from '@/types/incident';
-import { ArrowRight, Clock, Droplet, Eye, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Clock, Droplets, Eye, ShieldAlert } from 'lucide-react';
 import React from 'react';
 
 interface RecentAlertsFeedProps {
@@ -63,24 +63,29 @@ export const RecentAlertsFeed: React.FC<RecentAlertsFeedProps> = ({
             >
               <div className="flex items-start gap-3 min-w-0">
                 <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0 shadow-xs mt-0.5 ${isWater
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-xs mt-0.5 ${
+                    isWater
                       ? 'bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 border border-teal-100 dark:border-teal-900/50'
                       : 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50'
-                    }`}
+                  }`}
                 >
-                  {isWater ? '🌊' : '⚠️'}
+                  {isWater ? (
+                    <Droplets className="w-4.5 h-4.5" />
+                  ) : (
+                    <AlertTriangle className="w-4.5 h-4.5" />
+                  )}
                 </div>
 
                 <div className="min-w-0">
                   <div className="flex items-center gap-2.5 flex-wrap mb-1">
-                    <span className="font-mono text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                      {incident.id}
+                    <span className="font-mono text-base font-bold text-zinc-900 dark:text-zinc-100">
+                      {incident.code || incident.id}
                     </span>
                     <PriorityBadge priority={incident.priority} />
                     <StatusBadge status={incident.status} />
                   </div>
 
-                  <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                     {incident.locationDescription}
                   </p>
 

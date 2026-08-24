@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { incidentService } from '@/services/incidentService';
 import { Incident } from '@/types/incident';
-import { ArrowRight, Clock, Eye, Gauge, MapPin, Sparkles, Timer } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Clock, Droplets, Eye, Gauge, MapPin, Sparkles, Timer } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 interface IncidentCardProps {
@@ -79,7 +79,7 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
       >
         <div className="flex items-center gap-4 min-w-0 flex-1">
           {/* Thumbnail image or Type icon */}
-          <div className="relative w-16 h-12 rounded-xl overflow-hidden bg-slate-900 shrink-0 border border-zinc-200 dark:border-zinc-800">
+          <div className="relative w-18 h-14 rounded-xl overflow-hidden bg-slate-900 shrink-0 border border-zinc-200 dark:border-zinc-800">
             <img
               src={activeImageSrc}
               alt={incident.code || incident.id}
@@ -87,8 +87,12 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
               onError={() => setImageError(true)}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
-            <div className="absolute top-1 left-1 px-1 py-0.2 rounded text-[9px] font-bold bg-black/70 text-white backdrop-blur-xs">
-              {isWater ? '🌊' : '⚠️'}
+            <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-xs font-bold bg-black/75 text-white backdrop-blur-xs flex items-center">
+              {isWater ? (
+                <Droplets className="w-3.5 h-3.5 text-teal-300" />
+              ) : (
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
+              )}
             </div>
             {isRealCapture && (
               <div className="absolute bottom-1 right-1 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-black" title="Real ML capture" />
@@ -97,8 +101,8 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
 
           {/* Details */}
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span className="font-mono text-sm font-bold text-zinc-900 dark:text-zinc-100">
+            <div className="flex items-center gap-2.5 flex-wrap mb-1">
+              <span className="font-mono text-base font-bold text-zinc-900 dark:text-zinc-100">
                 {incident.code || incident.id}
               </span>
               <PriorityBadge priority={incident.priority} />
@@ -107,13 +111,13 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
                 {incident.zoneId}
               </span>
               {isRealCapture && (
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-700/80 hidden lg:inline-flex items-center gap-1">
+                <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-700/80 hidden lg:inline-flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Live Frame
                 </span>
               )}
             </div>
-            <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium truncate">
+            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
               {incident.locationDescription}
             </p>
           </div>
@@ -122,11 +126,11 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
         {/* Metrics & Actions */}
         <div className="flex items-center gap-6 shrink-0">
           <div className="hidden sm:flex flex-col items-end">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-800 dark:text-zinc-200">
-              <Gauge className="w-3.5 h-3.5 text-zinc-400" />
+            <div className="flex items-center gap-1.5 text-sm font-bold text-zinc-800 dark:text-zinc-200">
+              <Gauge className="w-4 h-4 text-zinc-400" />
               <span>{incident.severity.toFixed(1)} / 10</span>
             </div>
-            <div className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">
+            <div className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
               AI Conf: {confidencePct}%
             </div>
           </div>
@@ -140,18 +144,18 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
                   e.stopPropagation();
                   onQuickEvidence(incident);
                 }}
-                className="h-8 px-2.5 rounded-lg text-xs font-medium border-zinc-300 dark:border-zinc-700 hidden sm:inline-flex"
+                className="h-8.5 px-3 rounded-xl text-xs font-semibold border-zinc-300 dark:border-zinc-700 hidden sm:inline-flex"
               >
-                <Eye className="w-3.5 h-3.5 mr-1" />
+                <Eye className="w-3.5 h-3.5 mr-1.5" />
                 Evidence
               </Button>
             )}
             <Button
               size="sm"
-              className="h-8 px-3 rounded-lg text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+              className="h-8.5 px-3.5 rounded-xl text-xs font-bold bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
             >
               <span>Inspect</span>
-              <ArrowRight className="w-3.5 h-3.5 ml-1" />
+              <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
             </Button>
           </div>
         </div>
@@ -181,11 +185,16 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
         {/* Top Badges Over Evidence */}
         <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-none">
           <div className="flex items-center gap-1.5">
-            <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-black/75 text-white backdrop-blur-sm shadow-xs flex items-center gap-1">
-              <span>{isWater ? '🌊 Waterlogging' : '⚠️ Pothole'}</span>
+            <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-black/75 text-white backdrop-blur-sm shadow-xs flex items-center gap-1.5">
+              {isWater ? (
+                <Droplets className="w-3.5 h-3.5 text-teal-300" />
+              ) : (
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
+              )}
+              <span>{isWater ? 'Waterlogging' : 'Pothole'}</span>
             </span>
             {isRealCapture && (
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-950/85 text-emerald-300 border border-emerald-700 backdrop-blur-sm shadow-xs flex items-center gap-1">
+              <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-950/85 text-emerald-300 border border-emerald-700 backdrop-blur-sm shadow-xs flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 Live Capture
               </span>
@@ -217,7 +226,7 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
             <StatusBadge status={incident.status} />
           </div>
 
-          <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 line-clamp-2 leading-relaxed">
+          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-2 leading-relaxed">
             {incident.locationDescription}
           </p>
         </div>
@@ -225,7 +234,7 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
         {/* Severity Progress Bar & Persistence */}
         <div className="space-y-2 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60">
           <div className="flex items-center justify-between text-xs xl:text-sm font-medium">
-            <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 font-semibold">
+            <span className="text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5 font-semibold">
               <Gauge className="w-4 h-4" />
               AI Severity Score
             </span>
@@ -261,19 +270,19 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
                 e.stopPropagation();
                 onQuickEvidence(incident);
               }}
-              className="flex-1 h-8 rounded-lg text-xs font-semibold border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              className="flex-1 h-9 rounded-xl text-xs xl:text-sm font-semibold border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
             >
-              <Eye className="w-3.5 h-3.5 mr-1" />
+              <Eye className="w-3.5 h-3.5 mr-1.5" />
               Evidence
             </Button>
           )}
 
           <Button
             size="sm"
-            className="flex-1 h-8 rounded-lg text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white text-white shadow-xs"
+            className="flex-1 h-9 rounded-xl text-xs xl:text-sm font-bold bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white text-white shadow-xs cursor-pointer"
           >
             <span>Open</span>
-            <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
           </Button>
         </div>
       </div>

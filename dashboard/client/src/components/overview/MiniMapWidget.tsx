@@ -89,8 +89,8 @@ export const MiniMapWidget: React.FC<MiniMapWidgetProps> = ({
     <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-xs flex flex-col h-full">
       <div className="flex items-center justify-between pb-3.5 border-b border-zinc-100 dark:border-zinc-800/60 mb-3">
         <div className="flex items-center gap-2">
-          <Compass className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+          <Compass className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
+          <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
             Electronics City Spatial Preview
           </h3>
         </div>
@@ -98,7 +98,7 @@ export const MiniMapWidget: React.FC<MiniMapWidgetProps> = ({
           variant="ghost"
           size="sm"
           onClick={onOpenFullMap}
-          className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 h-8 px-2 cursor-pointer"
+          className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 h-8 px-2.5 cursor-pointer"
         >
           <span>Full Map</span>
           <ArrowUpRight className="w-3.5 h-3.5 ml-1" />
@@ -125,12 +125,13 @@ export const MiniMapWidget: React.FC<MiniMapWidgetProps> = ({
                 onClick={() => onSelectIncident(incident)}
               >
                 <div
-                  className={`w-4 h-4 rounded-full border-2 border-white shadow-md cursor-pointer ${incident.priority === 'P1'
+                  className={`w-4 h-4 rounded-full border-2 border-white shadow-md cursor-pointer ${
+                    incident.priority === 'P1'
                       ? 'bg-red-500 animate-ping'
                       : incident.priority === 'P2'
-                        ? 'bg-orange-500'
-                        : 'bg-amber-400'
-                    }`}
+                      ? 'bg-orange-500'
+                      : 'bg-amber-400'
+                  }`}
                 />
               </AdvancedMarker>
             ))}
@@ -138,8 +139,8 @@ export const MiniMapWidget: React.FC<MiniMapWidgetProps> = ({
         </APIProvider>
 
         {/* Top-Left: Clean Development Purpose Badge with ! Sign */}
-        <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 bg-slate-950/85 backdrop-blur-md border border-amber-500/40 px-2.5 py-1 rounded-xl text-[10px] text-amber-300 shadow-md pointer-events-none select-none">
-          <div className="w-3.5 h-3.5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center font-black text-[9px] shrink-0">
+        <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 bg-slate-950/85 backdrop-blur-md border border-amber-500/40 px-2.5 py-1 rounded-xl text-xs text-amber-300 shadow-md pointer-events-none select-none">
+          <div className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center font-black text-[10px] shrink-0">
             !
           </div>
           <span className="font-semibold tracking-tight">For development purposes only</span>
@@ -150,7 +151,7 @@ export const MiniMapWidget: React.FC<MiniMapWidgetProps> = ({
           onClick={onOpenFullMap}
           className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 backdrop-blur-[1px] transition-opacity flex items-center justify-center cursor-pointer"
         >
-          <span className="px-4 py-2 rounded-xl bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-xs font-bold shadow-xl flex items-center gap-2 border border-zinc-200/60 dark:border-zinc-700">
+          <span className="px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-xs xl:text-sm font-bold shadow-xl flex items-center gap-2 border border-zinc-200/60 dark:border-zinc-700">
             <Navigation className="w-4 h-4 text-emerald-500" />
             Launch Full Spatial Operations Map
           </span>

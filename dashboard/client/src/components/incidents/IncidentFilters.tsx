@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { IncidentFilters as FilterType, IncidentStatus, IncidentType, PriorityLevel, ZoneId } from '@/types/incident';
-import { Filter, RotateCcw, Search, X } from 'lucide-react';
+import { AlertTriangle, Droplets, Filter, RotateCcw, Search, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 interface IncidentFiltersProps {
@@ -146,8 +146,8 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
 
   const typeItems: { id: IncidentType | 'all'; label: string; icon?: React.ReactNode }[] = [
     { id: 'all', label: 'All Types' },
-    { id: 'waterlogging', label: 'Waterlogging', icon: <span>🌊</span> },
-    { id: 'pothole', label: 'Potholes', icon: <span>⚠️</span> },
+    { id: 'waterlogging', label: 'Waterlogging', icon: <Droplets className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" /> },
+    { id: 'pothole', label: 'Potholes', icon: <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> },
   ];
 
   const priorityItems: { id: PriorityLevel | 'all'; label: string; color?: string }[] = [
@@ -218,20 +218,55 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
           </div>
 
           {/* Status Selector */}
-          <div className="w-full sm:w-60">
+          <div className="w-full sm:w-64">
             <Select value={filters.status || 'all'} onValueChange={handleStatusChange}>
               <SelectTrigger className="h-10 rounded-xl text-sm font-semibold border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 w-full">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all" className="text-sm">All Statuses</SelectItem>
-                <SelectItem value="DETECTED" className="text-sm">🚨 Detected (Unverified)</SelectItem>
-                <SelectItem value="VERIFIED" className="text-sm">✓ Verified</SelectItem>
-                <SelectItem value="ASSIGNED" className="text-sm">📋 Assigned</SelectItem>
-                <SelectItem value="IN_PROGRESS" className="text-sm">⚡ In Progress</SelectItem>
-                <SelectItem value="RE_INSPECTION" className="text-sm">🔍 Re-inspection</SelectItem>
-                <SelectItem value="CLOSED" className="text-sm">✅ Closed</SelectItem>
-                <SelectItem value="REJECTED" className="text-sm">✕ Rejected (False Pos)</SelectItem>
+                <SelectItem value="DETECTED" className="text-sm">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-rose-500" />
+                    <span>Detected (Unverified)</span>
+                  </span>
+                </SelectItem>
+                <SelectItem value="VERIFIED" className="text-sm">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-teal-500" />
+                    <span>Verified</span>
+                  </span>
+                </SelectItem>
+                <SelectItem value="ASSIGNED" className="text-sm">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    <span>Assigned</span>
+                  </span>
+                </SelectItem>
+                <SelectItem value="IN_PROGRESS" className="text-sm">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span>In Progress</span>
+                  </span>
+                </SelectItem>
+                <SelectItem value="RE_INSPECTION" className="text-sm">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-cyan-500" />
+                    <span>Re-inspection</span>
+                  </span>
+                </SelectItem>
+                <SelectItem value="CLOSED" className="text-sm">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-zinc-500" />
+                    <span>Closed & Resolved</span>
+                  </span>
+                </SelectItem>
+                <SelectItem value="REJECTED" className="text-sm">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-slate-400" />
+                    <span>Rejected (False Pos)</span>
+                  </span>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>

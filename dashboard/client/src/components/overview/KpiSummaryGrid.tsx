@@ -111,10 +111,10 @@ export const KpiSummaryGrid: React.FC<KpiSummaryGridProps> = ({ kpis, onFilterCl
                   </span>
                 )}
               </div>
-              <div className="text-2xl xl:text-3xl 2xl:text-4xl font-black tracking-tight text-zinc-900 dark:text-white mb-1.5">
+              <div className="text-3xl xl:text-4xl font-black font-mono tracking-tight text-zinc-900 dark:text-white mb-1.5">
                 {card.value}
               </div>
-              <div className="text-sm xl:text-base font-bold text-zinc-800 dark:text-zinc-200 line-clamp-1">
+              <div className="text-sm xl:text-base font-bold text-zinc-900 dark:text-zinc-100 line-clamp-1">
                 {card.title}
               </div>
             </div>

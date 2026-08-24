@@ -11,8 +11,10 @@ import {
   useMap,
 } from '@vis.gl/react-google-maps';
 import {
+  AlertTriangle,
   Compass,
   Crosshair,
+  Droplets,
   Eye,
   Layers,
   MapPin,
@@ -375,9 +377,9 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
               <AdvancedMarker position={{ lat: customPin.lat, lng: customPin.lng }}>
                 <div className="relative flex flex-col items-center animate-bounce">
                   <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg ring-4 ring-emerald-500/40 font-bold text-xs">
-                    🎯
+                    <Crosshair className="w-4 h-4 text-white" />
                   </div>
-                  <div className="bg-slate-950/90 text-emerald-300 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full mt-1 border border-emerald-700 shadow-md">
+                  <div className="bg-slate-950/90 text-emerald-300 text-xs font-mono font-bold px-2.5 py-0.5 rounded-full mt-1 border border-emerald-700 shadow-md">
                     Target GPS
                   </div>
                 </div>
@@ -414,12 +416,16 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
                         isSelected && 'scale-125 ring-4 ring-white'
                       )}
                     >
-                      <span className="text-xs">{isWater ? '🌊' : '⚠️'}</span>
+                      {isWater ? (
+                        <Droplets className="w-4 h-4 text-white" />
+                      ) : (
+                        <AlertTriangle className="w-4 h-4 text-white" />
+                      )}
                     </div>
 
                     {/* Tag badge below pin */}
-                    <div className="mt-1 bg-slate-950/90 text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border border-slate-700 whitespace-nowrap shadow-md group-hover:border-emerald-400 group-hover:text-emerald-300">
-                      {incident.id}
+                    <div className="mt-1 bg-slate-950/90 text-white text-xs font-mono font-bold px-2.5 py-0.5 rounded-full border border-slate-700 whitespace-nowrap shadow-md group-hover:border-emerald-400 group-hover:text-emerald-300">
+                      {incident.code || incident.id}
                     </div>
                   </div>
                 </AdvancedMarker>
@@ -437,25 +443,25 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
               >
                 <div className="p-2 max-w-xs text-zinc-900 space-y-2">
                   <div className="flex items-center justify-between gap-2 border-b pb-1.5">
-                    <span className="font-mono text-xs font-bold text-emerald-700">
-                      {selectedIncident.id}
+                    <span className="font-mono text-sm font-bold text-emerald-700">
+                      {selectedIncident.code || selectedIncident.id}
                     </span>
                     <PriorityBadge priority={selectedIncident.priority} />
                   </div>
-                  <p className="text-xs font-semibold text-zinc-800 line-clamp-2">
+                  <p className="text-xs xl:text-sm font-semibold text-zinc-800 line-clamp-2">
                     {selectedIncident.locationDescription}
                   </p>
-                  <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1">
+                  <div className="flex items-center justify-between text-xs font-mono text-zinc-600 pt-1">
                     <span>Severity: {selectedIncident.severity.toFixed(1)}/10</span>
                     <StatusBadge status={selectedIncident.status} />
                   </div>
                   <Button
                     size="sm"
                     onClick={() => onSelectIncident(selectedIncident)}
-                    className="w-full h-8 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-2xs mt-1"
+                    className="w-full h-8 text-xs font-bold bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg cursor-pointer"
                   >
                     <Eye className="w-3.5 h-3.5 mr-1" />
-                    <span>Inspect Evidence & Triage</span>
+                    Open Detailed Triage Drawer
                   </Button>
                 </div>
               </InfoWindow>
