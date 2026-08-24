@@ -11,7 +11,7 @@ def main():
     pipeline = HazardVideoPipeline(
         weights_path="runs/segment/civicpulse_4class_max-2/weights/best.pt",
         output_dir="outputs",
-        srt_path="data_raw/demo_video.srt"
+        srt_path="data_raw/full_demo_video.srt"
     )
     
     pipeline.process_video(

@@ -2,9 +2,10 @@ import { PriorityBadge } from '@/components/common/PriorityBadge';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { incidentService } from '@/services/incidentService';
 import { Incident } from '@/types/incident';
 import { ArrowRight, Clock, Eye, Gauge, MapPin, Sparkles, Timer } from 'lucide-react';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface IncidentCardProps {
   incident: Incident;
@@ -21,6 +22,42 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
 }) => {
   const isWater = incident.type === 'waterlogging';
   const confidencePct = Math.round(incident.confidence * 100);
+
+  // Real ML evidence thumbnail resolution state
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(() => {
+    return incident.mediaUrl || incidentService.getCachedPrimaryEvidence(incident.id) || null;
+  });
+  const [imageError, setImageError] = useState<boolean>(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (incident.mediaUrl) {
+      setThumbnailUrl(incident.mediaUrl);
+      return;
+    }
+    const cached = incidentService.getCachedPrimaryEvidence(incident.id);
+    if (cached !== undefined) {
+      setThumbnailUrl(cached);
+      return;
+    }
+
+    incidentService.getPrimaryEvidenceMediaUrl(incident.id).then((url) => {
+      if (isMounted) {
+        setThumbnailUrl(url);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [incident.id, incident.mediaUrl]);
+
+  useEffect(() => {
+    setImageError(false);
+  }, [incident.id, thumbnailUrl]);
+
+  const isRealCapture = Boolean(thumbnailUrl && !imageError);
+  const activeImageSrc = isRealCapture ? thumbnailUrl! : incident.evidenceFrame;
 
   // Severity color indicator
   const getSeverityColor = (score: number) => {
@@ -44,16 +81,18 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
           {/* Thumbnail image or Type icon */}
           <div className="relative w-16 h-12 rounded-xl overflow-hidden bg-slate-900 shrink-0 border border-zinc-200 dark:border-zinc-800">
             <img
-              src={incident.evidenceFrame}
-              alt={incident.id}
-              onError={(e) => {
-                e.currentTarget.style.opacity = '0';
-              }}
+              src={activeImageSrc}
+              alt={incident.code || incident.id}
+              loading="lazy"
+              onError={() => setImageError(true)}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
             <div className="absolute top-1 left-1 px-1 py-0.2 rounded text-[9px] font-bold bg-black/70 text-white backdrop-blur-xs">
               {isWater ? '🌊' : '⚠️'}
             </div>
+            {isRealCapture && (
+              <div className="absolute bottom-1 right-1 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-black" title="Real ML capture" />
+            )}
           </div>
 
           {/* Details */}
@@ -67,6 +106,12 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
               <span className="text-xs text-zinc-400 font-mono hidden md:inline">
                 {incident.zoneId}
               </span>
+              {isRealCapture && (
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-700/80 hidden lg:inline-flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Live Frame
+                </span>
+              )}
             </div>
             <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium truncate">
               {incident.locationDescription}
@@ -126,12 +171,10 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
       {/* Evidence Frame Preview Header */}
       <div className="relative h-44 w-full overflow-hidden bg-slate-900 border-b border-zinc-100 dark:border-zinc-800/60">
         <img
-          src={incident.evidenceFrame}
-          alt={incident.id}
-          onError={(e) => {
-            // Fallback to dark canvas if image load fails
-            e.currentTarget.style.opacity = '0';
-          }}
+          src={activeImageSrc}
+          alt={incident.code || incident.id}
+          loading="lazy"
+          onError={() => setImageError(true)}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
 
@@ -141,6 +184,12 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
             <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-black/75 text-white backdrop-blur-sm shadow-xs flex items-center gap-1">
               <span>{isWater ? '🌊 Waterlogging' : '⚠️ Pothole'}</span>
             </span>
+            {isRealCapture && (
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-950/85 text-emerald-300 border border-emerald-700 backdrop-blur-sm shadow-xs flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Live Capture
+              </span>
+            )}
           </div>
           <PriorityBadge priority={incident.priority} />
         </div>

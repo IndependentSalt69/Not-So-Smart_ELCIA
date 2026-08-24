@@ -134,6 +134,7 @@ export interface Incident {
   evidenceFrame: string; // image URL / path
   evidenceOverlay?: string; // segmentation mask / bounding box image URL
   evidenceClip?: string; // sample video clip URL
+  mediaUrl?: string; // Real ML-generated evidence frame URL
   severityFactors: SeverityFactors;
   recommendedAction: string;
   owner?: string;

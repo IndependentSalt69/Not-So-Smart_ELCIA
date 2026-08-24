@@ -1,9 +1,10 @@
 import { EmptyState } from '@/components/common/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { incidentService } from '@/services/incidentService';
 import { Incident, IncidentFilters as FilterType, SortDirection, SortField } from '@/types/incident';
 import { ArrowUpDown, LayoutGrid, ListFilter, SlidersHorizontal } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { IncidentCard } from './IncidentCard';
 import { IncidentCardSkeleton } from './IncidentCardSkeleton';
 import { IncidentFilters } from './IncidentFilters';
@@ -55,6 +56,14 @@ export const IncidentQueueView: React.FC<IncidentQueueViewProps> = ({
         return 0;
     }
   });
+
+  // Preload evidence for visible top cards
+  useEffect(() => {
+    if (sortedIncidents.length > 0) {
+      const topIds = sortedIncidents.slice(0, 24).map((i) => i.id);
+      incidentService.preloadPrimaryEvidence(topIds);
+    }
+  }, [sortedIncidents]);
 
   return (
     <div className="space-y-5">

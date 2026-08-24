@@ -536,6 +536,50 @@ Expose real ML-generated evidence frame snapshots (`outputs/evidence/*.jpg`) via
 ### 8. Known Limitations
 * For multi-node cloud deployments, `outputs/evidence/` will transition to an AWS S3 / Google Cloud Storage bucket with signed CDN URLs. The frontend `getEvidenceMediaUrl` already supports direct `http://` and `https://` URLs out of the box.
 
+---
+
+## Phase 10C: Incident Queue Real Evidence Thumbnails
+
+**Date:** August 24, 2026  
+**Status:** Completed & Verified  
+
+### 1. Objective
+Replace the generic placeholder / synthetic SVG artwork in Incident Queue cards with real ML-generated evidence frame snapshots whenever primary evidence is available, providing immediate visual verification of captured hazards in the triage queue.
+
+### 2. Files Inspected
+- `dashboard/client/src/components/incidents/IncidentCard.tsx`
+- `dashboard/client/src/components/incidents/IncidentQueueView.tsx`
+- `dashboard/client/src/services/incidentService.ts`
+- `dashboard/client/src/hooks/useIncidents.ts`
+- `dashboard/client/src/types/incident.ts`
+
+### 3. Files Modified / Created
+* **Modified:**
+  - `dashboard/client/src/types/incident.ts` (Added optional `mediaUrl?: string` to `Incident` interface)
+  - `dashboard/client/src/services/incidentService.ts` (Implemented `primaryEvidenceCache`, `pendingEvidencePromises`, `getCachedPrimaryEvidence`, `getPrimaryEvidenceMediaUrl`, and `preloadPrimaryEvidence`)
+  - `dashboard/client/src/components/incidents/IncidentCard.tsx` (Integrated async/cached evidence resolution, lazy loading, live frame indicator badges, and fallback error handling)
+  - `dashboard/client/src/components/incidents/IncidentQueueView.tsx` (Added visible incident batch prefetching on queue sort/filter changes)
+* **Created:**
+  - `scratch/verify_phase_10c.ts` (Verification script for evidence caching, deduplication, and preloading)
+  - `docs/incident_queue_evidence_thumbnails.md` (Detailed thumbnail integration architecture documentation)
+
+### 4. Evidence Retrieval & Caching Strategy
+* **In-Memory Cache (`primaryEvidenceCache`)**: Maps `incidentId` $\rightarrow$ `mediaUrl | null`.
+* **In-Flight Request Deduplication (`pendingEvidencePromises`)**: Prevents redundant simultaneous network requests for the same incident ID.
+* **Batch Prefetching**: When `IncidentQueueView` renders, `preloadPrimaryEvidence` fetches primary evidence in non-blocking batches of 10 for visible cards.
+* **Zero Request Storms**: Sorting, filtering, drawer toggles, and re-renders hit the in-memory cache directly without issuing new network requests.
+
+### 5. Primary Evidence Selection & Fallback Behavior
+* **Primary Selection**: Inspects incident evidence assets, prioritizing `is_primary === true`, otherwise selecting the first asset (`assets[0]`).
+* **Fallback Rendering**: If no evidence exists or if the HTTP media request fails, `IncidentCard` catches the error via `onError` and immediately renders the high-contrast synthetic SVG visualization (`incident.evidenceFrame`) without crashing or retrying indefinitely.
+
+### 6. Verification Results
+* **TypeScript Compilation (`npm run check`)**: **0 errors**.
+* **Backend Pytest Suite (`.venv\Scripts\python.exe -m pytest`)**: **41 / 41 passed**.
+* **Integration Verification Script (`scratch/verify_phase_10c.ts`)**: **2 / 2 passed** (verified cache lookup, in-flight promise deduplication, batch preloading).
+* **Card Interactions**: Open, Evidence quick button, layout switcher (Grid/List), and sort options preserved and functional.
+
+
 
 
 

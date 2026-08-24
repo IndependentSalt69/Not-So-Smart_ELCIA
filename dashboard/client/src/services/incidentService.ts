@@ -22,6 +22,11 @@ export function getEvidenceMediaUrl(filePath?: string | null): string {
   const origin = getMediaBaseUrl();
   return `${origin}/static/evidence/${cleanFilename}`;
 }
+
+// In-memory cache & pending promise deduplicator for primary evidence media URLs
+const primaryEvidenceCache = new Map<string, string | null>();
+const pendingEvidencePromises = new Map<string, Promise<string | null>>();
+
 import {
   Assignment,
   AssignmentCreatePayload,
@@ -462,6 +467,64 @@ export const incidentService = {
       }
     }
     return [];
+  },
+
+  /**
+   * Synchronously get cached primary evidence media URL if already loaded
+   */
+  getCachedPrimaryEvidence(incidentId: string): string | null | undefined {
+    return primaryEvidenceCache.get(incidentId);
+  },
+
+  /**
+   * Asynchronously fetch primary evidence media URL with in-memory caching and request deduplication
+   */
+  async getPrimaryEvidenceMediaUrl(incidentId: string): Promise<string | null> {
+    if (primaryEvidenceCache.has(incidentId)) {
+      return primaryEvidenceCache.get(incidentId) ?? null;
+    }
+
+    if (pendingEvidencePromises.has(incidentId)) {
+      return pendingEvidencePromises.get(incidentId)!;
+    }
+
+    const promise = (async () => {
+      try {
+        const assets = await this.getIncidentEvidence(incidentId);
+        if (assets && assets.length > 0) {
+          const primary = assets.find((e) => e.isPrimary) || assets[0];
+          const mediaUrl = primary.mediaUrl || getEvidenceMediaUrl(primary.filePath) || null;
+          primaryEvidenceCache.set(incidentId, mediaUrl);
+          return mediaUrl;
+        }
+        primaryEvidenceCache.set(incidentId, null);
+        return null;
+      } catch (err) {
+        console.warn(`Failed to fetch primary evidence for incident '${incidentId}':`, err);
+        primaryEvidenceCache.set(incidentId, null);
+        return null;
+      } finally {
+        pendingEvidencePromises.delete(incidentId);
+      }
+    })();
+
+    pendingEvidencePromises.set(incidentId, promise);
+    return promise;
+  },
+
+  /**
+   * Preload primary evidence thumbnails for a list of visible incidents
+   */
+  async preloadPrimaryEvidence(incidentIds: string[]): Promise<void> {
+    const unCachedIds = incidentIds.filter((id) => id && !primaryEvidenceCache.has(id));
+    if (unCachedIds.length === 0) return;
+
+    // Concurrently fetch evidence for uncached IDs in batches of 10
+    const batchSize = 10;
+    for (let i = 0; i < unCachedIds.length; i += batchSize) {
+      const batch = unCachedIds.slice(i, i + batchSize);
+      await Promise.allSettled(batch.map((id) => this.getPrimaryEvidenceMediaUrl(id)));
+    }
   },
 
   /**
