@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 
 interface AssignmentSectionProps {
   incident: Incident;
-  onAssign: (id: string, owner: string, action: string) => Promise<void>;
+  onAssign: (id: string, owner: string, action: string, assignedToUserId?: string) => Promise<void>;
 }
 
 export const AssignmentSection: React.FC<AssignmentSectionProps> = ({
@@ -51,6 +51,11 @@ export const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
+    setSelectedOwner(incident.owner || defaultTeams[0]);
+    setSelectedAction(incident.recommendedAction || defaultActions[0]);
+  }, [incident.id, incident.owner, incident.recommendedAction]);
+
+  useEffect(() => {
     let isMounted = true;
     async function loadBackendData() {
       try {
@@ -81,7 +86,7 @@ export const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     const handleAssign = async () => {
       try {
         setLoading(true);
-        await onAssign(incident.id, selectedOwner, selectedAction);
+        await onAssign(incident.id, selectedOwner, selectedAction, selectedUserId);
       } finally {
         setLoading(false);
       }

@@ -247,6 +247,30 @@ const persist = () => {
   listeners.forEach((listener) => listener());
 };
 
+function upsertIncidentsState(items: Incident[]) {
+  const itemMap = new Map<string, Incident>();
+  for (const inc of incidentsState) {
+    itemMap.set(inc.id, inc);
+  }
+  for (const inc of items) {
+    itemMap.set(inc.id, inc);
+  }
+  incidentsState = Array.from(itemMap.values());
+  persist();
+}
+
+function upsertSingleIncidentState(item: Incident) {
+  const index = incidentsState.findIndex(
+    (i) => i.id === item.id || (i.code && i.code === item.code)
+  );
+  if (index !== -1) {
+    incidentsState[index] = item;
+  } else {
+    incidentsState = [item, ...incidentsState];
+  }
+  persist();
+}
+
 let isSeeding = false;
 
 async function ensureBackendSeeded() {
@@ -346,6 +370,7 @@ export const incidentService = {
 
       if (response && Array.isArray(response.items)) {
         let backendIncidents = response.items.map(mapBackendIncidentToFrontend);
+        upsertIncidentsState(backendIncidents);
 
         if (filters) {
           if (filters.type && filters.type !== 'all') {
@@ -365,6 +390,7 @@ export const incidentService = {
             backendIncidents = backendIncidents.filter(
               (inc) =>
                 inc.id.toLowerCase().includes(q) ||
+                (inc.code && inc.code.toLowerCase().includes(q)) ||
                 inc.locationDescription.toLowerCase().includes(q) ||
                 inc.zone.toLowerCase().includes(q) ||
                 inc.type.toLowerCase().includes(q)
@@ -397,6 +423,7 @@ export const incidentService = {
         result = result.filter(
           (inc) =>
             inc.id.toLowerCase().includes(q) ||
+            (inc.code && inc.code.toLowerCase().includes(q)) ||
             inc.locationDescription.toLowerCase().includes(q) ||
             inc.zone.toLowerCase().includes(q) ||
             inc.type.toLowerCase().includes(q)
@@ -436,7 +463,9 @@ export const incidentService = {
     try {
       const item = await api.get<BackendIncidentItem>(`/incidents/${id}`);
       if (item && (item.id || item.incident_code)) {
-        return mapBackendIncidentToFrontend(item);
+        const fresh = mapBackendIncidentToFrontend(item);
+        upsertSingleIncidentState(fresh);
+        return fresh;
       }
     } catch (err: any) {
       if (err instanceof ApiError && err.status === 404) {
@@ -720,9 +749,13 @@ export const incidentService = {
     let userId = assignedToUserId;
 
     if (!userId) {
-      const availableUsers = await this.getUsers();
-      if (availableUsers.length > 0) {
-        userId = availableUsers[0].id;
+      try {
+        const availableUsers = await this.getUsers();
+        if (availableUsers.length > 0) {
+          userId = availableUsers[0].id;
+        }
+      } catch (err) {
+        console.warn('Failed to fetch available users for assignment:', err);
       }
     }
 
@@ -733,29 +766,44 @@ export const incidentService = {
         notes: action,
       };
 
-      await this.createIncidentAssignment(id, payload);
-
-      const incident = incidentsState.find((inc) => inc.id === id || inc.code === id);
-      if (incident && incident.status === 'VERIFIED') {
-        const updatedWithStatus = await this.updateIncidentStatus(
-          id,
-          'ASSIGNED',
-          actor,
-          `Assigned to: ${owner} | Action: ${action}`
-        );
-        return {
-          ...updatedWithStatus,
-          owner,
-          recommendedAction: action,
-        };
+      try {
+        await this.createIncidentAssignment(id, payload);
+      } catch (err: any) {
+        console.warn(`Backend assignment creation failed for incident '${id}':`, err);
+        if (err instanceof ApiError && err.status === 404) {
+          throw err;
+        }
       }
     }
 
-    const incident = incidentsState.find((inc) => inc.id === id || inc.code === id);
-    if (!incident) {
+    // Always update status to ASSIGNED
+    try {
+      const updatedWithStatus = await this.updateIncidentStatus(
+        id,
+        'ASSIGNED',
+        actor,
+        `Assigned to: ${owner} | Action: ${action}`
+      );
+      const fullUpdated: Incident = {
+        ...updatedWithStatus,
+        owner,
+        recommendedAction: action,
+      };
+      upsertSingleIncidentState(fullUpdated);
+      return fullUpdated;
+    } catch (err: any) {
+      if (err instanceof ApiError) {
+        throw err;
+      }
+      console.warn(`Backend status update failed in assignIncident for '${id}', falling back:`, err);
+    }
+
+    const incidentIndex = incidentsState.findIndex((inc) => inc.id === id || inc.code === id);
+    if (incidentIndex === -1) {
       throw new Error(`Incident ${id} not found`);
     }
 
+    const incident = incidentsState[incidentIndex];
     if (!canTransition(incident.status, 'ASSIGNED')) {
       throw new Error(`Cannot assign incident in status ${incident.status}. Must be in VERIFIED status first.`);
     }
@@ -776,7 +824,7 @@ export const incidentService = {
       ],
     };
 
-    incidentsState = incidentsState.map((inc) => (inc.id === id || inc.code === id ? updated : inc));
+    incidentsState[incidentIndex] = updated;
     persist();
     return updated;
   },
@@ -801,8 +849,7 @@ export const incidentService = {
 
       if (responseItem && (responseItem.id || responseItem.incident_code)) {
         const updated = mapBackendIncidentToFrontend(responseItem);
-        incidentsState = incidentsState.map((inc) => (inc.id === id || inc.code === id ? updated : inc));
-        persist();
+        upsertSingleIncidentState(updated);
         return updated;
       }
     } catch (err: any) {
@@ -813,11 +860,12 @@ export const incidentService = {
       console.warn(`Backend API status update failed for incident '${id}', attempting local state fallback:`, err);
     }
 
-    const incident = incidentsState.find((inc) => inc.id === id || inc.code === id);
-    if (!incident) {
+    const incidentIndex = incidentsState.findIndex((inc) => inc.id === id || inc.code === id);
+    if (incidentIndex === -1) {
       throw new Error(`Incident ${id} not found`);
     }
 
+    const incident = incidentsState[incidentIndex];
     if (!canTransition(incident.status, nextStatus)) {
       throw new Error(
         `Invalid status transition from ${incident.status} to ${nextStatus}. Transition is not allowed.`
@@ -838,7 +886,7 @@ export const incidentService = {
       ],
     };
 
-    incidentsState = incidentsState.map((inc) => (inc.id === id || inc.code === id ? updated : inc));
+    incidentsState[incidentIndex] = updated;
     persist();
     return updated;
   },
@@ -886,16 +934,14 @@ export const incidentService = {
       const responseItem = await api.post<BackendIncidentItem>('/incidents/', payload);
       if (responseItem && (responseItem.id || responseItem.incident_code)) {
         const created = mapBackendIncidentToFrontend(responseItem);
-        incidentsState = [created, ...incidentsState.filter((i) => i.id !== created.id)];
-        persist();
+        upsertSingleIncidentState(created);
         return created;
       }
     } catch (err) {
       console.warn('Failed to publish incident to backend API, saving locally:', err);
     }
 
-    incidentsState = [incident, ...incidentsState.filter((i) => i.id !== incident.id)];
-    persist();
+    upsertSingleIncidentState(incident);
     return incident;
   },
 

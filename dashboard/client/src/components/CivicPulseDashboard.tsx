@@ -63,11 +63,17 @@ export default function CivicPulseDashboard() {
     toast.info('All filters have been reset.');
   };
 
-  const handleIncidentPublished = (incidentId: string) => {
-    const published = incidents.find((i) => i.id === incidentId);
-    if (published) {
-      setSelectedIncident(published);
-      setIsDrawerOpen(true);
+  const handleIncidentPublished = async (incidentId: string) => {
+    try {
+      const published =
+        incidents.find((i) => i.id === incidentId || i.code === incidentId) ||
+        (await getIncidentById(incidentId));
+      if (published) {
+        setSelectedIncident(published);
+        setIsDrawerOpen(true);
+      }
+    } catch (err) {
+      console.warn('Failed to open published incident:', incidentId, err);
     }
   };
 
@@ -76,7 +82,7 @@ export default function CivicPulseDashboard() {
     try {
       const updated = await verifyIncident(id, 'Command Operator', notes);
       setSelectedIncident(updated);
-      toast.success(`Incident ${id} has been verified!`, {
+      toast.success(`Incident ${updated.code || updated.id} has been verified!`, {
         description: 'Ready for response team assignment.',
       });
     } catch (err: any) {
@@ -88,7 +94,7 @@ export default function CivicPulseDashboard() {
     try {
       const updated = await rejectIncident(id, reason, 'Command Operator');
       setSelectedIncident(updated);
-      toast.info(`Incident ${id} marked as False Positive.`, {
+      toast.info(`Incident ${updated.code || updated.id} marked as False Positive.`, {
         description: reason,
       });
     } catch (err: any) {
@@ -96,11 +102,11 @@ export default function CivicPulseDashboard() {
     }
   };
 
-  const handleAssign = async (id: string, owner: string, action: string) => {
+  const handleAssign = async (id: string, owner: string, action: string, assignedToUserId?: string) => {
     try {
-      const updated = await assignIncident(id, owner, action, 'Dispatch Supervisor');
+      const updated = await assignIncident(id, owner, action, 'Dispatch Supervisor', assignedToUserId);
       setSelectedIncident(updated);
-      toast.success(`Dispatched to ${owner}`, {
+      toast.success(`Dispatched ${updated.code || updated.id} to ${owner}`, {
         description: action,
       });
     } catch (err: any) {
@@ -112,7 +118,7 @@ export default function CivicPulseDashboard() {
     try {
       const updated = await updateStatus(id, nextStatus, 'Operations Control', notes);
       setSelectedIncident(updated);
-      toast.success(`Incident ${id} advanced to ${nextStatus}`, {
+      toast.success(`Incident ${updated.code || updated.id} advanced to ${nextStatus}`, {
         description: notes,
       });
     } catch (err: any) {

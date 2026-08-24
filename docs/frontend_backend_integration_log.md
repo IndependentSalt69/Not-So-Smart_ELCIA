@@ -676,6 +676,58 @@ Synchronize the application integration contract across the ML pipeline, backend
 * **Frontend TypeScript Compilation (`npm run check`):** Passed with **0 errors**.
 * **End-to-End Verification (`scratch/verify_phase_11a.py`):** Verified round-trip REST API creation, queries, filters, and analytics aggregations across all 4 classes.
 
+---
+
+## Golden E2E QA — Incident Identity Mismatch
+
+**Date:** August 25, 2026  
+**Status:** Resolved & Verified  
+
+### 1. Observed Error & Symptoms
+* **Observed Error Toast:** `"Incident eb8d083d-d028-4e44-be3c-9b41b4057bf0 not found"`
+* **Exact Failing UUID:** `eb8d083d-d028-4e44-be3c-9b41b4057bf0`
+* **Displayed Incident Code:** `INC-AI-2004`
+* **Context:** The Incident Detail Drawer opened cleanly showing human tracking code `INC-AI-2004`, GPS coordinates, telemetry, and evidence. However, dispatching an assignment triggered a client error toast with the database UUID.
+
+### 2. Root Cause Analysis
+1. **Local State Cache Invalidation Gap:**
+   - In `dashboard/client/src/services/incidentService.ts`, when `getIncidents()` or `getIncidentById()` fetched fresh records from the backend API, they returned the transformed backend objects but did not synchronize `incidentsState` (the in-memory cache backing local lookups).
+2. **Assignment Fallback Trap:**
+   - In `assignIncident()`, after creating the backend assignment via `POST /api/v1/incidents/{id}/assignments`, the code attempted `incidentsState.find(...)`. Because `incidentsState` was not updated with freshly queried backend incidents, `find` returned `undefined`.
+   - The method skipped advancing the status and threw `new Error(\`Incident ${id} not found\`)`, which was caught by `handleAssign()` and rendered as a toast error.
+3. **Toast Identity Representation:**
+   - UI mutation toasts in `CivicPulseDashboard.tsx` used raw argument `id` instead of the human-facing `updated.code || updated.id`.
+
+### 3. Files Modified
+* **`dashboard/client/src/services/incidentService.ts`**:
+  - Implemented `upsertIncidentsState` and `upsertSingleIncidentState` helpers.
+  - Synchronized `incidentsState` in `getIncidents()`, `getIncidentById()`, `updateIncidentStatus()`, `assignIncident()`, and `createIncident()`.
+  - Refactored `assignIncident()` to advance status via `updateIncidentStatus()` directly and keep cache in sync.
+  - Added null safety for `inc.code` in search filtering.
+* **`dashboard/client/src/components/CivicPulseDashboard.tsx`**:
+  - Updated all operation lifecycle handlers (`handleVerify`, `handleReject`, `handleAssign`, `handleUpdateStatus`) to display `updated.code || updated.id` in toast notices.
+  - Added async fallback to `getIncidentById()` in `handleIncidentPublished()`.
+* **`dashboard/client/src/components/detail/AssignmentSection.tsx`**:
+  - Extended `AssignmentSectionProps` and `handleAssign` to pass `selectedUserId` down to `onAssign`.
+  - Added state synchronization for `selectedOwner` and `selectedAction` when `incident.id` updates.
+* **`dashboard/client/src/components/detail/IncidentDetailDrawer.tsx`**:
+  - Updated `onAssign` prop signature in `IncidentDetailDrawerProps`.
+
+### 4. Verification & Testing
+* **Automated Script Verification (`dashboard/scratch/verify_golden_e2e_id_mapping.ts`):**
+  - Simulated complete 11-step lifecycle for `INC-AI-2004` (UUID: `eb8d083d-d028-4e44-be3c-9b41b4057bf0`).
+  - [PASS] Details fetch by UUID $\rightarrow$ 200 OK
+  - [PASS] Evidence fetch $\rightarrow$ 200 OK
+  - [PASS] Detections fetch $\rightarrow$ 200 OK
+  - [PASS] Status update to `VERIFIED` $\rightarrow$ 200 OK
+  - [PASS] Operator assignment creation $\rightarrow$ 201 Created
+  - [PASS] Status update to `ASSIGNED` $\rightarrow$ 200 OK
+  - [PASS] Field inspection logging (`RESOLVED`) $\rightarrow$ 201 Created
+  - [PASS] Refreshed incident verification (`status=ASSIGNED`, `code=INC-AI-2004`)
+* **TypeScript Compilation:** `npm run check` $\rightarrow$ **0 errors**.
+* **Python Backend Test Suite:** `python -m pytest -v` $\rightarrow$ **43 / 43 passed (100%)**.
+
+
 
 
 

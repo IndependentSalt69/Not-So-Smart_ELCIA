@@ -21,7 +21,7 @@ interface IncidentDetailDrawerProps {
   onClose: () => void;
   onVerify: (id: string, notes?: string) => Promise<void>;
   onReject: (id: string, reason: string) => Promise<void>;
-  onAssign: (id: string, owner: string, action: string) => Promise<void>;
+  onAssign: (id: string, owner: string, action: string, assignedToUserId?: string) => Promise<void>;
   onUpdateStatus: (id: string, nextStatus: IncidentStatus, notes?: string) => Promise<void>;
 }
 
