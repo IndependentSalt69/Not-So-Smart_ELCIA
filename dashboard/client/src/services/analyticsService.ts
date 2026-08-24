@@ -90,6 +90,8 @@ export const analyticsService = {
       date: item.date,
       waterlogging: item.waterlogging,
       potholes: item.potholes,
+      drainage_overflow: item.drainage_overflow,
+      damaged_footpath: item.damaged_footpath,
       rainfallMm: item.rainfall_mm,
     }));
 
@@ -122,6 +124,8 @@ export const analyticsService = {
       date: item.date,
       waterlogging: item.waterlogging,
       potholes: item.potholes,
+      drainage_overflow: item.drainage_overflow,
+      damaged_footpath: item.damaged_footpath,
       rainfallMm: item.rainfall_mm,
     }));
   },

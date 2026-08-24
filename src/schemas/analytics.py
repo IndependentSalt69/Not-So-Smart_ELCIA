@@ -56,8 +56,10 @@ class AnalyticsTrendItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     date: str = Field(..., description="Calendar date string YYYY-MM-DD")
-    waterlogging: int = Field(..., ge=0, description="Count of waterlogging incidents created on date")
-    potholes: int = Field(..., ge=0, description="Count of pothole incidents created on date")
+    waterlogging: int = Field(default=0, ge=0, description="Count of waterlogging incidents created on date")
+    potholes: int = Field(default=0, ge=0, description="Count of pothole incidents created on date")
+    drainage_overflow: int = Field(default=0, ge=0, description="Count of drainage overflow incidents created on date")
+    damaged_footpath: int = Field(default=0, ge=0, description="Count of damaged footpath incidents created on date")
     rainfall_mm: Optional[float] = Field(
         None,
         description="Observed rainfall in mm. Currently null as weather data is not stored in backend schema.",

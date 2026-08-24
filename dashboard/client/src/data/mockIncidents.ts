@@ -1,11 +1,42 @@
-import { Incident } from '@/types/incident';
+import { Incident, IncidentType } from '@/types/incident';
 
 // Realistic SVG inline frames for visual evidence and segmentation overlay
-export const generateSvgFrame = (title: string, sub: string, isOverlay: boolean = false, isWater: boolean = true) => {
+export const generateSvgFrame = (
+  title: string,
+  sub: string,
+  isOverlay: boolean = false,
+  typeOrIsWater: IncidentType | boolean = 'waterlogging'
+) => {
+  const type: IncidentType =
+    typeof typeOrIsWater === 'boolean'
+      ? typeOrIsWater
+        ? 'waterlogging'
+        : 'pothole'
+      : typeOrIsWater;
+
   const bgColor = isOverlay ? '#0f172a' : '#1e293b';
-  const overlayColor = isWater ? 'rgba(59, 130, 246, 0.45)' : 'rgba(239, 68, 68, 0.45)';
-  const strokeColor = isWater ? '#3b82f6' : '#ef4444';
-  const label = isWater ? 'AI SEGMENTATION: WATERLOGGING (82% CONFIDENCE)' : 'AI BOUNDING BOX: POTHOLE (94% CONFIDENCE)';
+
+  let strokeColor = '#3b82f6';
+  let overlayColor = 'rgba(59, 130, 246, 0.45)';
+  let label = 'AI SEGMENTATION: WATERLOGGING (82% CONFIDENCE)';
+  let shapeSvg = `<path d="M 220 320 Q 400 300 580 340 Q 520 420 260 410 Z" fill="${isOverlay ? overlayColor : '#1e3a5f'}" stroke="${isOverlay ? strokeColor : '#2563eb'}" stroke-width="${isOverlay ? '3' : '1'}"/>`;
+
+  if (type === 'drainage_overflow') {
+    strokeColor = '#06b6d4';
+    overlayColor = 'rgba(6, 182, 212, 0.45)';
+    label = 'AI SEGMENTATION: DRAINAGE OVERFLOW (88% CONFIDENCE)';
+    shapeSvg = `<path d="M 180 340 Q 320 260 460 330 T 700 360 L 680 430 L 160 430 Z" fill="${isOverlay ? overlayColor : '#164e63'}" stroke="${isOverlay ? strokeColor : '#0891b2'}" stroke-width="${isOverlay ? '3' : '1'}"/>`;
+  } else if (type === 'damaged_footpath') {
+    strokeColor = '#f97316';
+    overlayColor = 'rgba(249, 115, 22, 0.45)';
+    label = 'AI SEGMENTATION: DAMAGED FOOTPATH (91% CONFIDENCE)';
+    shapeSvg = `<polygon points="120,440 280,260 340,260 220,440" fill="${isOverlay ? overlayColor : '#7c2d12'}" stroke="${isOverlay ? strokeColor : '#ea580c'}" stroke-width="${isOverlay ? '3' : '1'}"/>${isOverlay ? '<line x1="180" y1="360" x2="260" y2="340" stroke="#f97316" stroke-width="2.5" stroke-dasharray="4,3"/>' : ''}`;
+  } else if (type === 'pothole') {
+    strokeColor = '#ef4444';
+    overlayColor = 'rgba(239, 68, 68, 0.45)';
+    label = 'AI BOUNDING BOX: POTHOLE (94% CONFIDENCE)';
+    shapeSvg = `<ellipse cx="420" cy="350" rx="90" ry="45" fill="${isOverlay ? overlayColor : '#0f172a'}" stroke="${isOverlay ? strokeColor : '#991b1b'}" stroke-width="${isOverlay ? '3' : '1'}"/>${isOverlay ? '<rect x="310" y="295" width="220" height="110" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="6,4"/>' : ''}`;
+  }
 
   const rawSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">
     <rect width="800" height="450" fill="${bgColor}"/>
@@ -17,17 +48,11 @@ export const generateSvgFrame = (title: string, sub: string, isOverlay: boolean 
     <rect x="50" y="100" width="80" height="150" fill="#1e293b"/>
     <rect x="670" y="80" width="90" height="170" fill="#1e293b"/>
     
-    ${isWater
-      ? `<!-- Water puddle -->
-           <path d="M 220 320 Q 400 300 580 340 Q 520 420 260 410 Z" fill="${isOverlay ? overlayColor : '#1e3a5f'}" stroke="${isOverlay ? strokeColor : '#2563eb'}" stroke-width="${isOverlay ? '3' : '1'}"/>`
-      : `<!-- Pothole crater -->
-           <ellipse cx="420" cy="350" rx="90" ry="45" fill="${isOverlay ? overlayColor : '#0f172a'}" stroke="${isOverlay ? strokeColor : '#991b1b'}" stroke-width="${isOverlay ? '3' : '1'}"/>
-           ${isOverlay ? `<rect x="310" y="295" width="220" height="110" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="6,4"/>` : ''}`
-    }
+    ${shapeSvg}
 
     ${isOverlay
-      ? `<rect x="20" y="20" width="380" height="34" rx="6" fill="rgba(15, 23, 42, 0.85)" stroke="${strokeColor}" stroke-width="1.5"/>
-           <text x="35" y="42" fill="#f8fafc" font-family="sans-serif" font-size="13" font-weight="bold">${label}</text>`
+      ? `<rect x="20" y="20" width="460" height="34" rx="6" fill="rgba(15, 23, 42, 0.85)" stroke="${strokeColor}" stroke-width="1.5"/>
+         <text x="35" y="42" fill="#f8fafc" font-family="sans-serif" font-size="13" font-weight="bold">${label}</text>`
       : ''
     }
 

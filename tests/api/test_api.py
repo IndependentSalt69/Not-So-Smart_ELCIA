@@ -233,3 +233,65 @@ def test_incidents_and_subresources_api_flow(client: TestClient):
     assert client.get(f"/api/v1/incidents/{fake_id}/assignments").status_code == 404
     assert client.get(f"/api/v1/incidents/{fake_id}/inspections").status_code == 404
     assert client.get(f"/api/v1/incidents/{fake_id}/history").status_code == 404
+
+
+def test_all_four_incident_types_api_flow(client: TestClient):
+    """Test full API support for all 4 canonical hazard classes: WATERLOGGING, POTHOLE, DRAINAGE_OVERFLOW, DAMAGED_FOOTPATH."""
+    # 1. Setup Zone
+    z_resp = client.post("/api/v1/zones/", json={"code": "TYPE-Z-01", "name": "Multi-Type Test Zone"})
+    assert z_resp.status_code == 201
+    zone_id = z_resp.json()["id"]
+
+    types = ["WATERLOGGING", "POTHOLE", "DRAINAGE_OVERFLOW", "DAMAGED_FOOTPATH"]
+    created_ids = {}
+
+    # 2. Create an incident for each canonical type
+    for idx, inc_type in enumerate(types, start=1):
+        payload = {
+            "incident_code": f"INC-TYPE-{idx:03d}",
+            "incident_type": inc_type,
+            "confidence": 0.88 + (idx * 0.02),
+            "severity_score": 6.5 + (idx * 0.5),
+            "priority": "P2" if idx % 2 == 0 else "P1",
+            "zone_id": zone_id,
+            "status": "DETECTED",
+            "recommended_action": f"Action for {inc_type}",
+        }
+        res = client.post("/api/v1/incidents/", json=payload)
+        assert res.status_code == 201, f"Failed to create incident of type {inc_type}: {res.text}"
+        data = res.json()
+        assert data["incident_type"] == inc_type
+        created_ids[inc_type] = data["id"]
+
+    # 3. Query with incident_type filter for each type
+    for inc_type in types:
+        res = client.get(f"/api/v1/incidents/?incident_type={inc_type}&zone_id={zone_id}")
+        assert res.status_code == 200
+        data = res.json()
+        assert data["total"] == 1
+        assert data["items"][0]["id"] == created_ids[inc_type]
+        assert data["items"][0]["incident_type"] == inc_type
+
+    # 4. Invalid incident type returns 422
+    bad_type_resp = client.post(
+        "/api/v1/incidents/",
+        json={
+            "incident_code": "INC-BAD-01",
+            "incident_type": "FLOODING_UNKNOWN",
+            "confidence": 0.9,
+            "severity_score": 5.0,
+            "priority": "P1",
+            "zone_id": zone_id,
+        },
+    )
+    assert bad_type_resp.status_code == 422
+
+    bad_filter_resp = client.get("/api/v1/incidents/?incident_type=INVALID_HAZARD")
+    assert bad_filter_resp.status_code == 422
+
+    # 5. Empty filter results
+    empty_resp = client.get(f"/api/v1/incidents/?incident_type=DRAINAGE_OVERFLOW&status=CLOSED&zone_id={zone_id}")
+    assert empty_resp.status_code == 200
+    assert empty_resp.json()["total"] == 0
+    assert empty_resp.json()["items"] == []
+

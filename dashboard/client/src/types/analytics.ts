@@ -15,6 +15,8 @@ export interface TrendDataPoint {
   date: string;
   waterlogging: number;
   potholes: number;
+  drainage_overflow: number;
+  damaged_footpath: number;
   rainfallMm: number | null;
 }
 
@@ -81,6 +83,8 @@ export interface BackendAnalyticsTrendItem {
   date: string;
   waterlogging: number;
   potholes: number;
+  drainage_overflow: number;
+  damaged_footpath: number;
   rainfall_mm: number | null;
 }
 

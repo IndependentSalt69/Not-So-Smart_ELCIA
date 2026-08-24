@@ -626,6 +626,57 @@ Refine the visual identity and typography of the CivicPulse dashboard to present
 * **Functional Integrity**: All event dispatchers, drawer handlers, filter updates, and navigation links remain intact.
 * **TypeScript Compilation**: `npm run check` $\rightarrow$ **0 errors**.
 
+---
+
+## Phase 11A: Incident Class Contract Update
+
+**Date:** August 25, 2026  
+**Status:** Completed & Verified  
+
+### 1. Objective
+Synchronize the application integration contract across the ML pipeline, backend database, REST API, analytics engine, and React frontend to natively support all four (4) canonical municipal hazard classes:
+1. `WATERLOGGING` (`waterlogging`)
+2. `POTHOLE` (`pothole`)
+3. `DRAINAGE_OVERFLOW` (`drainage_overflow`)
+4. `DAMAGED_FOOTPATH` (`damaged_footpath`)
+
+### 2. Files Inspected & Modified
+
+* **Database & Migrations**:
+  - `src/db/models/enums.py`: Added `DRAINAGE_OVERFLOW` and `DAMAGED_FOOTPATH` to `IncidentType` Enum.
+  - `alembic/versions/20260825_002_add_incident_types.py`: Created migration extending PostgreSQL `incidenttype` enum safely.
+* **Backend Schemas & Repositories**:
+  - `src/schemas/analytics.py`: Extended `AnalyticsTrendItem` with `drainage_overflow: int = 0` and `damaged_footpath: int = 0`.
+  - `src/repositories/analytics.py`: Extended SQL `case` expressions in `get_analytics_trends` to aggregate all 4 classes.
+* **Frontend Data Types & Services**:
+  - `dashboard/client/src/types/incident.ts`: Defined `IncidentType`, `BackendIncidentType`, `mapBackendTypeToFrontend()`, `mapFrontendTypeToBackend()`, and `getIncidentTypeLabel()`.
+  - `dashboard/client/src/types/analytics.ts`: Updated `TrendDataPoint` and `BackendAnalyticsTrendItem`.
+  - `dashboard/client/src/types/ingestion.ts`: Updated `DetectedBoundingBox.label` and `SampleFootagePreset.type`.
+  - `dashboard/client/src/services/incidentService.ts`: Updated `mapBackendIncidentToFrontend()`, `ensureBackendSeeded()`, `getIncidents()`, and `createIncident()`.
+  - `dashboard/client/src/services/analyticsService.ts`: Updated `getAnalyticsSummary()` and `getAnalyticsTrends()` to map all 4 classes.
+  - `dashboard/client/src/services/inferenceService.ts`: Added preset scenarios and inference overlays for `drainage_overflow` and `damaged_footpath`.
+  - `dashboard/client/src/data/mockIncidents.ts`: Enhanced `generateSvgFrame()` for visual overlays across all 4 classes.
+* **UI Components**:
+  - `dashboard/client/src/components/incidents/IncidentFilters.tsx`: Added `Drainage Overflow` (`<Waves />`) and `Damaged Footpath` (`<Footprints />`) to the sliding segmented control.
+  - `dashboard/client/src/components/incidents/IncidentCard.tsx`: Rendered type-specific badges, icons, and human labels in both list and grid layouts.
+  - `dashboard/client/src/components/detail/IncidentDetailDrawer.tsx`: Rendered canonical labels and icons in the drawer header bar.
+  - `dashboard/client/src/components/detail/EvidenceViewer.tsx`: Updated scrub bar telemetry indicators for all 4 classes.
+  - `dashboard/client/src/components/map/IncidentMapView.tsx`: Added distinct icons to map markers and updated InfoWindow badges.
+  - `dashboard/client/src/components/analytics/AnalyticsDashboard.tsx`: Added Area series and gradients for `drainage_overflow` and `damaged_footpath`.
+  - `dashboard/client/src/components/overview/RecentAlertsFeed.tsx`: Added distinct container styles and icons for all 4 classes.
+  - `dashboard/client/src/components/ingestion/DroneIngestionStudio.tsx`: Added preset cards and analysis result headers for all 4 classes.
+* **Automated Tests & Specifications**:
+  - `tests/api/test_api.py`: Added `test_all_four_incident_types_api_flow` testing 4-class creation, filtering, invalid type 422, and empty responses.
+  - `tests/repositories/test_repositories.py`: Added `test_all_four_incident_types_repository_crud`.
+  - `scratch/verify_phase_11a.py`: Created end-to-end round-trip verification script.
+  - `docs/incident_class_contract.md`: Created detailed contract specification.
+
+### 3. Verification Results
+* **Pytest Suite (`python -m pytest -v`):** Passed **43 / 43 tests (100%) in 0.90s**.
+* **Frontend TypeScript Compilation (`npm run check`):** Passed with **0 errors**.
+* **End-to-End Verification (`scratch/verify_phase_11a.py`):** Verified round-trip REST API creation, queries, filters, and analytics aggregations across all 4 classes.
+
+
 
 
 

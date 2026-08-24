@@ -1,4 +1,57 @@
-export type IncidentType = 'waterlogging' | 'pothole';
+export type IncidentType =
+  | 'waterlogging'
+  | 'pothole'
+  | 'drainage_overflow'
+  | 'damaged_footpath';
+
+export type BackendIncidentType =
+  | 'WATERLOGGING'
+  | 'POTHOLE'
+  | 'DRAINAGE_OVERFLOW'
+  | 'DAMAGED_FOOTPATH';
+
+export const INCIDENT_TYPE_LABELS: Record<IncidentType, string> = {
+  waterlogging: 'Waterlogging',
+  pothole: 'Pothole',
+  drainage_overflow: 'Drainage Overflow',
+  damaged_footpath: 'Damaged Footpath',
+};
+
+export function mapBackendTypeToFrontend(backendType?: string | null): IncidentType {
+  switch (backendType?.toUpperCase()) {
+    case 'WATERLOGGING':
+      return 'waterlogging';
+    case 'POTHOLE':
+      return 'pothole';
+    case 'DRAINAGE_OVERFLOW':
+      return 'drainage_overflow';
+    case 'DAMAGED_FOOTPATH':
+      return 'damaged_footpath';
+    default:
+      return 'pothole';
+  }
+}
+
+export function mapFrontendTypeToBackend(frontendType?: string | null): BackendIncidentType {
+  switch (frontendType?.toLowerCase()) {
+    case 'waterlogging':
+      return 'WATERLOGGING';
+    case 'pothole':
+      return 'POTHOLE';
+    case 'drainage_overflow':
+      return 'DRAINAGE_OVERFLOW';
+    case 'damaged_footpath':
+      return 'DAMAGED_FOOTPATH';
+    default:
+      return 'POTHOLE';
+  }
+}
+
+export function getIncidentTypeLabel(type?: string | null): string {
+  if (!type) return 'Incident';
+  const norm = type.toLowerCase() as IncidentType;
+  return INCIDENT_TYPE_LABELS[norm] || type;
+}
 
 export type PriorityLevel = 'P1' | 'P2' | 'P3';
 

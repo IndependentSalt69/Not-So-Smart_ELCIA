@@ -16,7 +16,7 @@ export interface DroneTelemetry {
 
 export interface DetectedBoundingBox {
   id: string;
-  label: 'waterlogging' | 'pothole';
+  label: IncidentType | 'clear';
   confidence: number;
   x: number; // percentage
   y: number; // percentage
@@ -52,7 +52,7 @@ export interface InferenceResult {
 export interface SampleFootagePreset {
   id: string;
   title: string;
-  type: 'waterlogging' | 'pothole' | 'clear';
+  type: IncidentType | 'clear';
   description: string;
   thumbnailUrl: string;
   mediaUrl: string;

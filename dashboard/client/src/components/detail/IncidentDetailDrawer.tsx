@@ -5,8 +5,8 @@ import {
   Dialog,
   DialogContent,
 } from '@/components/ui/dialog';
-import { Incident, IncidentStatus } from '@/types/incident';
-import { AlertTriangle, Droplets, History, MapPin, X } from 'lucide-react';
+import { Incident, IncidentStatus, getIncidentTypeLabel } from '@/types/incident';
+import { AlertTriangle, Droplets, Footprints, History, MapPin, Waves, X } from 'lucide-react';
 import React from 'react';
 import { AssignmentSection } from './AssignmentSection';
 import { EvidenceViewer } from './EvidenceViewer';
@@ -36,8 +36,6 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
 }) => {
   if (!incident) return null;
 
-  const isWater = incident.type === 'waterlogging';
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl xl:max-w-5xl 2xl:max-w-6xl max-h-[92vh] overflow-y-auto p-0 rounded-3xl bg-slate-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-2xl">
@@ -49,12 +47,16 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
                 {incident.code || incident.id}
               </span>
               <span className="px-3 py-1 rounded-full text-xs xl:text-sm font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                {isWater ? (
+                {incident.type === 'waterlogging' ? (
                   <Droplets className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                ) : incident.type === 'drainage_overflow' ? (
+                  <Waves className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+                ) : incident.type === 'damaged_footpath' ? (
+                  <Footprints className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
                 ) : (
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 )}
-                <span>{isWater ? 'Waterlogging' : 'Pothole'}</span>
+                <span>{getIncidentTypeLabel(incident.type)}</span>
               </span>
             </div>
             <PriorityBadge priority={incident.priority} />

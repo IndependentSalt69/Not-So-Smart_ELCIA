@@ -96,6 +96,8 @@ def get_analytics_trends(db: Session, days: int = 7) -> List[AnalyticsTrendItem]
             date_col.label("trend_date"),
             func.count(case((Incident.incident_type == IncidentType.WATERLOGGING, 1))).label("waterlogging"),
             func.count(case((Incident.incident_type == IncidentType.POTHOLE, 1))).label("potholes"),
+            func.count(case((Incident.incident_type == IncidentType.DRAINAGE_OVERFLOW, 1))).label("drainage_overflow"),
+            func.count(case((Incident.incident_type == IncidentType.DAMAGED_FOOTPATH, 1))).label("damaged_footpath"),
         )
         .where(Incident.created_at >= start_date)
         .group_by(date_col)
@@ -110,17 +112,29 @@ def get_analytics_trends(db: Session, days: int = 7) -> List[AnalyticsTrendItem]
             counts_by_date[d_str] = {
                 "waterlogging": r.waterlogging or 0,
                 "potholes": r.potholes or 0,
+                "drainage_overflow": r.drainage_overflow or 0,
+                "damaged_footpath": r.damaged_footpath or 0,
             }
 
     trend_items = []
     for i in range(days):
         day_date = (today - timedelta(days=days - 1 - i)).strftime("%Y-%m-%d")
-        counts = counts_by_date.get(day_date, {"waterlogging": 0, "potholes": 0})
+        counts = counts_by_date.get(
+            day_date,
+            {
+                "waterlogging": 0,
+                "potholes": 0,
+                "drainage_overflow": 0,
+                "damaged_footpath": 0,
+            },
+        )
         trend_items.append(
             AnalyticsTrendItem(
                 date=day_date,
                 waterlogging=counts["waterlogging"],
                 potholes=counts["potholes"],
+                drainage_overflow=counts["drainage_overflow"],
+                damaged_footpath=counts["damaged_footpath"],
                 rainfall_mm=None,
             )
         )

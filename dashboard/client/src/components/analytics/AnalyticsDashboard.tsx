@@ -208,15 +208,21 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
               Daily Incident Surge Trend (7-Day Window)
             </h3>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
-              Live backend daily incident aggregation for waterlogging vs. potholes.
+              Live backend daily incident aggregation across all 4 civic hazard classes.
             </p>
           </div>
-          <div className="flex items-center gap-4 text-xs xl:text-sm font-bold">
+          <div className="flex flex-wrap items-center gap-3.5 text-xs xl:text-sm font-bold">
             <span className="flex items-center gap-1.5 text-teal-600 dark:text-teal-400">
               <span className="w-3 h-3 rounded-full bg-teal-500" /> Waterlogging
             </span>
             <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
               <span className="w-3 h-3 rounded-full bg-amber-500" /> Potholes
+            </span>
+            <span className="flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400">
+              <span className="w-3 h-3 rounded-full bg-cyan-500" /> Drainage Overflow
+            </span>
+            <span className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400">
+              <span className="w-3 h-3 rounded-full bg-orange-500" /> Damaged Footpath
             </span>
           </div>
         </div>
@@ -233,6 +239,14 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
                   <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
                   <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
                 </linearGradient>
+                <linearGradient id="drainageColor" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="footpathColor" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f97316" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
               <XAxis dataKey="date" tick={{ fontSize: 13, fontWeight: 600, fill: '#64748b' }} stroke="#94a3b8" dy={4} />
@@ -240,6 +254,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
               <Tooltip content={<CustomTrendTooltip />} />
               <Area type="monotone" name="Waterlogging" dataKey="waterlogging" stroke="#0d9488" strokeWidth={2.5} fillOpacity={1} fill="url(#waterColor)" />
               <Area type="monotone" name="Potholes" dataKey="potholes" stroke="#f59e0b" strokeWidth={2.5} fillOpacity={1} fill="url(#potholeColor)" />
+              <Area type="monotone" name="Drainage Overflow" dataKey="drainage_overflow" stroke="#06b6d4" strokeWidth={2.5} fillOpacity={1} fill="url(#drainageColor)" />
+              <Area type="monotone" name="Damaged Footpath" dataKey="damaged_footpath" stroke="#f97316" strokeWidth={2.5} fillOpacity={1} fill="url(#footpathColor)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>

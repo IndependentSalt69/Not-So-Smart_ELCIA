@@ -20,6 +20,7 @@ import {
   Droplets,
   Eye,
   FileVideo,
+  Footprints,
   Gauge,
   ImageIcon,
   Layers,
@@ -203,7 +204,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
           <span className="text-xs text-zinc-500 font-medium">Or upload custom media below</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-3.5">
           {SAMPLE_PRESETS.map((preset) => {
             const isSelected = selectedPreset?.id === preset.id;
             return (
@@ -222,6 +223,10 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                     'w-11 h-11 rounded-xl flex items-center justify-center shrink-0 text-base',
                     preset.type === 'waterlogging'
                       ? 'bg-teal-100 dark:bg-teal-900/60 text-teal-600'
+                      : preset.type === 'drainage_overflow'
+                      ? 'bg-cyan-100 dark:bg-cyan-900/60 text-cyan-600'
+                      : preset.type === 'damaged_footpath'
+                      ? 'bg-orange-100 dark:bg-orange-900/60 text-orange-600'
                       : preset.type === 'pothole'
                       ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-600'
                       : 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600'
@@ -229,6 +234,10 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                 >
                   {preset.type === 'waterlogging' ? (
                     <Droplets className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                  ) : preset.type === 'drainage_overflow' ? (
+                    <Waves className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                  ) : preset.type === 'damaged_footpath' ? (
+                    <Footprints className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                   ) : preset.type === 'pothole' ? (
                     <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                   ) : (
@@ -505,6 +514,10 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                       'w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0',
                       inferenceResult.type === 'waterlogging'
                         ? 'bg-teal-50 dark:bg-teal-950 text-teal-600'
+                        : inferenceResult.type === 'drainage_overflow'
+                        ? 'bg-cyan-50 dark:bg-cyan-950 text-cyan-600'
+                        : inferenceResult.type === 'damaged_footpath'
+                        ? 'bg-orange-50 dark:bg-orange-950 text-orange-600'
                         : inferenceResult.type === 'pothole'
                         ? 'bg-red-50 dark:bg-red-950 text-red-600'
                         : 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600'
@@ -512,6 +525,10 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                   >
                     {inferenceResult.type === 'waterlogging' ? (
                       <Droplets className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+                    ) : inferenceResult.type === 'drainage_overflow' ? (
+                      <Waves className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
+                    ) : inferenceResult.type === 'damaged_footpath' ? (
+                      <Footprints className="w-6 h-6 text-orange-600 dark:text-orange-400" />
                     ) : inferenceResult.type === 'pothole' ? (
                       <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
                     ) : (
@@ -523,6 +540,10 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                       <h4 className="text-base font-black text-zinc-900 dark:text-white uppercase tracking-wide">
                         {inferenceResult.type === 'waterlogging'
                           ? 'Waterlogging Hazard Detected'
+                          : inferenceResult.type === 'drainage_overflow'
+                          ? 'Drainage Overflow Detected'
+                          : inferenceResult.type === 'damaged_footpath'
+                          ? 'Damaged Footpath Detected'
                           : inferenceResult.type === 'pothole'
                           ? 'Structural Pothole Detected'
                           : 'Clear Road Surface Verified'}

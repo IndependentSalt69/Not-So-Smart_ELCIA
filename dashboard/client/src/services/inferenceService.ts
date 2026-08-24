@@ -4,19 +4,36 @@ import { incidentService } from './incidentService';
 
 // Helper to generate simulated SVG overlay frame for uploaded or preset media
 const generateInferenceOverlaySvg = (
-  type: 'waterlogging' | 'pothole' | 'clear',
+  type: IncidentType | 'clear',
   confidence: number,
   telemetry: DroneTelemetry
 ) => {
   const isWater = type === 'waterlogging';
   const isPothole = type === 'pothole';
-  const strokeColor = isWater ? '#3b82f6' : isPothole ? '#ef4444' : '#10b981';
-  const fillColor = isWater ? 'rgba(59, 130, 246, 0.45)' : isPothole ? 'rgba(239, 68, 68, 0.45)' : 'none';
-  const label = isWater
-    ? `YOLOv8 + SAM: WATERLOGGING (${Math.round(confidence * 100)}% CONFIDENCE)`
-    : isPothole
-      ? `YOLOv8: DEEP CRATER POTHOLE (${Math.round(confidence * 100)}% CONFIDENCE)`
-      : `YOLOv8: ROAD SURFACE CLEAR (0 HAZARDS DETECTED)`;
+  const isDrainage = type === 'drainage_overflow';
+  const isFootpath = type === 'damaged_footpath';
+
+  let strokeColor = '#10b981';
+  let fillColor = 'none';
+  let label = 'YOLOv8: ROAD SURFACE CLEAR (0 HAZARDS DETECTED)';
+
+  if (isWater) {
+    strokeColor = '#3b82f6';
+    fillColor = 'rgba(59, 130, 246, 0.45)';
+    label = `YOLOv8 + SAM: WATERLOGGING (${Math.round(confidence * 100)}% CONFIDENCE)`;
+  } else if (isDrainage) {
+    strokeColor = '#06b6d4';
+    fillColor = 'rgba(6, 182, 212, 0.45)';
+    label = `YOLOv8 + SAM: DRAINAGE OVERFLOW (${Math.round(confidence * 100)}% CONFIDENCE)`;
+  } else if (isFootpath) {
+    strokeColor = '#f97316';
+    fillColor = 'rgba(249, 115, 22, 0.45)';
+    label = `YOLOv8: DAMAGED FOOTPATH (${Math.round(confidence * 100)}% CONFIDENCE)`;
+  } else if (isPothole) {
+    strokeColor = '#ef4444';
+    fillColor = 'rgba(239, 68, 68, 0.45)';
+    label = `YOLOv8: DEEP CRATER POTHOLE (${Math.round(confidence * 100)}% CONFIDENCE)`;
+  }
 
   const rawSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">
     <rect width="800" height="450" fill="#0f172a"/>
@@ -28,6 +45,14 @@ const generateInferenceOverlaySvg = (
       ? `<!-- Segmented Water Surface -->
            <path d="M 200 310 Q 400 280 600 330 Q 540 430 240 420 Z" fill="${fillColor}" stroke="${strokeColor}" stroke-width="3.5"/>
            <rect x="180" y="270" width="440" height="170" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-dasharray="6,4"/>`
+      : isDrainage
+        ? `<!-- Drainage Overflow Surface -->
+           <path d="M 180 340 Q 320 260 460 330 T 700 360 L 680 430 L 160 430 Z" fill="${fillColor}" stroke="${strokeColor}" stroke-width="3.5"/>
+           <rect x="160" y="280" width="540" height="150" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-dasharray="6,4"/>`
+      : isFootpath
+        ? `<!-- Damaged Footpath Bounding Box -->
+           <polygon points="120,440 280,260 340,260 220,440" fill="${fillColor}" stroke="${strokeColor}" stroke-width="3.5"/>
+           <rect x="110" y="250" width="240" height="195" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-dasharray="6,4"/>`
       : isPothole
         ? `<!-- Pothole Bounding Box & Crater -->
            <ellipse cx="430" cy="340" rx="95" ry="48" fill="${fillColor}" stroke="${strokeColor}" stroke-width="3.5"/>
@@ -126,6 +151,80 @@ export const SAMPLE_PRESETS: SampleFootagePreset[] = [
     },
   },
   {
+    id: 'preset-drainage-1',
+    title: 'Toll Plaza Sump Drain (Stormwater Overflow)',
+    type: 'drainage_overflow',
+    description: 'Aerial telemetry identifying blocked culvert and active municipal drain backflow.',
+    thumbnailUrl: generateInferenceOverlaySvg('drainage_overflow', 0.91, {
+      droneId: 'DRONE-SWARM-DELTA-4',
+      cameraModel: 'Sony Alpha 4K Aerial',
+      altitudeMeters: 35,
+      speedMps: 9,
+      zoneId: 'EC-01',
+      locationDescription: 'Electronic City Toll Plaza Drainage Sump 4',
+      coordinates: { lat: 12.849, lng: 77.668 },
+      timestamp: new Date().toISOString(),
+    }),
+    mediaUrl: generateInferenceOverlaySvg('drainage_overflow', 0.91, {
+      droneId: 'DRONE-SWARM-DELTA-4',
+      cameraModel: 'Sony Alpha 4K Aerial',
+      altitudeMeters: 35,
+      speedMps: 9,
+      zoneId: 'EC-01',
+      locationDescription: 'Electronic City Toll Plaza Drainage Sump 4',
+      coordinates: { lat: 12.849, lng: 77.668 },
+      timestamp: new Date().toISOString(),
+    }),
+    mediaType: 'image',
+    defaultTelemetry: {
+      droneId: 'DRONE-SWARM-DELTA-4',
+      cameraModel: 'Sony Alpha 4K Aerial',
+      altitudeMeters: 35,
+      speedMps: 9,
+      zoneId: 'EC-01',
+      locationDescription: 'Electronic City Toll Plaza Drainage Sump 4',
+      coordinates: { lat: 12.849, lng: 77.668 },
+      timestamp: new Date().toISOString(),
+    },
+  },
+  {
+    id: 'preset-footpath-1',
+    title: 'Infosys Avenue Walkway (Severe Slab Collapse)',
+    type: 'damaged_footpath',
+    description: 'Drone LiDAR and RGB scan of fractured pedestrian pavers creating severe tripping hazard.',
+    thumbnailUrl: generateInferenceOverlaySvg('damaged_footpath', 0.89, {
+      droneId: 'DRONE-SWARM-EPSILON-5',
+      cameraModel: 'High-Res Photogrammetry',
+      altitudeMeters: 25,
+      speedMps: 6,
+      zoneId: 'EC-03',
+      locationDescription: 'Infosys Avenue Pedestrian Walkway Corridor',
+      coordinates: { lat: 12.836, lng: 77.679 },
+      timestamp: new Date().toISOString(),
+    }),
+    mediaUrl: generateInferenceOverlaySvg('damaged_footpath', 0.89, {
+      droneId: 'DRONE-SWARM-EPSILON-5',
+      cameraModel: 'High-Res Photogrammetry',
+      altitudeMeters: 25,
+      speedMps: 6,
+      zoneId: 'EC-03',
+      locationDescription: 'Infosys Avenue Pedestrian Walkway Corridor',
+      coordinates: { lat: 12.836, lng: 77.679 },
+      timestamp: new Date().toISOString(),
+    }),
+    mediaType: 'image',
+    defaultTelemetry: {
+      droneId: 'DRONE-SWARM-EPSILON-5',
+      cameraModel: 'High-Res Photogrammetry',
+      altitudeMeters: 25,
+      speedMps: 6,
+      zoneId: 'EC-03',
+      locationDescription: 'Infosys Avenue Pedestrian Walkway Corridor',
+      coordinates: { lat: 12.836, lng: 77.679 },
+      timestamp: new Date().toISOString(),
+    },
+  },
+  {
     id: 'preset-clear-1',
     title: 'Phase 1 Neeladri Road (Clear Surface Baseline)',
     type: 'clear',
@@ -180,7 +279,7 @@ export const inferenceService = {
     mediaType: 'image' | 'video';
     telemetry: DroneTelemetry;
     onProgress?: (stageName: string, progress: number) => void;
-    presetType?: 'waterlogging' | 'pothole' | 'clear';
+    presetType?: IncidentType | 'clear';
   }): Promise<InferenceResult> {
     const { mediaUrl, mediaType, telemetry, onProgress, presetType = 'waterlogging' } = options;
 
@@ -204,10 +303,12 @@ export const inferenceService = {
     // Determine results based on preset or simulated inference
     const isWater = presetType === 'waterlogging';
     const isPothole = presetType === 'pothole';
+    const isDrainage = presetType === 'drainage_overflow';
+    const isFootpath = presetType === 'damaged_footpath';
 
-    const confidence = isWater ? 0.95 : isPothole ? 0.93 : 0.98;
-    const severity = isWater ? 8.8 : isPothole ? 8.4 : 1.2;
-    const priority: PriorityLevel = isWater ? 'P1' : isPothole ? 'P1' : 'P3';
+    const confidence = isWater ? 0.95 : isPothole ? 0.93 : isDrainage ? 0.91 : isFootpath ? 0.89 : 0.98;
+    const severity = isWater ? 8.8 : isPothole ? 8.4 : isDrainage ? 7.6 : isFootpath ? 6.2 : 1.2;
+    const priority: PriorityLevel = isWater || isPothole ? 'P1' : isDrainage ? 'P2' : isFootpath ? 'P2' : 'P3';
 
     const overlaySvg = generateInferenceOverlaySvg(presetType, confidence, telemetry);
 
@@ -215,16 +316,16 @@ export const inferenceService = {
 
     const result: InferenceResult = {
       id: generatedId,
-      type: isWater ? 'waterlogging' : isPothole ? 'pothole' : 'clear',
+      type: presetType,
       confidence,
       severity,
       priority,
-      waterAreaSqm: isWater ? 380 : undefined,
+      waterAreaSqm: isWater ? 380 : isDrainage ? 160 : undefined,
       potholeDepthCm: isPothole ? 18 : undefined,
       boundingBoxes: [
         {
           id: 'box-1',
-          label: isWater ? 'waterlogging' : 'pothole',
+          label: presetType,
           confidence,
           x: 25,
           y: 40,
@@ -237,32 +338,61 @@ export const inferenceService = {
       mediaType,
       telemetry,
       severityFactors: {
-        waterExtent: isWater ? 8.8 : isPothole ? 2.0 : 0.5,
-        waterExtentLabel: isWater ? '78% arterial roadway submerged (~380 m²)' : isPothole ? 'Submerged crater' : 'Dry clear asphalt',
-        persistenceSeconds: isWater ? 180 : isPothole ? 240 : 10,
-        roadObstruction: isWater ? 9.0 : isPothole ? 8.8 : 0.5,
-        roadObstructionLabel: isWater ? 'Dual lane vehicular blockage' : isPothole ? 'Severe pothole forcing vehicle swerving' : 'Zero traffic obstruction',
+        waterExtent: isWater ? 8.8 : isDrainage ? 7.2 : isPothole ? 2.0 : 0.5,
+        waterExtentLabel: isWater
+          ? '78% arterial roadway submerged (~380 m²)'
+          : isDrainage
+            ? 'Drainage backflow covering sidewalk and curb (~160 m²)'
+            : isPothole
+              ? 'Submerged crater'
+              : 'Dry clear asphalt',
+        persistenceSeconds: isWater ? 180 : isDrainage ? 210 : isPothole ? 240 : 10,
+        roadObstruction: isWater ? 9.0 : isDrainage ? 7.5 : isPothole ? 8.8 : isFootpath ? 6.8 : 0.5,
+        roadObstructionLabel: isWater
+          ? 'Dual lane vehicular blockage'
+          : isDrainage
+            ? 'Single lane and drainage inlet blockage'
+            : isPothole
+              ? 'Severe pothole forcing vehicle swerving'
+              : isFootpath
+                ? 'Pedestrian sidewalk impassable'
+                : 'Zero traffic obstruction',
         roadCriticality: telemetry.zoneId === 'EC-01' ? 9.2 : 8.5,
         roadCriticalityLabel: `${telemetry.zoneId} — ${telemetry.locationDescription}`,
         explanation: isWater
           ? [
-            'AI segmentation confirmed standing water depth exceeding 15cm across 380m².',
-            'High traffic arterial junction connecting Phase 1 & Hosur Highway.',
-            'Immediate sump pump de-watering deployment recommended.',
-          ]
-          : isPothole
-            ? [
-              'Deep asphalt structural collapse with sharp edge failure.',
-              'Immediate hazard for high-speed two-wheelers and shuttle buses.',
-              'Cold-mix bitumen patch dispatch required.',
+              'AI segmentation confirmed standing water depth exceeding 15cm across 380m².',
+              'High traffic arterial junction connecting Phase 1 & Hosur Highway.',
+              'Immediate sump pump de-watering deployment recommended.',
             ]
-            : ['No structural or flooding hazards detected across scanned frame.'],
+          : isDrainage
+            ? [
+                'Municipal drainage culvert blockage detected with active surface regurgitation.',
+                'Immediate jetting machine dispatch required to clear blocked silt.',
+              ]
+            : isFootpath
+              ? [
+                  'Pedestrian paver collapse and missing curb stones identified.',
+                  'Safety hazard for foot traffic and tech park commuters.',
+                  'Masonry restoration team notified.',
+                ]
+              : isPothole
+                ? [
+                    'Deep asphalt structural collapse with sharp edge failure.',
+                    'Immediate hazard for high-speed two-wheelers and shuttle buses.',
+                    'Cold-mix bitumen patch dispatch required.',
+                  ]
+                : ['No structural or flooding hazards detected across scanned frame.'],
       },
       recommendedAction: isWater
         ? 'Deploy high-capacity mobile de-watering sump pumps & unblock storm drain grates'
-        : isPothole
-          ? 'Deploy Cold-Mix Bitumen Patching & Place High-Visibility Hazard Barricades'
-          : 'No mitigation required — Baseline verified clear',
+        : isDrainage
+          ? 'Dispatch high-pressure drain jetting team & clear storm culvert obstruction'
+          : isFootpath
+            ? 'Dispatch civil masonry repair crew & install temporary pedestrian safety barriers'
+            : isPothole
+              ? 'Deploy Cold-Mix Bitumen Patching & Place High-Visibility Hazard Barricades'
+              : 'No mitigation required — Baseline verified clear',
       analysisDurationMs: Date.now() - startTime,
     };
 

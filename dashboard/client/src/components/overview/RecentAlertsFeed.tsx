@@ -2,7 +2,7 @@ import { PriorityBadge } from '@/components/common/PriorityBadge';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Incident } from '@/types/incident';
-import { AlertTriangle, ArrowRight, Clock, Droplets, Eye, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Clock, Droplets, Eye, Footprints, ShieldAlert, Waves } from 'lucide-react';
 import React from 'react';
 
 interface RecentAlertsFeedProps {
@@ -32,6 +32,36 @@ export const RecentAlertsFeed: React.FC<RecentAlertsFeedProps> = ({
     }
   };
 
+  const renderTypeIcon = (incident: Incident) => {
+    switch (incident.type) {
+      case 'waterlogging':
+        return (
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-xs mt-0.5 bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 border border-teal-100 dark:border-teal-900/50">
+            <Droplets className="w-4.5 h-4.5" />
+          </div>
+        );
+      case 'drainage_overflow':
+        return (
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-xs mt-0.5 bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 border border-cyan-100 dark:border-cyan-900/50">
+            <Waves className="w-4.5 h-4.5" />
+          </div>
+        );
+      case 'damaged_footpath':
+        return (
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-xs mt-0.5 bg-orange-50 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-900/50">
+            <Footprints className="w-4.5 h-4.5" />
+          </div>
+        );
+      case 'pothole':
+      default:
+        return (
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-xs mt-0.5 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50">
+            <AlertTriangle className="w-4.5 h-4.5" />
+          </div>
+        );
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-xs flex flex-col h-full">
       <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800/60 mb-3">
@@ -54,7 +84,6 @@ export const RecentAlertsFeed: React.FC<RecentAlertsFeedProps> = ({
 
       <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60 flex-1 overflow-y-auto pr-1">
         {recentList.map((incident) => {
-          const isWater = incident.type === 'waterlogging';
           return (
             <div
               key={incident.id}
@@ -62,19 +91,7 @@ export const RecentAlertsFeed: React.FC<RecentAlertsFeedProps> = ({
               className="py-3 px-2 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer group flex items-start justify-between gap-3"
             >
               <div className="flex items-start gap-3 min-w-0">
-                <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-xs mt-0.5 ${
-                    isWater
-                      ? 'bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 border border-teal-100 dark:border-teal-900/50'
-                      : 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50'
-                  }`}
-                >
-                  {isWater ? (
-                    <Droplets className="w-4.5 h-4.5" />
-                  ) : (
-                    <AlertTriangle className="w-4.5 h-4.5" />
-                  )}
-                </div>
+                {renderTypeIcon(incident)}
 
                 <div className="min-w-0">
                   <div className="flex items-center gap-2.5 flex-wrap mb-1">

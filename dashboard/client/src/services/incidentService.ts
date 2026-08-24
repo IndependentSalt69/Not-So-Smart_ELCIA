@@ -30,8 +30,10 @@ const pendingEvidencePromises = new Map<string, Promise<string | null>>();
 import {
   Assignment,
   AssignmentCreatePayload,
+  BackendIncidentType,
   DetectionObservation,
   EvidenceAsset,
+  getIncidentTypeLabel,
   Incident,
   IncidentFilters,
   IncidentStatus,
@@ -39,6 +41,8 @@ import {
   InspectionCreatePayload,
   InspectionRecord,
   InspectionResult,
+  mapBackendTypeToFrontend,
+  mapFrontendTypeToBackend,
   PriorityLevel,
   SortDirection,
   SortField,
@@ -48,7 +52,7 @@ import {
 export interface BackendIncidentItem {
   id: string;
   incident_code: string;
-  incident_type: 'WATERLOGGING' | 'POTHOLE';
+  incident_type: BackendIncidentType;
   confidence: number;
   severity_score: number;
   priority: 'P1' | 'P2' | 'P3';
@@ -135,8 +139,7 @@ export interface BackendInspectionItem {
 }
 
 export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Incident {
-  const isWater = item.incident_type?.toUpperCase() === 'WATERLOGGING';
-  const type: IncidentType = isWater ? 'waterlogging' : 'pothole';
+  const type: IncidentType = mapBackendTypeToFrontend(item.incident_type);
 
   const lng = item.location?.coordinates?.[0] ?? 77.6631;
   const lat = item.location?.coordinates?.[1] ?? 12.8452;
@@ -149,13 +152,13 @@ export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Inciden
     `${lat.toFixed(4)}N, ${lng.toFixed(4)}E`,
     displayCode,
     false,
-    isWater
+    type
   );
   const evidenceOverlay = generateSvgFrame(
     `${lat.toFixed(4)}N, ${lng.toFixed(4)}E`,
     displayCode,
     true,
-    isWater
+    type
   );
 
   return {
@@ -169,31 +172,38 @@ export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Inciden
     zone: `Electronics City Zone (${item.zone_id ? item.zone_id.slice(0, 8) : 'EC-01'})`,
     zoneId: 'EC-01',
     locationDescription: item.recommended_action
-      ? `${displayCode} - ${isWater ? 'Waterlogging' : 'Pothole'} Hazard`
+      ? `${displayCode} - ${getIncidentTypeLabel(type)} Hazard`
       : `Electronics City Arterial Corridor (${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E)`,
     coordinates: { lat, lng },
     durationSeconds,
     evidenceFrame,
     evidenceOverlay,
     severityFactors: {
-      waterExtent: isWater ? Math.min(10, severity * 0.9) : 0,
-      waterExtentLabel: isWater ? `${Math.round(severity * 9)}% arterial lane coverage` : undefined,
+      waterExtent: type === 'waterlogging' || type === 'drainage_overflow' ? Math.min(10, severity * 0.9) : 0,
+      waterExtentLabel:
+        type === 'waterlogging' || type === 'drainage_overflow'
+          ? `${Math.round(severity * 9)}% arterial lane coverage`
+          : undefined,
       persistenceSeconds: durationSeconds,
       roadObstruction: severity,
       roadObstructionLabel: severity > 8 ? 'High dual-lane blockage' : 'Moderate lane obstruction',
       roadCriticality: Math.min(10, severity * 1.05),
       roadCriticalityLabel: 'Primary arterial corridor connecting Phase 1 & Hosur Highway',
       explanation: [
-        `${isWater ? 'Water pooling' : 'Surface cratering'} detected by aerial drone vision sensor.`,
+        `${getIncidentTypeLabel(type)} detected by aerial drone vision sensor.`,
         `Temporal persistence verified over scan duration (${durationSeconds}s).`,
         `Directly impacts vehicle movement across Electronics City key transit corridor.`,
       ],
     },
     recommendedAction:
       item.recommended_action ||
-      (isWater
+      (type === 'waterlogging'
         ? 'Deploy high-capacity mobile de-watering sump pumps & unblock storm drain grates'
-        : 'Deploy Cold-Mix Bitumen Patching & Place High-Visibility Hazard Barricades'),
+        : type === 'drainage_overflow'
+          ? 'Dispatch high-pressure drain jetting team & clear storm culvert obstruction'
+          : type === 'damaged_footpath'
+            ? 'Dispatch civil masonry repair crew & install temporary pedestrian safety barriers'
+            : 'Deploy Cold-Mix Bitumen Patching & Place High-Visibility Hazard Barricades'),
     status: item.status as IncidentStatus,
     history: [
       {
@@ -262,7 +272,7 @@ async function ensureBackendSeeded() {
       for (const mock of INITIAL_MOCK_INCIDENTS) {
         const payload = {
           incident_code: mock.code || mock.id,
-          incident_type: mock.type.toUpperCase() === 'WATERLOGGING' ? 'WATERLOGGING' : 'POTHOLE',
+          incident_type: mapFrontendTypeToBackend(mock.type),
           confidence: mock.confidence,
           severity_score: mock.severity,
           priority: mock.priority,
@@ -321,7 +331,7 @@ export const incidentService = {
           queryParams.priority = filters.priority;
         }
         if (filters.type && filters.type !== 'all') {
-          queryParams.incident_type = filters.type.toUpperCase();
+          queryParams.incident_type = mapFrontendTypeToBackend(filters.type);
         }
       }
 
@@ -857,7 +867,7 @@ export const incidentService = {
 
       const payload = {
         incident_code: incident.code || incident.id || `INC-${Math.floor(1000 + Math.random() * 9000)}`,
-        incident_type: incident.type.toUpperCase() === 'WATERLOGGING' ? 'WATERLOGGING' : 'POTHOLE',
+        incident_type: mapFrontendTypeToBackend(incident.type),
         confidence: incident.confidence,
         severity_score: incident.severity,
         priority: incident.priority,

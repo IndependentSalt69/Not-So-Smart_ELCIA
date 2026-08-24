@@ -2,7 +2,7 @@ import { PriorityBadge } from '@/components/common/PriorityBadge';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Incident, PriorityLevel, ZoneId } from '@/types/incident';
+import { getIncidentTypeLabel, Incident, PriorityLevel, ZoneId } from '@/types/incident';
 import {
   AdvancedMarker,
   APIProvider,
@@ -16,9 +16,11 @@ import {
   Crosshair,
   Droplets,
   Eye,
+  Footprints,
   Layers,
   MapPin,
   Radio,
+  Waves,
 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
@@ -389,7 +391,6 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
             {/* Real-time Incident Advanced Markers */}
             {displayedIncidents.map((incident) => {
               const isP1 = incident.priority === 'P1';
-              const isWater = incident.type === 'waterlogging';
               const isSelected = selectedIncident?.id === incident.id;
 
               return (
@@ -416,8 +417,12 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
                         isSelected && 'scale-125 ring-4 ring-white'
                       )}
                     >
-                      {isWater ? (
+                      {incident.type === 'waterlogging' ? (
                         <Droplets className="w-4 h-4 text-white" />
+                      ) : incident.type === 'drainage_overflow' ? (
+                        <Waves className="w-4 h-4 text-white" />
+                      ) : incident.type === 'damaged_footpath' ? (
+                        <Footprints className="w-4 h-4 text-white" />
                       ) : (
                         <AlertTriangle className="w-4 h-4 text-white" />
                       )}
@@ -447,6 +452,9 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
                       {selectedIncident.code || selectedIncident.id}
                     </span>
                     <PriorityBadge priority={selectedIncident.priority} />
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-600">
+                    <span>{getIncidentTypeLabel(selectedIncident.type)}</span>
                   </div>
                   <p className="text-xs xl:text-sm font-semibold text-zinc-800 line-clamp-2">
                     {selectedIncident.locationDescription}

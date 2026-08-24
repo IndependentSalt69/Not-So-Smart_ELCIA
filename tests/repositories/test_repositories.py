@@ -403,3 +403,38 @@ def test_status_history_repository(db_session: Session):
     assert len(history_list) == 2
     assert history_list[0].new_status == IncidentStatus.DETECTED
     assert history_list[1].new_status == IncidentStatus.ASSIGNED
+
+
+def test_all_four_incident_types_repository_crud(db_session: Session):
+    """Test repository create, get, and list filtering for all 4 canonical incident types."""
+    zone = create_zone(db_session, code="EC-4TYPE-Z", name="4-Type Zone")
+
+    type_map = {
+        IncidentType.WATERLOGGING: "INC-WTR-01",
+        IncidentType.POTHOLE: "INC-POT-01",
+        IncidentType.DRAINAGE_OVERFLOW: "INC-DRN-01",
+        IncidentType.DAMAGED_FOOTPATH: "INC-FTP-01",
+    }
+
+    created = {}
+    for inc_type, code in type_map.items():
+        inc = create_incident(
+            db=db_session,
+            incident_code=code,
+            incident_type=inc_type,
+            confidence=0.95,
+            severity_score=8.0,
+            priority=PriorityLevel.P1,
+            zone_id=zone.id,
+            recommended_action=f"Clear {inc_type.value}",
+        )
+        assert inc.id is not None
+        assert inc.incident_type == inc_type
+        created[inc_type] = inc
+
+    for inc_type in type_map.keys():
+        filtered = list_incidents(db_session, zone_id=zone.id, incident_type=inc_type)
+        assert len(filtered) == 1
+        assert filtered[0].id == created[inc_type].id
+        assert filtered[0].incident_type == inc_type
+

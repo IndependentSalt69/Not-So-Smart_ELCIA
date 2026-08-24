@@ -3,8 +3,8 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { incidentService } from '@/services/incidentService';
-import { Incident } from '@/types/incident';
-import { AlertTriangle, ArrowRight, Clock, Droplets, Eye, Gauge, MapPin, Sparkles, Timer } from 'lucide-react';
+import { getIncidentTypeLabel, Incident, IncidentType } from '@/types/incident';
+import { AlertTriangle, ArrowRight, Clock, Droplets, Eye, Footprints, Gauge, MapPin, Sparkles, Timer, Waves } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 interface IncidentCardProps {
@@ -14,13 +14,26 @@ interface IncidentCardProps {
   onQuickEvidence?: (incident: Incident) => void;
 }
 
+export function renderIncidentTypeIcon(type: IncidentType, className = 'w-3.5 h-3.5') {
+  switch (type) {
+    case 'waterlogging':
+      return <Droplets className={cn(className, 'text-teal-300')} />;
+    case 'drainage_overflow':
+      return <Waves className={cn(className, 'text-cyan-300')} />;
+    case 'damaged_footpath':
+      return <Footprints className={cn(className, 'text-orange-300')} />;
+    case 'pothole':
+    default:
+      return <AlertTriangle className={cn(className, 'text-amber-300')} />;
+  }
+}
+
 export const IncidentCard: React.FC<IncidentCardProps> = ({
   incident,
   layoutMode = 'grid',
   onSelect,
   onQuickEvidence,
 }) => {
-  const isWater = incident.type === 'waterlogging';
   const confidencePct = Math.round(incident.confidence * 100);
 
   // Real ML evidence thumbnail resolution state
@@ -88,11 +101,7 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
             <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-xs font-bold bg-black/75 text-white backdrop-blur-xs flex items-center">
-              {isWater ? (
-                <Droplets className="w-3.5 h-3.5 text-teal-300" />
-              ) : (
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
-              )}
+              {renderIncidentTypeIcon(incident.type)}
             </div>
             {isRealCapture && (
               <div className="absolute bottom-1 right-1 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-black" title="Real ML capture" />
@@ -186,12 +195,8 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
         <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-none">
           <div className="flex items-center gap-1.5">
             <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-black/75 text-white backdrop-blur-sm shadow-xs flex items-center gap-1.5">
-              {isWater ? (
-                <Droplets className="w-3.5 h-3.5 text-teal-300" />
-              ) : (
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
-              )}
-              <span>{isWater ? 'Waterlogging' : 'Pothole'}</span>
+              {renderIncidentTypeIcon(incident.type)}
+              <span>{getIncidentTypeLabel(incident.type)}</span>
             </span>
             {isRealCapture && (
               <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-950/85 text-emerald-300 border border-emerald-700 backdrop-blur-sm shadow-xs flex items-center gap-1">
