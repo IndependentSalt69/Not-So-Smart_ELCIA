@@ -13,7 +13,7 @@ interface IncidentFiltersProps {
 }
 
 // Reusable Sliding Glider Segmented Control
-function SlidingSegmentedControl<T extends string>({
+export function SlidingSegmentedControl<T extends string>({
   items,
   value,
   onChange,
@@ -223,52 +223,66 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
           <div className="w-full sm:w-64">
             <Select value={filters.status || 'all'} onValueChange={handleStatusChange}>
               <SelectTrigger className="h-10 rounded-xl text-sm font-semibold border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 w-full">
-                <SelectValue placeholder="All Statuses" />
+                <SelectValue placeholder={filters.queueTab === 'completed' ? 'All Completed' : filters.queueTab === 'rejected' ? 'All Rejected' : 'All Active Statuses'} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all" className="text-sm">All Statuses</SelectItem>
-                <SelectItem value="DETECTED" className="text-sm">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-rose-500" />
-                    <span>Detected (Unverified)</span>
-                  </span>
+                <SelectItem value="all" className="text-sm">
+                  {filters.queueTab === 'completed'
+                    ? 'All Completed'
+                    : filters.queueTab === 'rejected'
+                    ? 'All Rejected'
+                    : 'All Active Statuses'}
                 </SelectItem>
-                <SelectItem value="VERIFIED" className="text-sm">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-teal-500" />
-                    <span>Verified</span>
-                  </span>
-                </SelectItem>
-                <SelectItem value="ASSIGNED" className="text-sm">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-500" />
-                    <span>Assigned</span>
-                  </span>
-                </SelectItem>
-                <SelectItem value="IN_PROGRESS" className="text-sm">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span>In Progress</span>
-                  </span>
-                </SelectItem>
-                <SelectItem value="RE_INSPECTION" className="text-sm">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-cyan-500" />
-                    <span>Re-inspection</span>
-                  </span>
-                </SelectItem>
-                <SelectItem value="CLOSED" className="text-sm">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-zinc-500" />
-                    <span>Closed & Resolved</span>
-                  </span>
-                </SelectItem>
-                <SelectItem value="REJECTED" className="text-sm">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-slate-400" />
-                    <span>Rejected (False Pos)</span>
-                  </span>
-                </SelectItem>
+                {(!filters.queueTab || filters.queueTab === 'active') && (
+                  <>
+                    <SelectItem value="DETECTED" className="text-sm">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-rose-500" />
+                        <span>Detected (Unverified)</span>
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="VERIFIED" className="text-sm">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-teal-500" />
+                        <span>Verified</span>
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="ASSIGNED" className="text-sm">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-amber-500" />
+                        <span>Assigned</span>
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="IN_PROGRESS" className="text-sm">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                        <span>In Progress</span>
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="RE_INSPECTION" className="text-sm">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-cyan-500" />
+                        <span>Re-inspection</span>
+                      </span>
+                    </SelectItem>
+                  </>
+                )}
+                {filters.queueTab === 'completed' && (
+                  <SelectItem value="CLOSED" className="text-sm">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-zinc-500" />
+                      <span>Closed & Resolved</span>
+                    </span>
+                  </SelectItem>
+                )}
+                {filters.queueTab === 'rejected' && (
+                  <SelectItem value="REJECTED" className="text-sm">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-slate-400" />
+                      <span>Rejected (False Pos)</span>
+                    </span>
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>

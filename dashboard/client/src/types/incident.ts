@@ -195,7 +195,28 @@ export interface Incident {
   history: IncidentHistoryEntry[];
 }
 
+export type IncidentQueueTab = 'active' | 'completed' | 'rejected';
+
+export const ACTIVE_STATUSES: IncidentStatus[] = [
+  'DETECTED',
+  'VERIFIED',
+  'ASSIGNED',
+  'IN_PROGRESS',
+  'RE_INSPECTION',
+];
+
+export const COMPLETED_STATUSES: IncidentStatus[] = ['CLOSED'];
+
+export const REJECTED_STATUSES: IncidentStatus[] = ['REJECTED'];
+
+export interface IncidentQueueCounts {
+  active: number;
+  completed: number;
+  rejected: number;
+}
+
 export interface IncidentFilters {
+  queueTab?: IncidentQueueTab;
   type?: IncidentType | 'all';
   priority?: PriorityLevel | 'all';
   status?: IncidentStatus | 'all';

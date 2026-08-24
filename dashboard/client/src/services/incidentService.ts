@@ -28,14 +28,18 @@ const primaryEvidenceCache = new Map<string, string | null>();
 const pendingEvidencePromises = new Map<string, Promise<string | null>>();
 
 import {
+  ACTIVE_STATUSES,
   Assignment,
   AssignmentCreatePayload,
   BackendIncidentType,
+  COMPLETED_STATUSES,
   DetectionObservation,
   EvidenceAsset,
   getIncidentTypeLabel,
   Incident,
   IncidentFilters,
+  IncidentQueueCounts,
+  IncidentQueueTab,
   IncidentStatus,
   IncidentType,
   InspectionCreatePayload,
@@ -44,6 +48,7 @@ import {
   mapBackendTypeToFrontend,
   mapFrontendTypeToBackend,
   PriorityLevel,
+  REJECTED_STATUSES,
   SortDirection,
   SortField,
   User,
@@ -236,7 +241,7 @@ let incidentsState: Incident[] = (() => {
 type StateListener = () => void;
 const listeners = new Set<StateListener>();
 
-const persist = () => {
+const persist = (notify = true) => {
   try {
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(incidentsState));
@@ -244,10 +249,12 @@ const persist = () => {
   } catch (e) {
     console.error('Failed to persist incidents to localStorage:', e);
   }
-  listeners.forEach((listener) => listener());
+  if (notify) {
+    listeners.forEach((listener) => listener());
+  }
 };
 
-function upsertIncidentsState(items: Incident[]) {
+function upsertIncidentsState(items: Incident[], notify = false) {
   const itemMap = new Map<string, Incident>();
   for (const inc of incidentsState) {
     itemMap.set(inc.id, inc);
@@ -256,10 +263,10 @@ function upsertIncidentsState(items: Incident[]) {
     itemMap.set(inc.id, inc);
   }
   incidentsState = Array.from(itemMap.values());
-  persist();
+  persist(notify);
 }
 
-function upsertSingleIncidentState(item: Incident) {
+function upsertSingleIncidentState(item: Incident, notify = true) {
   const index = incidentsState.findIndex(
     (i) => i.id === item.id || (i.code && i.code === item.code)
   );
@@ -268,7 +275,7 @@ function upsertSingleIncidentState(item: Incident) {
   } else {
     incidentsState = [item, ...incidentsState];
   }
-  persist();
+  persist(notify);
 }
 
 let isSeeding = false;
@@ -335,6 +342,54 @@ export const incidentService = {
   },
 
   /**
+   * Get dynamic counts for the three queue status tabs (Active, Completed, Rejected)
+   */
+  async getQueueTabCounts(): Promise<IncidentQueueCounts> {
+    try {
+      const summary = await api.get<{
+        status_distribution?: Array<{ status: IncidentStatus; count: number }>;
+        kpis?: { total_active_incidents?: number };
+      }>('/analytics/summary');
+
+      if (summary && Array.isArray(summary.status_distribution)) {
+        let active = 0;
+        let completed = 0;
+        let rejected = 0;
+
+        for (const item of summary.status_distribution) {
+          if (item.status === 'CLOSED') {
+            completed += item.count;
+          } else if (item.status === 'REJECTED') {
+            rejected += item.count;
+          } else {
+            active += item.count;
+          }
+        }
+
+        return { active, completed, rejected };
+      }
+    } catch (err) {
+      console.warn('Failed to fetch backend queue tab counts, falling back to local state:', err);
+    }
+
+    let active = 0;
+    let completed = 0;
+    let rejected = 0;
+
+    for (const inc of incidentsState) {
+      if (inc.status === 'CLOSED') {
+        completed++;
+      } else if (inc.status === 'REJECTED') {
+        rejected++;
+      } else {
+        active++;
+      }
+    }
+
+    return { active, completed, rejected };
+  },
+
+  /**
    * Get filtered and sorted list of incidents
    */
   async getIncidents(
@@ -350,7 +405,14 @@ export const incidentService = {
       if (filters) {
         if (filters.status && filters.status !== 'all') {
           queryParams.status = filters.status;
+        } else if (filters.queueTab === 'completed') {
+          queryParams.status = 'CLOSED';
+        } else if (filters.queueTab === 'rejected') {
+          queryParams.status = 'REJECTED';
+        } else if (filters.queueTab === 'active' || !filters.queueTab) {
+          queryParams.status = 'DETECTED,VERIFIED,ASSIGNED,IN_PROGRESS,RE_INSPECTION';
         }
+
         if (filters.priority && filters.priority !== 'all') {
           queryParams.priority = filters.priority;
         }
@@ -373,6 +435,14 @@ export const incidentService = {
         upsertIncidentsState(backendIncidents);
 
         if (filters) {
+          if (filters.queueTab === 'completed') {
+            backendIncidents = backendIncidents.filter((inc) => inc.status === 'CLOSED');
+          } else if (filters.queueTab === 'rejected') {
+            backendIncidents = backendIncidents.filter((inc) => inc.status === 'REJECTED');
+          } else if (filters.queueTab === 'active' || (!filters.queueTab && (!filters.status || filters.status === 'all'))) {
+            backendIncidents = backendIncidents.filter((inc) => inc.status !== 'CLOSED' && inc.status !== 'REJECTED');
+          }
+
           if (filters.type && filters.type !== 'all') {
             backendIncidents = backendIncidents.filter((inc) => inc.type === filters.type);
           }
@@ -406,6 +476,14 @@ export const incidentService = {
     let result = [...incidentsState];
 
     if (filters) {
+      if (filters.queueTab === 'completed') {
+        result = result.filter((inc) => inc.status === 'CLOSED');
+      } else if (filters.queueTab === 'rejected') {
+        result = result.filter((inc) => inc.status === 'REJECTED');
+      } else if (filters.queueTab === 'active' || (!filters.queueTab && (!filters.status || filters.status === 'all'))) {
+        result = result.filter((inc) => inc.status !== 'CLOSED' && inc.status !== 'REJECTED');
+      }
+
       if (filters.type && filters.type !== 'all') {
         result = result.filter((inc) => inc.type === filters.type);
       }
@@ -464,7 +542,7 @@ export const incidentService = {
       const item = await api.get<BackendIncidentItem>(`/incidents/${id}`);
       if (item && (item.id || item.incident_code)) {
         const fresh = mapBackendIncidentToFrontend(item);
-        upsertSingleIncidentState(fresh);
+        upsertSingleIncidentState(fresh, false);
         return fresh;
       }
     } catch (err: any) {

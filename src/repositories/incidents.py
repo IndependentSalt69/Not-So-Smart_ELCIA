@@ -5,7 +5,7 @@ Repository functions for Incident entity management.
 
 import uuid
 from datetime import datetime
-from typing import Optional, List, Union, Any
+from typing import Optional, List, Union, Any, Sequence
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -80,10 +80,37 @@ def get_incident(db: Session, incident_id: Union[uuid.UUID, str]) -> Optional[In
     return db.scalars(stmt).first()
 
 
+def _apply_status_filter(stmt, status_arg: Optional[Union[IncidentStatus, Sequence[IncidentStatus], str]]):
+    if status_arg is None:
+        return stmt
+    if isinstance(status_arg, IncidentStatus):
+        return stmt.where(Incident.status == status_arg)
+    if isinstance(status_arg, (list, tuple, set)):
+        statuses = [s for s in status_arg if isinstance(s, IncidentStatus)]
+        if len(statuses) == 1:
+            return stmt.where(Incident.status == statuses[0])
+        elif len(statuses) > 1:
+            return stmt.where(Incident.status.in_(statuses))
+        return stmt
+    if isinstance(status_arg, str):
+        parts = [p.strip().upper() for p in status_arg.split(",") if p.strip()]
+        statuses = []
+        for p in parts:
+            try:
+                statuses.append(IncidentStatus[p])
+            except KeyError:
+                pass
+        if len(statuses) == 1:
+            return stmt.where(Incident.status == statuses[0])
+        elif len(statuses) > 1:
+            return stmt.where(Incident.status.in_(statuses))
+    return stmt
+
+
 def list_incidents(
     db: Session,
     zone_id: Optional[Union[uuid.UUID, str]] = None,
-    status: Optional[IncidentStatus] = None,
+    status: Optional[Union[IncidentStatus, Sequence[IncidentStatus], str]] = None,
     priority: Optional[PriorityLevel] = None,
     incident_type: Optional[IncidentType] = None,
     skip: int = 0,
@@ -96,8 +123,7 @@ def list_incidents(
     if zone_id is not None:
         zid = parse_uuid(zone_id) or zone_id
         stmt = stmt.where(Incident.zone_id == zid)
-    if status is not None:
-        stmt = stmt.where(Incident.status == status)
+    stmt = _apply_status_filter(stmt, status)
     if priority is not None:
         stmt = stmt.where(Incident.priority == priority)
     if incident_type is not None:
@@ -120,7 +146,7 @@ def list_incidents(
 def count_incidents(
     db: Session,
     zone_id: Optional[Union[uuid.UUID, str]] = None,
-    status: Optional[IncidentStatus] = None,
+    status: Optional[Union[IncidentStatus, Sequence[IncidentStatus], str]] = None,
     priority: Optional[PriorityLevel] = None,
     incident_type: Optional[IncidentType] = None,
 ) -> int:
@@ -130,8 +156,7 @@ def count_incidents(
     if zone_id is not None:
         zid = parse_uuid(zone_id) or zone_id
         stmt = stmt.where(Incident.zone_id == zid)
-    if status is not None:
-        stmt = stmt.where(Incident.status == status)
+    stmt = _apply_status_filter(stmt, status)
     if priority is not None:
         stmt = stmt.where(Incident.priority == priority)
     if incident_type is not None:

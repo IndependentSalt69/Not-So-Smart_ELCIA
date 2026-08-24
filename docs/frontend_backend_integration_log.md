@@ -727,6 +727,108 @@ Synchronize the application integration contract across the ML pipeline, backend
 * **TypeScript Compilation:** `npm run check` $\rightarrow$ **0 errors**.
 * **Python Backend Test Suite:** `python -m pytest -v` $\rightarrow$ **43 / 43 passed (100%)**.
 
+---
+
+## Phase 11B: Incident Queue Status Views
+
+**Date:** August 25, 2026  
+**Status:** Completed & Verified  
+
+### 1. Objective
+Introduce three distinct operational queue views in the CivicPulse Incident Command Center:
+- **Active** (default): `DETECTED`, `VERIFIED`, `ASSIGNED`, `IN_PROGRESS`, `RE_INSPECTION`
+- **Completed**: `CLOSED`
+- **Rejected**: `REJECTED`
+
+Each view is backed by authoritative server-side filtering and real-time dynamic count aggregation from PostgreSQL.
+
+### 2. Implementation Strategy & Architecture
+* **Backend Multi-Status Filtering**:
+  - `src/repositories/incidents.py`: Extended `list_incidents` and `count_incidents` to support `Sequence[IncidentStatus]` using SQLAlchemy `.in_()` expressions.
+  - `src/api/routes/incidents.py`: Updated `list_all_incidents` to parse comma-separated status query parameters (e.g. `?status=DETECTED,VERIFIED,ASSIGNED,IN_PROGRESS,RE_INSPECTION`) while preserving strict 422 enum validation.
+* **Dynamic Count Source**:
+  - `dashboard/client/src/services/incidentService.ts`: Added `getQueueTabCounts()`, leveraging `GET /api/v1/analytics/summary`'s database-side `GROUP BY status` to obtain dynamic totals for Active, Completed, and Rejected tabs in a single fast query.
+* **Frontend Data Flow & Hooks**:
+  - `dashboard/client/src/types/incident.ts`: Defined `IncidentQueueTab`, status constants (`ACTIVE_STATUSES`, `COMPLETED_STATUSES`, `REJECTED_STATUSES`), and `IncidentQueueCounts`.
+  - `dashboard/client/src/hooks/useIncidents.ts`: Initialized default filters with `{ queueTab: 'active' }`, fetched `tabCounts` in parallel with incident list data, and returned `tabCounts`.
+  - `dashboard/client/src/services/incidentService.ts`: Synchronized `getIncidents()` query parameters and local fallback filtering with `filters.queueTab`.
+* **UI Controls & View Rendering**:
+  - `dashboard/client/src/components/incidents/IncidentFilters.tsx`: Exported reusable `SlidingSegmentedControl` and contextualized the secondary status filter options based on the active queue tab.
+  - `dashboard/client/src/components/incidents/IncidentQueueView.tsx`: Integrated the top-level segmented control (`[ Active <N> ] [ Completed <N> ] [ Rejected <N> ]`), dynamic titles/subtitles, view-specific empty states, and match counter headers.
+  - `dashboard/client/src/components/CivicPulseDashboard.tsx`: Passed `tabCounts` and ensured filter reset preserves the active tab selection.
+
+### 3. Files Modified
+- `src/repositories/incidents.py`
+- `src/api/routes/incidents.py`
+- `tests/api/test_api.py`
+- `tests/repositories/test_repositories.py`
+- `dashboard/client/src/types/incident.ts`
+- `dashboard/client/src/services/incidentService.ts`
+- `dashboard/client/src/hooks/useIncidents.ts`
+- `dashboard/client/src/components/incidents/IncidentFilters.tsx`
+- `dashboard/client/src/components/incidents/IncidentQueueView.tsx`
+- `dashboard/client/src/components/CivicPulseDashboard.tsx`
+- `docs/incident_queue_status_views.md` [NEW]
+
+### 4. Verification & Testing
+* **Golden Incident Verification (`6a54986c-e522-4b5b-bcfc-cf5ca6b3a061` / `INC-AI-2178`)**:
+  - Verified present in **Completed** view.
+  - Verified absent in **Active** view.
+  - Verified all 5 status history entries, evidence, and inspection details remain readable.
+* **Automated Script Verification (`dashboard/scratch/verify_phase_11b_queue_views.ts`)**:
+  - `[PASS]` 8/8 comprehensive test suites including server-side query validation, closure count transitions, rejection count transitions, and 4-hazard class filtering.
+* **Python Test Suite (`python -m pytest -v`)**: Passed **44 / 44 tests (100%) in 0.76s**.
+* **TypeScript Check (`npm run check`)**: Passed with **0 errors**.
+
+### 5. Remaining Limitations
+- None identified. All three operational views, dynamic tab counts, server-side filtering, and drawer inspections operate deterministically on PostgreSQL.
+
+---
+
+## Phase 11B QA Fix — Incident Queue Loading Flicker
+
+**Date:** August 25, 2026  
+**Status:** Resolved & Verified  
+
+### 1. Observed Behavior
+The Incident Queue continuously flickered between loading skeleton cards and real incident cards when viewing operational status tabs (particularly Completed view).
+
+### 2. Root Cause Analysis
+1. **Recursive State Notification Loop**:
+   - `incidentService.getIncidents()` was calling `upsertIncidentsState(backendIncidents)`.
+   - `upsertIncidentsState` called `persist()`, which executed `listeners.forEach(listener => listener())`.
+   - The subscriber in `useIncidents.ts` triggered `fetchIncidents()`.
+   - `fetchIncidents()` called `setLoading(true)` $\rightarrow$ UI tore down real cards and mounted 8 skeleton cards.
+   - When the fetch completed, `upsertIncidentsState` ran again $\rightarrow$ notified subscribers $\rightarrow$ triggered `fetchIncidents()` again in an infinite loop!
+2. **Global `loading` Toggle on Subscriber Updates**:
+   - `useIncidents.ts` called `setLoading(true)` unconditionally on every `fetchIncidents()` run, including background notifications.
+3. **Unmemoized Local State**:
+   - `IncidentQueueView.tsx` recreated `sortedIncidents` on every render without `useMemo`, causing evidence preloading effects to trigger repeatedly.
+4. **Lack of Race Condition Guards**:
+   - Out-of-order API responses from rapid tab clicks were not guarded.
+
+### 3. Implementation Fix
+- **`dashboard/client/src/services/incidentService.ts`**:
+  - Added optional `notify = true` flag to `persist`, `upsertIncidentsState`, and `upsertSingleIncidentState`.
+  - Configured `getIncidents()` to pass `notify = false` so reading incidents from backend updates cache silently without notifying subscribers.
+  - Retained `notify = true` for explicit user mutations (`verifyIncident`, `rejectIncident`, `assignIncident`, `updateStatus`).
+  - Updated `getIncidentById(id)` to pass `notify = false` when fetching drawer detail payloads.
+- **`dashboard/client/src/hooks/useIncidents.ts`**:
+  - Added `fetchIdRef` to discard out-of-order stale network responses.
+  - Added `filterKey` (via `useMemo`) and `prevFilterKeyRef` to compare parameter changes.
+  - Updated `setFilters` with a deep-equality check (`JSON.stringify(prev) === JSON.stringify(next)`) to prevent object identity re-fetches.
+  - Introduced `isSilent` mode for `fetchIncidents()`. Skeletons (`setLoading(true)`) are shown ONLY when explicit filter/sort/tab parameters change or on initial mount. Subscriber notifications run silent background refetches without toggling `loading`.
+- **`dashboard/client/src/components/incidents/IncidentQueueView.tsx`**:
+  - Wrapped `sortedIncidents` with `useMemo` so evidence preloading effects only execute when incident items or sort options change.
+
+### 4. Verification & QA Results
+- **Continuous Flicker Elimination**: Cards remain 100% stable upon initial fetch, tab switching, drawer opening/closing, evidence thumbnail resolution, and filter adjustments.
+- **Automated Verification Script (`dashboard/scratch/verify_phase_11b_queue_views.ts`)**: Executed **8/8 test suites with 100% success**.
+- **TypeScript Static Check (`npm run check`)**: Passed with **0 errors**.
+- **Python Backend Test Suite (`python -m pytest -v`)**: Passed **44 / 44 tests (100%)**.
+
+
+
 
 
 

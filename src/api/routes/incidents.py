@@ -103,7 +103,7 @@ def create_new_incident(
 )
 def list_all_incidents(
     zone_id: Optional[UUID] = Query(None, description="Filter by operational zone ID"),
-    status_param: Optional[IncidentStatus] = Query(None, alias="status", description="Filter by status"),
+    status_param: Optional[str] = Query(None, alias="status", description="Filter by status or comma-separated statuses"),
     priority: Optional[PriorityLevel] = Query(None, description="Filter by priority level"),
     incident_type: Optional[IncidentType] = Query(None, description="Filter by incident type"),
     skip: int = Query(0, ge=0, description="Number of items to skip"),
@@ -113,10 +113,27 @@ def list_all_incidents(
     db: Session = Depends(get_db),
 ) -> IncidentListResponse:
     """List civic incidents with multi-criteria filtering, sorting, and pagination."""
+    parsed_status = None
+    if status_param is not None:
+        parts = [p.strip().upper() for p in status_param.split(",") if p.strip()]
+        valid_statuses = []
+        for p in parts:
+            try:
+                valid_statuses.append(IncidentStatus[p])
+            except KeyError:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"Invalid status value '{p}'. Must be one of {[s.value for s in IncidentStatus]}.",
+                )
+        if len(valid_statuses) == 1:
+            parsed_status = valid_statuses[0]
+        elif len(valid_statuses) > 1:
+            parsed_status = valid_statuses
+
     incidents = repo_list_incidents(
         db=db,
         zone_id=zone_id,
-        status=status_param,
+        status=parsed_status,
         priority=priority,
         incident_type=incident_type,
         skip=skip,
@@ -127,7 +144,7 @@ def list_all_incidents(
     total = repo_count_incidents(
         db=db,
         zone_id=zone_id,
-        status=status_param,
+        status=parsed_status,
         priority=priority,
         incident_type=incident_type,
     )

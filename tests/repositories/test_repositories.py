@@ -76,7 +76,7 @@ def test_zone_repository_crud(db_session: Session):
     assert get_zone(db_session, "NON_EXISTENT_CODE") is None
 
     # 4. List Zones
-    zones = list_zones(db_session, skip=0, limit=10)
+    zones = list_zones(db_session, skip=0, limit=100)
     assert len(zones) >= 1
     assert any(z.code == "EC-TEST-01" for z in zones)
 

@@ -2,15 +2,31 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { incidentService } from '@/services/incidentService';
-import { Incident, IncidentFilters as FilterType, SortDirection, SortField } from '@/types/incident';
-import { ArrowUpDown, LayoutGrid, ListFilter, SlidersHorizontal } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import {
+  Incident,
+  IncidentFilters as FilterType,
+  IncidentQueueCounts,
+  IncidentQueueTab,
+  SortDirection,
+  SortField,
+} from '@/types/incident';
+import {
+  Activity,
+  ArrowUpDown,
+  CheckCircle2,
+  LayoutGrid,
+  ListFilter,
+  SlidersHorizontal,
+  XCircle,
+} from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { IncidentCard } from './IncidentCard';
 import { IncidentCardSkeleton } from './IncidentCardSkeleton';
-import { IncidentFilters } from './IncidentFilters';
+import { IncidentFilters, SlidingSegmentedControl } from './IncidentFilters';
 
 interface IncidentQueueViewProps {
   incidents: Incident[];
+  tabCounts?: IncidentQueueCounts;
   loading?: boolean;
   filters: FilterType;
   onFilterChange: (filters: FilterType) => void;
@@ -21,6 +37,7 @@ interface IncidentQueueViewProps {
 
 export const IncidentQueueView: React.FC<IncidentQueueViewProps> = ({
   incidents,
+  tabCounts,
   loading = false,
   filters,
   onFilterChange,
@@ -31,31 +48,67 @@ export const IncidentQueueView: React.FC<IncidentQueueViewProps> = ({
   const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
   const [sortOption, setSortOption] = useState<string>('severity-desc');
 
+  const currentTab: IncidentQueueTab = filters.queueTab || 'active';
+
+  const tabConfig: Record<
+    IncidentQueueTab,
+    { title: string; subtitle: string; emptyTitle: string; emptyDesc: string }
+  > = {
+    active: {
+      title: 'Active Incidents Queue',
+      subtitle: 'Surveillance triage feed with human-in-the-loop verification protocol.',
+      emptyTitle: 'No active incidents in queue',
+      emptyDesc: 'All active surveillance hazards have been addressed or no incidents match your filter.',
+    },
+    completed: {
+      title: 'Completed Incidents Archive',
+      subtitle: 'Historical verified resolutions, remediation actions, and field inspections audit trail.',
+      emptyTitle: 'No completed incidents found',
+      emptyDesc: 'Closed and verified municipal hazard resolutions will be preserved and archived here.',
+    },
+    rejected: {
+      title: 'Rejected Incidents Log',
+      subtitle: 'Audited false-positive detections, dismissed alerts, and historical logs.',
+      emptyTitle: 'No rejected incidents found',
+      emptyDesc: 'Dismissed false-positive detections and invalid alerts will be logged here.',
+    },
+  };
+
+  const handleTabChange = (tab: IncidentQueueTab) => {
+    onFilterChange({
+      ...filters,
+      queueTab: tab,
+      status: 'all',
+    });
+  };
+
   const handleSortChange = (val: string) => {
     setSortOption(val);
   };
 
-  // Sort incidents locally
-  const sortedIncidents = [...incidents].sort((a, b) => {
-    switch (sortOption) {
-      case 'severity-desc':
-        return b.severity - a.severity;
-      case 'severity-asc':
-        return a.severity - b.severity;
-      case 'time-desc':
-        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-      case 'time-asc':
-        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-      case 'confidence-desc':
-        return b.confidence - a.confidence;
-      case 'priority-p1': {
-        const rank = { P1: 3, P2: 2, P3: 1 };
-        return rank[b.priority] - rank[a.priority];
+  // Sort incidents locally (memoized so reference is stable unless incidents or sortOption change)
+  const sortedIncidents = useMemo(() => {
+    return [...incidents].sort((a, b) => {
+      switch (sortOption) {
+        case 'severity-desc':
+          return b.severity - a.severity;
+        case 'severity-asc':
+          return a.severity - b.severity;
+        case 'time-desc':
+          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+        case 'time-asc':
+          return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+        case 'confidence-desc':
+          return b.confidence - a.confidence;
+        case 'priority-p1': {
+          const rank = { P1: 3, P2: 2, P3: 1 };
+          return rank[b.priority] - rank[a.priority];
+        }
+        default:
+          return 0;
       }
-      default:
-        return 0;
-    }
-  });
+    });
+  }, [incidents, sortOption]);
 
   // Preload evidence for visible top cards
   useEffect(() => {
@@ -67,14 +120,43 @@ export const IncidentQueueView: React.FC<IncidentQueueViewProps> = ({
 
   return (
     <div className="space-y-5">
+      {/* Top Level Operational Status Views (Active / Completed / Rejected) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <SlidingSegmentedControl
+          items={[
+            {
+              id: 'active' as IncidentQueueTab,
+              label: 'Active',
+              icon: <Activity className="w-4 h-4 text-emerald-500" />,
+              badge: tabCounts?.active,
+            },
+            {
+              id: 'completed' as IncidentQueueTab,
+              label: 'Completed',
+              icon: <CheckCircle2 className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />,
+              badge: tabCounts?.completed,
+            },
+            {
+              id: 'rejected' as IncidentQueueTab,
+              label: 'Rejected',
+              icon: <XCircle className="w-4 h-4 text-rose-500" />,
+              badge: tabCounts?.rejected,
+            },
+          ]}
+          value={currentTab}
+          onChange={handleTabChange}
+          className="self-start"
+        />
+      </div>
+
       {/* Header Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-xl xl:text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
-            Active Incidents Queue
+            {tabConfig[currentTab].title}
           </h2>
           <p className="text-xs xl:text-sm text-zinc-500 dark:text-zinc-400 font-medium">
-            Surveillance triage feed with human-in-the-loop verification protocol.
+            {tabConfig[currentTab].subtitle}
           </p>
         </div>
 
@@ -140,7 +222,8 @@ export const IncidentQueueView: React.FC<IncidentQueueViewProps> = ({
           <span className="text-zinc-900 dark:text-zinc-100 font-bold">
             {sortedIncidents.length}
           </span>{' '}
-          incidents
+          incidents in{' '}
+          <span className="capitalize font-bold text-zinc-900 dark:text-zinc-100">{currentTab}</span> view
         </span>
       </div>
 
@@ -153,8 +236,8 @@ export const IncidentQueueView: React.FC<IncidentQueueViewProps> = ({
         </div>
       ) : sortedIncidents.length === 0 ? (
         <EmptyState
-          title="No matching incidents in queue"
-          description="Try broadening your filter criteria or clear the search query to see all drone detections."
+          title={tabConfig[currentTab].emptyTitle}
+          description={tabConfig[currentTab].emptyDesc}
           onResetFilters={onResetFilters}
         />
       ) : layoutMode === 'grid' ? (

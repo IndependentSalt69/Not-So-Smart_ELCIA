@@ -18,6 +18,7 @@ export default function CivicPulseDashboard() {
 
   const {
     incidents,
+    tabCounts,
     loading: incidentsLoading,
     filters,
     setFilters,
@@ -59,7 +60,7 @@ export default function CivicPulseDashboard() {
   };
 
   const handleResetFilters = () => {
-    setFilters({});
+    setFilters({ queueTab: filters.queueTab || 'active' });
     toast.info('All filters have been reset.');
   };
 
@@ -151,6 +152,7 @@ export default function CivicPulseDashboard() {
         {activeView === 'queue' && (
           <IncidentQueueView
             incidents={incidents}
+            tabCounts={tabCounts}
             loading={incidentsLoading}
             filters={filters}
             onFilterChange={setFilters}

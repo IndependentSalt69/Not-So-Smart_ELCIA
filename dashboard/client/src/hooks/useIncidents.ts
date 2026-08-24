@@ -1,6 +1,13 @@
 import { incidentService } from '@/services/incidentService';
-import { Incident, IncidentFilters, IncidentStatus, SortDirection, SortField } from '@/types/incident';
-import { useCallback, useEffect, useState } from 'react';
+import {
+  Incident,
+  IncidentFilters,
+  IncidentQueueCounts,
+  IncidentStatus,
+  SortDirection,
+  SortField,
+} from '@/types/incident';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export function useIncidents(
   initialFilters?: IncidentFilters,
@@ -10,26 +17,74 @@ export function useIncidents(
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<IncidentFilters>(initialFilters || {});
+  const [filtersState, setFiltersState] = useState<IncidentFilters>(initialFilters || { queueTab: 'active' });
+  const [tabCounts, setTabCounts] = useState<IncidentQueueCounts>({
+    active: 0,
+    completed: 0,
+    rejected: 0,
+  });
 
-  const fetchIncidents = useCallback(async () => {
-    try {
+  const fetchIdRef = useRef<number>(0);
+  const isFirstMountRef = useRef<boolean>(true);
+  const prevFilterKeyRef = useRef<string>('');
+
+  // Stabilize setFilters so identical objects do not cause re-renders
+  const setFilters = useCallback((newFilters: IncidentFilters | ((prev: IncidentFilters) => IncidentFilters)) => {
+    setFiltersState((prev) => {
+      const next = typeof newFilters === 'function' ? newFilters(prev) : newFilters;
+      if (JSON.stringify(prev) === JSON.stringify(next)) {
+        return prev;
+      }
+      return next;
+    });
+  }, []);
+
+  const filterKey = useMemo(() => {
+    return JSON.stringify({ filters: filtersState, sortField, sortDir });
+  }, [filtersState, sortField, sortDir]);
+
+  const fetchIncidents = useCallback(async (isSilent = false) => {
+    const fetchId = ++fetchIdRef.current;
+    const isParamChange = prevFilterKeyRef.current !== filterKey;
+    prevFilterKeyRef.current = filterKey;
+
+    // Show loading skeletons ONLY if parameters changed or initial mount, AND it's not a silent background update
+    if (!isSilent && (isFirstMountRef.current || isParamChange)) {
       setLoading(true);
-      setError(null);
-      const data = await incidentService.getIncidents(filters, sortField, sortDir);
-      setIncidents(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch incidents');
-    } finally {
-      setLoading(false);
     }
-  }, [filters, sortField, sortDir]);
+    isFirstMountRef.current = false;
+
+    try {
+      setError(null);
+      const [data, counts] = await Promise.all([
+        incidentService.getIncidents(filtersState, sortField, sortDir),
+        incidentService.getQueueTabCounts(),
+      ]);
+
+      // Guard against race conditions (stale responses resolving out of order)
+      if (fetchId === fetchIdRef.current) {
+        setIncidents(data);
+        setTabCounts(counts);
+      }
+    } catch (err: any) {
+      if (fetchId === fetchIdRef.current) {
+        setError(err.message || 'Failed to fetch incidents');
+      }
+    } finally {
+      if (fetchId === fetchIdRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [filtersState, sortField, sortDir, filterKey]);
 
   useEffect(() => {
-    fetchIncidents();
+    fetchIncidents(false);
+
     const unsubscribe = incidentService.subscribe(() => {
-      fetchIncidents();
+      // Background subscriber notifications (e.g. status updates) update silently without displaying loading skeletons
+      fetchIncidents(true);
     });
+
     return unsubscribe;
   }, [fetchIncidents]);
 
@@ -86,9 +141,10 @@ export function useIncidents(
 
   return {
     incidents,
+    tabCounts,
     loading,
     error,
-    filters,
+    filters: filtersState,
     setFilters,
     refetch: fetchIncidents,
     getIncidentById,

@@ -6,6 +6,8 @@ Health, Zones, Users, Incidents, Evidence, Detections, Assignments, Inspections,
 
 import uuid
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+from src.db.models.enums import IncidentStatus
 
 
 def test_health_endpoint(client: TestClient):
@@ -294,4 +296,68 @@ def test_all_four_incident_types_api_flow(client: TestClient):
     assert empty_resp.status_code == 200
     assert empty_resp.json()["total"] == 0
     assert empty_resp.json()["items"] == []
+
+
+def test_incident_status_multi_query_filtering(client: TestClient, db_session: Session):
+    """Test multi-status query parameter (e.g. status=DETECTED,VERIFIED,ASSIGNED,IN_PROGRESS,RE_INSPECTION) and individual status views."""
+    # Create zone
+    zone_resp = client.post(
+        "/api/v1/zones/",
+        json={"code": "ZONE-STATUS-TEST", "name": "Status Test Zone"},
+    )
+    zone_id = zone_resp.json()["id"]
+
+    # Create incidents in different statuses
+    statuses_to_create = [
+        ("INC-STAT-01", IncidentStatus.DETECTED),
+        ("INC-STAT-02", IncidentStatus.VERIFIED),
+        ("INC-STAT-03", IncidentStatus.ASSIGNED),
+        ("INC-STAT-04", IncidentStatus.IN_PROGRESS),
+        ("INC-STAT-05", IncidentStatus.RE_INSPECTION),
+        ("INC-STAT-06", IncidentStatus.CLOSED),
+        ("INC-STAT-07", IncidentStatus.REJECTED),
+    ]
+
+    for code, st in statuses_to_create:
+        create_resp = client.post(
+            "/api/v1/incidents/",
+            json={
+                "incident_code": code,
+                "incident_type": "WATERLOGGING",
+                "confidence": 0.9,
+                "severity_score": 7.5,
+                "priority": "P1",
+                "zone_id": zone_id,
+                "status": st.value,
+            },
+        )
+        assert create_resp.status_code == 201
+
+    # 1. Active view query: DETECTED,VERIFIED,ASSIGNED,IN_PROGRESS,RE_INSPECTION
+    active_statuses = "DETECTED,VERIFIED,ASSIGNED,IN_PROGRESS,RE_INSPECTION"
+    active_resp = client.get(f"/api/v1/incidents/?zone_id={zone_id}&status={active_statuses}")
+    assert active_resp.status_code == 200
+    active_data = active_resp.json()
+    assert active_data["total"] == 5
+    active_codes = {item["incident_code"] for item in active_data["items"]}
+    assert active_codes == {"INC-STAT-01", "INC-STAT-02", "INC-STAT-03", "INC-STAT-04", "INC-STAT-05"}
+
+    # 2. Completed view query: CLOSED
+    completed_resp = client.get(f"/api/v1/incidents/?zone_id={zone_id}&status=CLOSED")
+    assert completed_resp.status_code == 200
+    completed_data = completed_resp.json()
+    assert completed_data["total"] == 1
+    assert completed_data["items"][0]["incident_code"] == "INC-STAT-06"
+
+    # 3. Rejected view query: REJECTED
+    rejected_resp = client.get(f"/api/v1/incidents/?zone_id={zone_id}&status=REJECTED")
+    assert rejected_resp.status_code == 200
+    rejected_data = rejected_resp.json()
+    assert rejected_data["total"] == 1
+    assert rejected_data["items"][0]["incident_code"] == "INC-STAT-07"
+
+    # 4. Invalid status query returns 422
+    invalid_resp = client.get(f"/api/v1/incidents/?status=INVALID_FOO,BAR")
+    assert invalid_resp.status_code == 422
+
 
