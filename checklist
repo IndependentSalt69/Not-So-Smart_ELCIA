@@ -1,84 +1,667 @@
+# CivicPulse — Master Project Status & Remaining Work
+
+LAST UPDATED: 24 August 2026
+SYSTEM STATE: Post-ML deployment, full pipeline executed, backend/frontend integration verified, hard dashboard QA completed.
+
+============================================================
+CURRENT SYSTEM
+============================================================
+
+Drone / Surveillance Video
+        +
+DJI SRT GPS Telemetry
+        ↓
+ML Inference
+        ↓
+Detection
+        ↓
+Temporal Association
+        ↓
+Severity / Priority
+        ↓
+Evidence Generation
+        ↓
+FastAPI
+        ↓
+PostgreSQL + PostGIS
+        ↓
+React Operations Dashboard
+        ↓
+Human Verification
+        ↓
+Assignment
+        ↓
+Field Inspection
+        ↓
+Closure
+        ↓
+Analytics
+
+============================================================
+1. AI / ML
+============================================================
+
+DONE
+[x] Dataset inspected
+[x] Train/validation/test split created
+[x] Waterlogging baseline trained
+[x] Pothole baseline trained
+[x] Real video inference working
+[x] Segmentation overlays generated
+[x] Confidence recorded
+[x] Temporal association working
+[x] Duplicate suppression working
+[x] Incident generation working
+[x] Evidence frames generated
+[x] Severity calculation working
+[x] Priority calculation working
+[x] ML model deployed
+[x] End-to-end ML pipeline executed
+[x] DJI SRT telemetry parsing working
+[x] GPS-linked hazard telemetry generated
+[x] Annotated video generated
+
+NEEDS FINALIZATION
+[ ] Failure cases fully documented
+[ ] False-positive examples collected
+[ ] False-negative / missed-detection examples collected
+[ ] Final precision / recall / F1 / mAP report
+[ ] Per-class metric report
+[ ] Incident-level metrics measured
+[ ] Latency benchmark completed
+[ ] End-to-end processing time measured
+[ ] Final production checkpoint formally frozen
+[ ] Model artifact/version/hash documented
+
+ML <-> BACKEND CONTRACT CLEANUP
+
+MODEL CLASSES
+Current ML classes:
+- waterlogging
+- pothole
+- drainage_overflow
+- damaged_footpath
+
+Current backend incident types are primarily:
+- WATERLOGGING
+- POTHOLE
+
+[ ] Decide whether backend supports all four ML classes
+[ ] Decide whether unsupported classes are filtered/mapped
+[ ] Update backend/frontend enum contracts if required
+[ ] Document final ML -> backend class mapping
+
+SEVERITY NORMALIZATION
+
+ML severity:
+0–100
+
+Backend incident severity:
+0–10
+
+[ ] Document conversion between ML and backend severity
+[ ] Verify conversion is consistent
+[ ] Verify priority calculation uses normalized severity correctly
+
+============================================================
+2. BACKEND
+============================================================
+
+DONE
+[x] FastAPI backend
+[x] PostgreSQL
+[x] PostGIS
+[x] Alembic migrations
+[x] Incident CRUD
+[x] Zones
+[x] Users
+[x] Evidence API
+[x] Detection API
+[x] Assignment API
+[x] Inspection API
+[x] Status history
+[x] Analytics APIs
+[x] Validation
+[x] Error handling
+[x] CORS configuration
+[x] Health endpoint
+[x] Evidence static media serving
+[x] Path traversal protection
+[x] Automated testing
+
+CURRENT TEST BASELINE
+[x] 41 / 41 backend tests passing
+
+PRODUCTION CONFIGURATION
+[ ] Production environment variables
+[ ] Production database URL
+[ ] Production CORS restrictions
+[ ] Production logging
+[ ] Production error monitoring
+[ ] Production media configuration
+[ ] Rate limiting / API protection
+[ ] Secrets management
+
+AUTHENTICATION / AUTHORIZATION
+[ ] User authentication
+[ ] JWT / OAuth2
+[ ] Role-based authorization
+[ ] ADMIN guards
+[ ] OPERATOR guards
+[ ] INSPECTOR guards
+
+NOTE:
+Authentication is not required for the current local demo unless explicitly required,
+but is required before calling the system production-ready.
+
+============================================================
+3. DASHBOARD
+============================================================
+
+DONE
+[x] Real backend incident data
+[x] Incident queue
+[x] Incident detail
+[x] Live map markers
+[x] Dynamic map centering
+[x] Incident filtering
+[x] Incident sorting
+[x] Evidence viewer
+[x] Real evidence thumbnails
+[x] Confidence display
+[x] Severity display
+[x] Priority display
+[x] "Why high priority?" explanation
+[x] Verify
+[x] Reject
+[x] Assignment
+[x] Field inspection
+[x] Status progression
+[x] Status history
+[x] Detection observations
+[x] Analytics
+[x] Live analytics API integration
+[x] Mock analytics removed
+[x] Google Maps camera stabilization
+[x] Null/invalid coordinate protection
+[x] AI ingest -> backend incident publishing
+[x] Incident type filter fixes
+[x] Donut chart center alignment
+[x] Queue evidence thumbnails
+
+FINAL UI / UX QA
+[ ] Full responsive testing
+[ ] Desktop verification
+[ ] Laptop verification
+[ ] Tablet verification
+[ ] Mobile verification
+[ ] Loading-state audit
+[ ] Empty-state audit
+[ ] Error-state audit
+[ ] Browser console audit
+[ ] Accessibility pass
+[ ] Final typography/spacing polish
+[ ] Final wording consistency
+
+DEVELOPMENT-ONLY LOGIC CLEANUP
+[ ] Review ensureBackendSeeded()
+[ ] Prevent demo/seed data from executing automatically in production
+[ ] Isolate all development-only fallback logic
+[ ] Verify no unwanted mock data can reappear
+
+============================================================
+4. EVIDENCE / MEDIA
+============================================================
+
+DONE
+[x] ML-generated evidence frames
+[x] Evidence records stored in database
+[x] FastAPI static evidence serving
+[x] Browser-accessible evidence URLs
+[x] Detail-view real evidence
+[x] Incident Queue real evidence thumbnails
+[x] Missing-image fallback
+[x] SVG preview fallback
+[x] Path traversal protection
+[x] Media URL abstraction
+
+PRODUCTION MEDIA
+[ ] Object storage migration if required
+[ ] S3 / GCS integration
+[ ] Signed URLs
+[ ] CDN strategy
+[ ] Evidence retention policy
+[ ] Large video/clip serving strategy
+
+============================================================
+5. SPATIAL / DRONE INTELLIGENCE
+============================================================
+
+DONE
+[x] Incident coordinates
+[x] Detection coordinates
+[x] PostGIS POINT storage
+[x] DJI SRT telemetry parsing
+[x] Timestamped GPS-linked hazard telemetry
+[x] Data-driven map centering
+[x] Selected-incident fly-to
+
+DRONE TRAJECTORY — OPTIONAL
+Current state:
+- Raw GPS telemetry exists
+- Incident/detection coordinates exist
+- Full-flight trajectory is not persisted as a dedicated LINESTRING
+
+[ ] Flight entity
+[ ] Flight ID
+[ ] Raw telemetry storage
+[ ] Telemetry -> flight association
+[ ] PostGIS LINESTRING
+[ ] Flight-path visualization
+[ ] Flight replay
+[ ] Detection -> flight association
+[ ] Frame <-> telemetry synchronization refinement
+
+PRIORITY:
+Optional for current demo.
+Useful for long-term CivicPulse architecture.
+
+============================================================
+6. RESPONSE ROUTE OPTIMIZATION
+============================================================
+
+PROPOSED FEATURE
+
+Purpose:
+Turn detected incidents into an optimized route for municipal response teams.
+
+FLOW:
+
+Active Incidents
+       ↓
+Priority / Severity
+       ↓
+Travel-Time Matrix
+       ↓
+Route Optimizer
+       ↓
+Road Routing Engine
+       ↓
+Optimized Response Route
+       ↓
+Dashboard Map
+
+IMPLEMENTATION
+[ ] Select incidents for routing
+[ ] Select response team
+[ ] Define team starting location
+[ ] Build travel-time/distance matrix
+[ ] Priority-aware ordering
+[ ] Route optimization
+[ ] Road-network routing
+[ ] Display route on map
+[ ] Show ordered incident list
+[ ] Estimated distance
+[ ] Estimated travel time
+[ ] Mark completed stops
+
+PRIORITY:
+P1 enhancement / potentially strong hackathon feature.
+
+This turns CivicPulse from:
+
+Detect -> Display
+
+into:
+
+Detect -> Prioritize -> Decide -> Respond
+
+============================================================
+7. GOOGLE MAPS
+============================================================
+
+CURRENT STATE
+[x] Map logic complete
+[x] Dynamic data-driven centering
+[x] Coordinate safety
+[x] Marker interaction
+[x] Fly-to behavior
+
+DEFERRED
+[ ] Production browser API key
+[ ] HTTP referrer restrictions
+[ ] API scope restrictions
+[ ] Production domain configuration
+[ ] Remove Google "development purposes only" warning
+
+PRIORITY:
+Defer until deployment/demo preparation.
+
+Reason:
+Avoid unnecessary billing during active development.
+
+============================================================
+8. DEPLOYMENT
+============================================================
+
+FRONTEND
+[ ] Production build
+[ ] Production API URL
+[ ] Production environment variables
+[ ] Frontend hosting
+[ ] HTTPS
+[ ] Production Google Maps configuration
+
+BACKEND
+[ ] FastAPI deployment
+[ ] Production environment variables
+[ ] Production CORS
+[ ] HTTPS
+[ ] Production logging
+[ ] Health endpoint verification
+[ ] Restart/recovery configuration
+[ ] Process manager/containerization
+
+DATABASE
+[ ] Production PostgreSQL
+[ ] Production PostGIS
+[ ] Run Alembic migrations
+[ ] Database credentials
+[ ] Backups
+[ ] Restore/recovery test
+[ ] Secure remote access
+
+ML
+[x] Model deployed
+[x] Pipeline executed successfully
+
+[ ] Production inference environment
+[ ] Model artifact versioning
+[ ] Resource validation
+[ ] Performance benchmark in production environment
+[ ] Restart/recovery test
+
+============================================================
+9. OBSERVABILITY
+============================================================
+
+[ ] Production structured logs
+[ ] API request logging
+[ ] ML pipeline execution logging
+[ ] Error tracking
+[ ] Basic service metrics
+[ ] Alerting
+[ ] Optional Prometheus
+[ ] Optional Grafana
+
+============================================================
+10. SECURITY
+============================================================
+
+[ ] Authentication
+[ ] Authorization
+[ ] Role-based access
+[ ] Production secrets management
+[ ] HTTPS
+[ ] Rate limiting
+[ ] Restricted CORS
+[ ] Secure media access
+[ ] Production API access controls
+
+============================================================
+11. GOLDEN END-TO-END TEST
+============================================================
+
+THIS IS THE MOST IMPORTANT REMAINING FUNCTIONAL TEST.
+
+Run ONE REAL PIPELINE-GENERATED INCIDENT THROUGH THE ENTIRE SYSTEM.
+
+FLOW:
+
+Real Drone Video
+      ↓
+ML Inference
+      ↓
+Detection
+      ↓
+Telemetry Match
+      ↓
+Incident Creation
+      ↓
+Evidence Creation
+      ↓
+Database
+      ↓
+Incident Queue
+      ↓
+Real Evidence Thumbnail
+      ↓
+Map
+      ↓
+Incident Detail
+      ↓
+Human Verification
+      ↓
+Assignment
+      ↓
+Field Inspection
+      ↓
+Status Progression
+      ↓
+Closure
+      ↓
+Analytics
+
+CHECKLIST
+
+[ ] Real video processed
+[ ] Detection generated
+[ ] GPS coordinate associated
+[ ] Incident created in PostgreSQL
+[ ] Evidence saved
+[ ] Detection saved
+[ ] Evidence visible in queue
+[ ] Evidence visible in detail view
+[ ] Map location correct
+[ ] Verify works
+[ ] Reject works
+[ ] Assign works
+[ ] Inspection works
+[ ] Status persists after refresh
+[ ] Closure persists after refresh
+[ ] Analytics reflect resulting incident state
+
+IMPORTANT:
+Do not call the system end-to-end verified until this exact golden path succeeds
+using a real ML-generated incident.
+
+============================================================
+12. DEMO PREPARATION
+============================================================
+
+TEST MEDIA
+[ ] One known-good video
+[ ] One challenging video
+[ ] Waterlogging case
+[ ] Pothole case
+[ ] False-positive case
+
+DEMO FLOW
+
+Video
+  ↓
 AI
+  ↓
+Detection
+  ↓
+Incident
+  ↓
+Real Evidence
+  ↓
+Map
+  ↓
+Verify
+  ↓
+Assign
+  ↓
+Inspect
+  ↓
+Close
+  ↓
+Analytics
 
- Dataset inspected
- Train/val/test split created by video
- Waterlogging baseline trained
- Pothole baseline trained
- Real video inference working
- Segmentation overlays generated
- Confidence recorded
- Temporal association working
- Duplicate suppression working
- Incident generation working
- Evidence frames generated
- Severity calculation working
- Priority calculation working
- Failure cases tested
- Precision/recall/F1/mAP measured
- Incident-level metrics measured
- Latency measured
- Final model frozen
+PRESENTATION
+[ ] 90-second demo flow
+[ ] Backup local demo
+[ ] Public demo URL
+[ ] Demo script
+[ ] Architecture explanation
+[ ] ML metrics explanation
+[ ] GPS/telemetry explanation
+[ ] Severity explanation
+[ ] Priority explanation
+[ ] Human verification explanation
+[ ] Route optimization explanation if implemented
+[ ] Judges' questions prepared
 
-Backend
+============================================================
+13. CURRENT VERIFIED TEST BASELINE
+============================================================
 
- /api/process
- /api/process/{job_id}
- /api/incidents
- /api/incidents/{id}
- Incident update endpoint
- Database connected
- Evidence storage working
- CORS/configuration working
- Error handling
- Health endpoint
- Production environment variables
+BACKEND
+41 / 41 pytest tests passing
 
-Dashboard
+FRONTEND
+npm run check -> 0 errors
 
- Real API data
- No hard-coded incidents
- No Traffic Congestion mock
- Map markers
- Incident queue
- Evidence viewer
- Confidence
- Severity
- Priority
- "Why high priority?"
- Verify
- Reject
- Assign
- Status progression
- Analytics
- Responsive layout
+PHASE 10A — MAP
+4 / 4 verification tests passed
 
-Deployment
+PHASE 10B — MEDIA
+4 / 4 verification tests passed
 
- Frontend deployed
- Backend deployed
- Model deployed
- Database deployed
- HTTPS
- Environment variables
- CORS
- File upload limits
- Logs
- Health check
- Restart recovery
- Cold-start tested
- Public demo URL tested
- Local fallback tested
+PHASE 10C — QUEUE EVIDENCE
+2 / 2 verification tests passed
 
-Demo
+============================================================
+14. CURRENT PRIORITY ORDER
+============================================================
 
- One known-good video
- One challenging video
- Waterlogging case
- Pothole case
- False-positive example
- Human verification
- Assignment
- Closure
- 90-second demo flow
- Backup local demo
- Judges' likely questions prepared
+P0 — MUST COMPLETE
+
+[ ] Resolve ML class <-> backend incident-type contract
+[ ] Document / verify severity normalization
+[ ] Execute golden end-to-end test with real ML-generated data
+[ ] Complete final dashboard QA
+[ ] Remove/isolate development-only auto-seeding
+[ ] Verify no unintended mock/fallback data can appear in demo mode
+
+P1 — BEFORE FINAL DEMO
+
+[ ] Deploy frontend
+[ ] Deploy backend
+[ ] Deploy production database
+[ ] Configure production environment variables
+[ ] Configure production CORS
+[ ] Configure HTTPS
+[ ] Production logging
+[ ] Public demo URL
+[ ] Final known-good demo video
+[ ] 90-second demo rehearsal
+[ ] Backup local demo
+
+P1 — OPTIONAL BUT HIGH-VALUE ENHANCEMENT
+
+[ ] Priority-aware response route optimization
+
+P2 — VALUABLE FUTURE ENHANCEMENTS
+
+[ ] Drone flight LINESTRING
+[ ] Full telemetry storage
+[ ] Flight replay
+[ ] Authentication / authorization
+[ ] S3/GCS evidence storage
+[ ] Advanced observability
+
+P3 — LONG-TERM
+
+[ ] RTSP / RTMP live streaming
+[ ] Edge GPU optimization
+[ ] TensorRT / ONNX deployment
+[ ] Live drone operations
+[ ] Multi-team fleet routing
+
+============================================================
+15. CURRENT OVERALL STATUS
+============================================================
+
+AI / ML Pipeline              🟢 WORKING
+Backend                       🟢 WORKING
+Database / PostGIS            🟢 WORKING
+Evidence                      🟢 WORKING
+Dashboard                     🟢 WORKING
+Analytics                     🟢 WORKING
+Map                           🟢 WORKING
+Queue Evidence Thumbnails     🟢 WORKING
+Hard Dashboard QA             🟢 COMPLETE
+
+ML <-> Backend Contract        🟡 NEEDS FINALIZATION
+Final QA                       🟡 IN PROGRESS
+Google Maps Production Config  🟡 DEFERRED
+Drone Trajectory               🟡 OPTIONAL
+Route Optimization             🟡 OPTIONAL
+
+Deployment                     🔴 PENDING
+Production Security            🔴 PENDING
+Production Observability       🔴 PENDING
+Final Demo                     🔴 PENDING
+
+============================================================
+16. WORKING RULES FOR FUTURE CHANGES
+============================================================
+
+Before implementing any new major feature:
+
+1. Read this document first.
+2. Check whether the feature is already marked DONE.
+3. Do not duplicate existing APIs/services/components.
+4. Preserve the ML/backend/frontend separation.
+5. Do not replace real backend data with mock data.
+6. Do not add hard-coded geography to the map.
+7. Do not claim a feature is complete until it has been tested.
+8. Preserve existing evidence media infrastructure.
+9. Preserve existing analytics integration.
+10. Preserve existing PostGIS coordinate handling.
+11. Update this document after each major milestone.
+12. Update the integration log after every significant implementation phase.
+
+============================================================
+17. STRATEGIC OBJECTIVE
+============================================================
+
+CURRENT GOAL:
+
+Move CivicPulse from:
+
+"Fully integrated development prototype"
+
+to:
+
+"Verified, deployable, demo-ready civic intelligence system."
+
+DO NOT prioritize adding more UI features unless they materially improve:
+- end-to-end operations
+- response decision support
+- demo quality
+- deployment readiness
+- reliability
+
+CURRENT NEXT STEP:
+
+1. Finalize ML <-> backend contracts
+2. Run the golden end-to-end test
+3. Finish final dashboard QA
+4. Productionize
+5. Prepare demo
+6. Rehearse
+7. Submit
