@@ -5,38 +5,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { inferenceService, SAMPLE_PRESETS } from '@/services/inferenceService';
-import { DroneTelemetry, InferenceResult, SampleFootagePreset } from '@/types/ingestion';
+import { incidentService } from '@/services/incidentService';
+import { processingService } from '@/services/processingService';
+import { DroneTelemetry, InferenceResult, ProcessJobStatusResponse, SampleFootagePreset } from '@/types/ingestion';
 import { ZoneId } from '@/types/incident';
 import {
-  Activity,
-  AlertCircle,
   AlertTriangle,
   Camera,
   CheckCircle2,
-  ChevronRight,
-  CloudRain,
   Compass,
+  Cpu,
   Download,
   Droplets,
-  Eye,
+  FileCode,
   FileVideo,
   Footprints,
-  Gauge,
   ImageIcon,
-  Layers,
-  MapPin,
   Play,
   Radio,
   RefreshCw,
   Send,
-  ShieldAlert,
   ShieldCheck,
   Sparkles,
   UploadCloud,
   Waves,
   Zap,
+  XCircle,
 } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 interface DroneIngestionStudioProps {
@@ -47,14 +43,21 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
   onIncidentPublished,
 }) => {
   const [selectedPreset, setSelectedPreset] = useState<SampleFootagePreset | null>(SAMPLE_PRESETS[0]);
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string>(SAMPLE_PRESETS[0].mediaUrl);
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
+
+  // Real ML Upload File States (Phase 11D)
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [srtFile, setSrtFile] = useState<File | null>(null);
+  const [isRealProcessing, setIsRealProcessing] = useState<boolean>(false);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [realJobStatus, setRealJobStatus] = useState<ProcessJobStatusResponse | null>(null);
+  const [realJobError, setRealJobError] = useState<string | null>(null);
 
   // Telemetry Configuration State
   const [telemetry, setTelemetry] = useState<DroneTelemetry>(SAMPLE_PRESETS[0].defaultTelemetry);
 
-  // Inference execution states
+  // Simulated inference execution states (for fallback demo presets)
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [currentStage, setCurrentStage] = useState<string>('');
   const [analysisProgress, setAnalysisProgress] = useState<number>(0);
@@ -62,45 +65,166 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
   const [showOverlay, setShowOverlay] = useState<boolean>(true);
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const srtInputRef = useRef<HTMLInputElement>(null);
+  const pollTimerRef = useRef<NodeJS.Timeout | number | null>(null);
+
+  // Clean up polling interval
+  const stopPolling = useCallback(() => {
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current as any);
+      pollTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      stopPolling();
+    };
+  }, [stopPolling]);
 
   // Handle Preset selection
   const handleSelectPreset = (preset: SampleFootagePreset) => {
     setSelectedPreset(preset);
-    setMediaFile(null);
+    setVideoFile(null);
+    setSrtFile(null);
     setMediaPreviewUrl(preset.mediaUrl);
     setMediaType(preset.mediaType);
     setTelemetry(preset.defaultTelemetry);
     setInferenceResult(null);
+    setRealJobStatus(null);
+    setRealJobError(null);
+    setActiveJobId(null);
   };
 
-  // Handle local file upload
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle Video file upload
+  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setMediaFile(file);
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      if (!['mp4', 'mov', 'avi'].includes(ext || '')) {
+        toast.error(`Unsupported video format '.${ext}'. Allowed formats: .mp4, .mov, .avi`);
+        return;
+      }
+      setVideoFile(file);
       setSelectedPreset(null);
       const url = URL.createObjectURL(file);
       setMediaPreviewUrl(url);
-      setMediaType(file.type.startsWith('video') ? 'video' : 'image');
+      setMediaType('video');
       setInferenceResult(null);
-      toast.success(`Loaded file: ${file.name}`);
+      setRealJobStatus(null);
+      setRealJobError(null);
+      setActiveJobId(null);
+      toast.success(`Loaded video: ${file.name}`);
     }
   };
 
-  // Trigger file dialog
-  const handleBrowseClick = () => {
-    fileInputRef.current?.click();
+  // Handle SRT telemetry file upload
+  const handleSrtUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      if (ext !== 'srt') {
+        toast.error(`Unsupported telemetry format '.${ext}'. Allowed format: .srt`);
+        return;
+      }
+      setSrtFile(file);
+      toast.success(`Loaded telemetry: ${file.name}`);
+    }
   };
 
-  // Run AI Inference Pipeline
-  const handleRunInference = async () => {
+  // Trigger file dialogs
+  const handleBrowseVideo = () => videoInputRef.current?.click();
+  const handleBrowseSrt = () => srtInputRef.current?.click();
+
+  // Run REAL ML Pipeline via FastAPI Backend (Phase 11D)
+  const handleRunRealProcessing = async () => {
+    if (!videoFile) {
+      toast.error('Real ML processing requires a video file (.mp4, .mov, .avi).');
+      return;
+    }
+
+    try {
+      stopPolling();
+      setIsRealProcessing(true);
+      setRealJobError(null);
+      setRealJobStatus(null);
+      setInferenceResult(null);
+
+      toast.info('Uploading drone footage and queuing ML processing job...');
+
+      const initialRes = await processingService.submitProcessingJob(
+        videoFile,
+        srtFile,
+        telemetry.zoneId,
+        telemetry.droneId
+      );
+
+      setActiveJobId(initialRes.job_id);
+      setRealJobStatus({
+        job_id: initialRes.job_id,
+        status: 'QUEUED',
+        progress_pct: 0,
+        current_stage: 'Job queued for GPU execution',
+        hazards_detected: 0,
+        evidence_count: 0,
+        created_at: initialRes.created_at,
+        started_at: null,
+        completed_at: null,
+        error: null,
+        results: null,
+      });
+
+      toast.success(`Job ${initialRes.job_id.slice(0, 8)} queued! Starting real-time status polling...`);
+
+      // Start 1000ms Polling Loop
+      pollTimerRef.current = setInterval(async () => {
+        try {
+          const statusRes = await processingService.getJobStatus(initialRes.job_id);
+          setRealJobStatus(statusRes);
+
+          if (statusRes.status === 'COMPLETED') {
+            stopPolling();
+            setIsRealProcessing(false);
+
+            const incidentsCreated = statusRes.results?.summary?.incidents_created ?? 0;
+            toast.success(`Real ML Pipeline & Ingestion Complete!`, {
+              description: `Detected hazards automatically ingested into PostgreSQL/PostGIS (${incidentsCreated} incidents created).`,
+            });
+
+            // Trigger live Incident Queue refresh
+            incidentService.notifySubscribers();
+
+            if (statusRes.results?.incident_ids?.length) {
+              onIncidentPublished(statusRes.results.incident_ids[0]);
+            }
+          } else if (statusRes.status === 'FAILED') {
+            stopPolling();
+            setIsRealProcessing(false);
+            const errDetail = statusRes.error || 'ML Processing job failed on backend.';
+            setRealJobError(errDetail);
+            toast.error(`Job Execution Failed: ${errDetail}`);
+          }
+        } catch (pollErr: any) {
+          console.warn('Job polling error:', pollErr);
+        }
+      }, 1000);
+    } catch (err: any) {
+      setIsRealProcessing(false);
+      const errMsg = err.message || 'Failed to submit processing job to backend.';
+      setRealJobError(errMsg);
+      toast.error(errMsg);
+    }
+  };
+
+  // Run Simulated AI Inference (Fallback for Demo Presets)
+  const handleRunDemoInference = async () => {
     try {
       setIsAnalyzing(true);
       setInferenceResult(null);
       setAnalysisProgress(0);
 
-      const presetType = selectedPreset?.type || (mediaFile ? 'waterlogging' : 'waterlogging');
+      const presetType = selectedPreset?.type || 'waterlogging';
 
       const result = await inferenceService.analyzeMedia({
         mediaUrl: mediaPreviewUrl,
@@ -114,17 +238,17 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
       });
 
       setInferenceResult(result);
-      toast.success('Drone Vision AI Analysis Complete!', {
+      toast.success('Simulated Demo Vision AI Complete!', {
         description: `Detection: ${result.type.toUpperCase()} • Priority: ${result.priority}`,
       });
     } catch (err: any) {
-      toast.error(err.message || 'AI Inference failed');
+      toast.error(err.message || 'Demo Inference failed');
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  // Publish to Operations Queue
+  // Publish Demo Incident to Operations Queue
   const handlePublishIncident = async () => {
     if (!inferenceResult) return;
     try {
@@ -143,25 +267,17 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
 
   // Export GeoJSON / Report
   const handleExportJson = () => {
-    if (!inferenceResult) return;
-    const exportData = {
-      incidentId: inferenceResult.id,
-      timestamp: new Date().toISOString(),
-      type: inferenceResult.type,
-      confidence: inferenceResult.confidence,
-      severity: inferenceResult.severity,
-      priority: inferenceResult.priority,
-      telemetry: inferenceResult.telemetry,
-      severityFactors: inferenceResult.severityFactors,
-      recommendedAction: inferenceResult.recommendedAction,
-    };
+    if (!inferenceResult && !realJobStatus?.results) return;
+    const exportData = realJobStatus?.results
+      ? realJobStatus.results
+      : inferenceResult;
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `CivicPulse_AI_Inference_${inferenceResult.id}.json`;
+    a.download = `CivicPulse_AI_Processing_${activeJobId || inferenceResult?.id}.json`;
     a.click();
-    toast.success('Inference GeoJSON export downloaded');
+    toast.success('GeoJSON report downloaded');
   };
 
   return (
@@ -172,24 +288,24 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
           <div className="space-y-2 max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs xl:text-sm font-semibold">
               <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
-              <span>YOLOv8 + SAM Sensor Pipeline • Live Ingestion Studio</span>
+              <span>YOLOv8 + MiDaS Pipeline • Real ML Ingestion Studio</span>
             </div>
             <h1 className="text-2xl sm:text-3xl xl:text-4xl 2xl:text-5xl font-black tracking-tight text-white">
               Drone Vision AI Ingestion & Inference Studio
             </h1>
             <p className="text-sm xl:text-base text-slate-300 leading-relaxed">
-              Feed raw aerial drone camera feeds or video streams into our computer-vision pipeline. The model segments waterlogged road surfaces, detects pothole craters, scores 4-vector severity, and publishes actionable incidents directly into the civic response workflow.
+              Feed raw aerial drone video clips and optional DJI SRT flight telemetry into our PyTorch backend ML pipeline. The engine processes frames with YOLOv8 & MiDaS depth estimation, normalizes hazard severity, and ingests detected incidents directly into PostgreSQL/PostGIS.
             </p>
           </div>
 
           <div className="flex items-center gap-3.5 shrink-0 bg-white/10 backdrop-blur-md p-4 xl:p-5 rounded-2xl border border-white/15">
             <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-              <Sparkles className="w-6 h-6" />
+              <Cpu className="w-6 h-6" />
             </div>
             <div>
-              <div className="text-xs font-semibold text-slate-300">Model Pipeline</div>
-              <div className="text-lg xl:text-xl font-black text-white">YOLOv8 + SAM 2.1</div>
-              <div className="text-xs text-emerald-300 font-bold">1080p Real-time 60FPS</div>
+              <div className="text-xs font-semibold text-slate-300">FastAPI Pipeline</div>
+              <div className="text-lg xl:text-xl font-black text-white">YOLOv8 + MiDaS</div>
+              <div className="text-xs text-emerald-300 font-bold">PostgreSQL / PostGIS Auto-Ingest</div>
             </div>
           </div>
         </div>
@@ -199,14 +315,14 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <h3 className="text-xs xl:text-sm font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
-            Quick-Select Sample Drone Feeds (1-Click Demo)
+            Quick-Select Sample Drone Feeds (Demo Presets / Fallback)
           </h3>
-          <span className="text-xs text-zinc-500 font-medium">Or upload custom media below</span>
+          <span className="text-xs text-zinc-500 font-medium">Or upload custom drone video + SRT telemetry below for Real ML Processing</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-3.5">
           {SAMPLE_PRESETS.map((preset) => {
-            const isSelected = selectedPreset?.id === preset.id;
+            const isSelected = selectedPreset?.id === preset.id && !videoFile;
             return (
               <div
                 key={preset.id}
@@ -258,48 +374,84 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
         </div>
       </div>
 
-      {/* Main Studio Two-Column Grid: Left Ingestion + Config, Right Live Preview & AI Results */}
+      {/* Main Studio Two-Column Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Upload & Flight Telemetry Config */}
         <div className="lg:col-span-5 space-y-5">
-          {/* Dropzone Container */}
+          {/* File Upload Box */}
           <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm xl:text-base font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
                 <UploadCloud className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
-                <span>Upload Drone Footage</span>
+                <span>Upload Custom Drone Footage & Telemetry</span>
               </h3>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,video/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
+            </div>
+
+            {/* Hidden File Inputs */}
+            <input
+              ref={videoInputRef}
+              type="file"
+              accept="video/mp4,video/quicktime,video/x-msvideo,.mp4,.mov,.avi"
+              onChange={handleVideoUpload}
+              className="hidden"
+            />
+            <input
+              ref={srtInputRef}
+              type="file"
+              accept=".srt"
+              onChange={handleSrtUpload}
+              className="hidden"
+            />
+
+            {/* Video File Picker Surface */}
+            <div
+              onClick={handleBrowseVideo}
+              className={cn(
+                'border-2 border-dashed rounded-2xl p-5 text-center cursor-pointer transition-all space-y-2 group',
+                videoFile
+                  ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30'
+                  : 'border-zinc-300 dark:border-zinc-700 hover:border-emerald-500 bg-zinc-50/50 dark:bg-zinc-800/20'
+              )}
+            >
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto transition-transform group-hover:scale-110">
+                <FileVideo className="w-5 h-5" />
+              </div>
+              <div className="text-xs xl:text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                {videoFile ? videoFile.name : 'Select Drone Video File (.mp4, .mov, .avi)'}
+              </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                {videoFile ? `Size: ${(videoFile.size / (1024 * 1024)).toFixed(1)} MB` : 'Required for Real ML Pipeline Execution'}
+              </p>
+            </div>
+
+            {/* Optional SRT Telemetry Picker Surface */}
+            <div
+              onClick={handleBrowseSrt}
+              className={cn(
+                'border border-dashed rounded-2xl p-4 flex items-center justify-between cursor-pointer transition-all',
+                srtFile
+                  ? 'border-cyan-500 bg-cyan-50/40 dark:bg-cyan-950/30'
+                  : 'border-zinc-300 dark:border-zinc-700 hover:border-cyan-500 bg-zinc-50/30 dark:bg-zinc-800/10'
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <FileCode className={cn('w-5 h-5', srtFile ? 'text-cyan-500' : 'text-zinc-400')} />
+                <div className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                  {srtFile ? srtFile.name : 'No SRT uploaded — GPS telemetry unavailable'}
+                </div>
+              </div>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleBrowseClick}
-                className="h-8.5 text-xs xl:text-sm font-semibold rounded-xl border-zinc-300 dark:border-zinc-700 cursor-pointer"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleBrowseSrt();
+                }}
+                className="h-7 text-xs font-semibold rounded-lg border-zinc-300 dark:border-zinc-700"
               >
-                Browse Files
+                {srtFile ? 'Change SRT' : 'Add SRT'}
               </Button>
-            </div>
-
-            {/* Visual Drag/Drop Surface */}
-            <div
-              onClick={handleBrowseClick}
-              className="border-2 border-dashed border-zinc-300 dark:border-zinc-700 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-2xl p-6 text-center cursor-pointer transition-colors bg-zinc-50/50 dark:bg-zinc-800/20 space-y-2 group"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto transition-transform group-hover:scale-110">
-                {mediaType === 'video' ? <FileVideo className="w-6 h-6" /> : <ImageIcon className="w-6 h-6" />}
-              </div>
-              <div className="text-xs xl:text-sm font-bold text-zinc-800 dark:text-zinc-200">
-                {mediaFile ? mediaFile.name : 'Drag & drop drone aerial photo or video clip'}
-              </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                Supports High-Res JPG, PNG, WEBP, MP4, MOV up to 100MB
-              </p>
             </div>
           </div>
 
@@ -366,67 +518,51 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                   />
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs xl:text-sm font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
-                    Latitude:
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.0001"
-                    value={telemetry.coordinates.lat}
-                    onChange={(e) =>
-                      setTelemetry({
-                        ...telemetry,
-                        coordinates: { ...telemetry.coordinates, lat: Number(e.target.value) },
-                      })
-                    }
-                    className="h-10 rounded-xl text-xs xl:text-sm font-mono bg-zinc-50 dark:bg-zinc-800/50 border-zinc-300 dark:border-zinc-700"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs xl:text-sm font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
-                    Longitude:
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.0001"
-                    value={telemetry.coordinates.lng}
-                    onChange={(e) =>
-                      setTelemetry({
-                        ...telemetry,
-                        coordinates: { ...telemetry.coordinates, lng: Number(e.target.value) },
-                      })
-                    }
-                    className="h-10 rounded-xl text-xs xl:text-sm font-mono bg-zinc-50 dark:bg-zinc-800/50 border-zinc-300 dark:border-zinc-700"
-                  />
-                </div>
-              </div>
             </div>
 
-            {/* Run AI Analysis CTA */}
-            <Button
-              onClick={handleRunInference}
-              disabled={isAnalyzing}
-              className="w-full h-11 rounded-2xl text-sm font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md shadow-emerald-500/25 transition-all cursor-pointer"
-            >
-              {isAnalyzing ? (
-                <>
+            {/* Action Buttons: REAL PROCESS vs DEMO SIMULATION */}
+            <div className="space-y-2.5 pt-2">
+              <Button
+                onClick={handleRunRealProcessing}
+                disabled={!videoFile || isRealProcessing}
+                className={cn(
+                  'w-full h-12 rounded-2xl text-sm font-bold transition-all shadow-md cursor-pointer',
+                  videoFile
+                    ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white shadow-emerald-500/25'
+                    : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 cursor-not-allowed border border-zinc-300 dark:border-zinc-700'
+                )}
+              >
+                {isRealProcessing ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 mr-2 animate-spin text-white" />
+                    <span>Real ML Pipeline Running (YOLOv8 + PostGIS)...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-5 h-5 mr-2 fill-white" />
+                    <span>START REAL ML PROCESSING (FastAPI Backend)</span>
+                  </>
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={handleRunDemoInference}
+                disabled={isAnalyzing || isRealProcessing}
+                className="w-full h-10 rounded-xl text-xs font-semibold border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+              >
+                {isAnalyzing ? (
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  <span>Processing Neural Vision Tensors...</span>
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4 mr-2 text-yellow-300 fill-yellow-300" />
-                  <span>Run AI Drone Vision Analysis</span>
-                </>
-              )}
-            </Button>
+                ) : (
+                  <Zap className="w-4 h-4 mr-2 text-amber-500" />
+                )}
+                <span>Run Demo Preset Simulation (Offline Preview)</span>
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Right Column: Live Feed Screen, Inference Visualizer & Results */}
+        {/* Right Column: Visual Feed Screen & Processing Results */}
         <div className="lg:col-span-7 space-y-5">
           {/* Main Visual Display Screen */}
           <div className="rounded-3xl bg-zinc-950 border border-zinc-800 overflow-hidden shadow-xl text-white flex flex-col">
@@ -452,17 +588,25 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
               )}
             </div>
 
-            {/* Screen Image Canvas */}
+            {/* Screen Image / Video Preview */}
             <div className="relative aspect-video w-full bg-black flex items-center justify-center overflow-hidden">
-              <img
-                src={
-                  inferenceResult && showOverlay
-                    ? inferenceResult.overlayMediaUrl
-                    : mediaPreviewUrl
-                }
-                alt="Drone Feed"
-                className="w-full h-full object-contain select-none"
-              />
+              {mediaType === 'video' ? (
+                <video
+                  src={mediaPreviewUrl}
+                  controls
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <img
+                  src={
+                    inferenceResult && showOverlay
+                      ? inferenceResult.overlayMediaUrl
+                      : mediaPreviewUrl
+                  }
+                  alt="Drone Feed"
+                  className="w-full h-full object-contain select-none"
+                />
+              )}
 
               {/* In-Flight Telemetry Stamp Overlay */}
               <div className="absolute bottom-3 left-4 right-4 bg-black/75 backdrop-blur-xs px-3.5 py-1.5 rounded-xl border border-zinc-800 flex items-center justify-between text-xs font-mono text-zinc-300">
@@ -482,7 +626,149 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
             </div>
           </div>
 
-          {/* AI Inference Progress Visualizer Bar */}
+          {/* REAL ML Processing Live Progress Visualizer (Phase 11D) */}
+          {realJobStatus && (
+            <div className="p-6 rounded-3xl bg-zinc-900 border border-zinc-800 text-white shadow-lg space-y-4 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      'w-3 h-3 rounded-full',
+                      realJobStatus.status === 'QUEUED'
+                        ? 'bg-amber-400 animate-pulse'
+                        : realJobStatus.status === 'PROCESSING'
+                        ? 'bg-emerald-400 animate-ping'
+                        : realJobStatus.status === 'COMPLETED'
+                        ? 'bg-emerald-500'
+                        : 'bg-red-500'
+                    )}
+                  />
+                  <div>
+                    <div className="text-sm font-bold text-white flex items-center gap-2">
+                      <span>
+                        {realJobStatus.status === 'QUEUED'
+                          ? 'Queued for GPU Execution'
+                          : realJobStatus.status === 'PROCESSING'
+                          ? 'Real AI Processing Pipeline Active'
+                          : realJobStatus.status === 'COMPLETED'
+                          ? 'Analysis & Database Ingestion Complete'
+                          : 'Processing Failed'}
+                      </span>
+                      <span className="text-xs font-mono text-zinc-400">
+                        (Job: {realJobStatus.job_id.slice(0, 8)})
+                      </span>
+                    </div>
+                    <p className="text-xs text-emerald-400 font-medium mt-0.5">
+                      {realJobStatus.current_stage}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className="text-xs font-mono text-zinc-400">Status</div>
+                  <div
+                    className={cn(
+                      'text-xs font-bold px-2.5 py-0.5 rounded-full inline-block mt-0.5',
+                      realJobStatus.status === 'COMPLETED'
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : realJobStatus.status === 'FAILED'
+                        ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    )}
+                  >
+                    {realJobStatus.status}
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="w-full bg-zinc-800 h-2.5 rounded-full overflow-hidden">
+                <div
+                  style={{ width: `${realJobStatus.status === 'COMPLETED' ? 100 : Math.max(realJobStatus.progress_pct, 15)}%` }}
+                  className={cn(
+                    'h-full rounded-full transition-all duration-500 shadow-sm',
+                    realJobStatus.status === 'COMPLETED'
+                      ? 'bg-emerald-500'
+                      : realJobStatus.status === 'FAILED'
+                      ? 'bg-red-500'
+                      : 'bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 animate-pulse'
+                  )}
+                />
+              </div>
+
+              {/* Real Job Summary Panel on Completion */}
+              {realJobStatus.status === 'COMPLETED' && realJobStatus.results && (
+                <div className="pt-3 border-t border-zinc-800 space-y-4">
+                  <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs xl:text-sm text-emerald-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                      <span className="font-semibold">
+                        PostgreSQL/PostGIS Ingestion Complete: {realJobStatus.results.summary.incidents_created} Incidents, {realJobStatus.results.summary.detections_created} Detections, {realJobStatus.results.summary.evidence_created} Evidence records created.
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Hazard Class Counts Breakdown Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
+                      <span className="text-xs text-teal-400 font-bold block">Waterlogging</span>
+                      <span className="text-lg font-black font-mono text-white">
+                        {realJobStatus.results.summary.class_counts?.waterlogging ?? 0}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
+                      <span className="text-xs text-amber-400 font-bold block">Potholes</span>
+                      <span className="text-lg font-black font-mono text-white">
+                        {realJobStatus.results.summary.class_counts?.pothole ?? 0}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
+                      <span className="text-xs text-cyan-400 font-bold block">Drainage Overflow</span>
+                      <span className="text-lg font-black font-mono text-white">
+                        {realJobStatus.results.summary.class_counts?.drainage_overflow ?? 0}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
+                      <span className="text-xs text-orange-400 font-bold block">Footpath Damage</span>
+                      <span className="text-lg font-black font-mono text-white">
+                        {realJobStatus.results.summary.class_counts?.damaged_footpath ?? 0}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleExportJson}
+                      className="h-9 text-xs font-semibold rounded-xl border-zinc-700 text-zinc-200 hover:bg-zinc-800 cursor-pointer"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      <span>Download Ingestion Summary</span>
+                    </Button>
+                    <span className="text-xs text-emerald-400 font-bold">
+                      Incident Queue Refreshed Live ✓
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Real ML Processing Error Alert */}
+          {realJobError && (
+            <div className="p-5 rounded-3xl bg-red-950/40 border border-red-500/30 text-white shadow-lg space-y-2">
+              <div className="flex items-center gap-2 text-red-400 font-bold text-sm">
+                <XCircle className="w-5 h-5" />
+                <span>Backend ML Processing Error</span>
+              </div>
+              <p className="text-xs text-zinc-300 font-mono leading-relaxed bg-black/40 p-3 rounded-xl border border-red-900/50">
+                {realJobError}
+              </p>
+            </div>
+          )}
+
+          {/* Simulated AI Inference Progress Visualizer (Demo Presets) */}
           {isAnalyzing && (
             <div className="p-5 rounded-3xl bg-zinc-900 border border-zinc-800 text-white shadow-md space-y-3 animate-in fade-in">
               <div className="flex items-center justify-between text-xs xl:text-sm">
@@ -493,7 +779,6 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                 <span className="font-mono font-bold text-zinc-300">{analysisProgress}%</span>
               </div>
 
-              {/* Progress bar */}
               <div className="w-full bg-zinc-800 h-2.5 rounded-full overflow-hidden">
                 <div
                   style={{ width: `${analysisProgress}%` }}
@@ -503,10 +788,9 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
             </div>
           )}
 
-          {/* AI Inference Results Card */}
+          {/* Simulated AI Inference Results Card (Demo Presets) */}
           {inferenceResult && (
             <div className="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-md space-y-5 animate-in fade-in slide-in-from-bottom-3">
-              {/* Header with Classification Badge */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-100 dark:border-zinc-800/60">
                 <div className="flex items-center gap-3">
                   <div
@@ -550,7 +834,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                       </h4>
                     </div>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                      Inference Time: {inferenceResult.analysisDurationMs}ms • Generated ID: {inferenceResult.id}
+                      Simulated Inference Time: {inferenceResult.analysisDurationMs}ms • Demo Preset ID: {inferenceResult.id}
                     </p>
                   </div>
                 </div>
@@ -623,7 +907,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                     className="w-full sm:w-auto h-11 px-6 text-xs xl:text-sm font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/25 cursor-pointer"
                   >
                     <Send className="w-4 h-4 mr-2" />
-                    <span>Publish Incident to Operations Queue</span>
+                    <span>Publish Demo Incident to Operations Queue</span>
                   </Button>
                 )}
               </div>

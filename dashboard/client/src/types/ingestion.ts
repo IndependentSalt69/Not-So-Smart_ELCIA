@@ -59,3 +59,48 @@ export interface SampleFootagePreset {
   mediaType: 'image' | 'video';
   defaultTelemetry: DroneTelemetry;
 }
+
+export type ProcessJobStatus = 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
+export interface ProcessJobResponse {
+  job_id: string;
+  status: ProcessJobStatus;
+  message: string;
+  created_at: string;
+}
+
+export interface ProcessJobSummary {
+  total_hazards: number;
+  incidents_created: number;
+  detections_created: number;
+  evidence_created: number;
+  skipped: number;
+  failed: number;
+  missing_gps: number;
+  class_counts: Record<string, number>;
+}
+
+export interface ProcessJobResults {
+  summary: ProcessJobSummary;
+  incident_ids: string[];
+  output_video_path: string;
+  output_video_url: string;
+  telemetry_file: string;
+  evidence_dir: string;
+  evidence_count: number;
+}
+
+export interface ProcessJobStatusResponse {
+  job_id: string;
+  status: ProcessJobStatus;
+  progress_pct: number;
+  current_stage: string;
+  hazards_detected: number;
+  evidence_count: number;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  error: string | null;
+  results: ProcessJobResults | null;
+}
+

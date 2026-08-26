@@ -1024,6 +1024,13 @@ export const incidentService = {
   },
 
   /**
+   * Notify all queue subscribers to refresh backend incidents
+   */
+  notifySubscribers(): void {
+    listeners.forEach((listener) => listener());
+  },
+
+  /**
    * Reset mock data to original default fixtures
    */
   resetToMockData(): void {
@@ -1031,3 +1038,4 @@ export const incidentService = {
     persist();
   },
 };
+

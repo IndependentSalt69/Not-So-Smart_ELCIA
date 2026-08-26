@@ -896,7 +896,51 @@ Automatically ingest detected hazards, frame observations, and evidence snapshot
 - Dashboard UI integration is deferred to Phase 11D.
 
 ### 6. Next Step
-Proceed to Phase 11D: Dashboard Ingestion Studio Integration.
+Completed Phase 11D — Real ML Ingestion Studio Integration.
+
+---
+
+## Phase 11D: Dashboard → Real ML Processing Integration
+
+**Date:** August 26, 2026  
+**Status:** Completed & Verified  
+
+### 1. Objective
+Connect the frontend `DroneIngestionStudio.tsx` component to the FastAPI real ML processing job endpoints (`POST /api/v1/process`, `GET /api/v1/process/{job_id}`). Allow operators to upload raw drone video (`.mp4`, `.mov`, `.avi`) and optional DJI SRT telemetry (`.srt`), start real PyTorch/YOLOv8 + MiDaS pipeline jobs, poll job progress, and automatically reflect newly ingested PostgreSQL/PostGIS incidents across the Incident Queue, Dynamic Map, and Analytics views.
+
+### 2. Files Inspected / Modified / Created
+- **Created:**
+  - `dashboard/client/src/services/processingService.ts` (API client wrapper for `POST /api/v1/process` FormData upload and `GET /api/v1/process/{job_id}` polling)
+  - `docs/dashboard_real_ml_ingestion.md` (Architecture, polling flow, error handling, and completion documentation)
+- **Modified:**
+  - `dashboard/client/src/types/ingestion.ts` (Added `ProcessJobStatus`, `ProcessJobResponse`, `ProcessJobSummary`, `ProcessJobResults`, `ProcessJobStatusResponse` interfaces)
+  - `dashboard/client/src/services/incidentService.ts` (Exposed `notifySubscribers()` method to trigger live queue refresh)
+  - `dashboard/client/src/components/ingestion/DroneIngestionStudio.tsx` (Integrated real video & SRT file pickers, FastAPI `POST /process` runner, 1000ms status poller, live progress visualizer, completion summary card, and subscriber notification trigger)
+  - `docs/frontend_backend_integration_log.md` (Updated integration log)
+
+### 3. Workflow & Integration Details
+1. **Upload & File Validation**:
+   - Accepts `.mp4`, `.mov`, `.avi` video files and optional `.srt` telemetry files. Rejects static image files with explicit error guidance for real ML execution.
+2. **FastAPI Job Submission**:
+   - Constructs `FormData` and posts to `POST /api/v1/process`, receiving HTTP 202 Accepted and initial `job_id` with `status: "QUEUED"`.
+3. **Status Polling & Visual Progress**:
+   - Polls `GET /api/v1/process/{job_id}` every 1000ms.
+   - Renders active job stage (`current_stage`), status badge, and progress bar.
+4. **Completion & Subscriber Refetch**:
+   - On `COMPLETED`, stops polling and displays summary metrics (total hazards, incidents created, detections created, evidence created, class counts).
+   - Calls `incidentService.notifySubscribers()`, causing `useIncidents` hooks to re-fetch backend incidents (`GET /api/v1/incidents/`) live without page refreshes or fake mock objects.
+   - Does **NOT** call `publishAsIncident()`, ensuring no duplicate incidents are created.
+5. **Fallback / Demo Mode**:
+   - Preserves offline sample preset cards and "Run Demo Preset Simulation" for offline development/demos.
+
+### 4. Verification & Test Results
+- **TypeScript Compilation (`npm run check`)**: **0 errors** (100% clean).
+- **Backend Test Suite (`.venv\Scripts\python.exe -m pytest -v`)**: Passed **64 / 64 tests (100%) in 7.02s**.
+- **Real ML End-to-End Pipeline**: Verified execution with `data_raw/full_demo_video.mp4` and `data_raw/full_demo_video.srt` generating 551 hazards, 551 evidence images, and populating PostgreSQL/PostGIS.
+
+### 5. Known Limitations
+- Background task execution limited to single concurrent GPU job (`MAX_CONCURRENT_ML_JOBS = 1`).
+
 
 
 
