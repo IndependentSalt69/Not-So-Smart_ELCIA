@@ -35,10 +35,36 @@ export function getEvidenceMediaUrl(filePath?: string | null): string {
 
   // Fallback filename extraction
   const cleanFilename = normalizedPath.replace(/^.*[\\\/]/, '');
-  if (!cleanFilename) return '';
-
   return `${origin}/static/evidence/${cleanFilename}`;
 }
+
+/**
+ * Derive browser-accessible annotated video MP4 URL from evidence file path
+ */
+export function getIncidentVideoUrlFromEvidencePath(filePath?: string | null): string | null {
+  if (!filePath) return null;
+
+  if (
+    (filePath.startsWith('http://') || filePath.startsWith('https://')) &&
+    filePath.includes('annotated_output.mp4')
+  ) {
+    return filePath;
+  }
+
+  const origin = getMediaBaseUrl();
+  const normalizedPath = filePath.replace(/\\/g, '/');
+
+  // Match outputs/jobs/<job_id>/... or static/jobs/<job_id>/...
+  const jobsMatch = normalizedPath.match(/(?:^|\/)(?:outputs|static)\/jobs\/([^\/]+)\//);
+  if (jobsMatch && jobsMatch[1]) {
+    const jobId = jobsMatch[1];
+    return `${origin}/static/jobs/${jobId}/annotated_output.mp4`;
+  }
+
+  return null;
+}
+
+
 
 
 // In-memory cache & pending promise deduplicator for primary evidence media URLs
@@ -588,7 +614,9 @@ export const incidentService = {
           evidenceType: item.evidence_type,
           filePath: item.file_path,
           mediaUrl: getEvidenceMediaUrl(item.file_path),
+          videoUrl: getIncidentVideoUrlFromEvidencePath(item.file_path),
           capturedAt: item.captured_at,
+
           description: item.description,
           isPrimary: item.is_primary,
           createdAt: item.created_at,

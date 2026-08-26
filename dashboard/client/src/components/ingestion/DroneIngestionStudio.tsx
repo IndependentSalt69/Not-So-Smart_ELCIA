@@ -192,6 +192,17 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
             stopPolling();
             setIsRealProcessing(false);
 
+            // Update main visual display screen to show the backend annotated output MP4 video
+            if (statusRes.results?.output_video_url) {
+              const rawUrl = statusRes.results.output_video_url;
+              const fullVideoUrl = rawUrl.startsWith('http')
+                ? rawUrl
+                : `${getMediaBaseUrl()}${rawUrl}`;
+
+              setMediaType('video');
+              setMediaPreviewUrl(fullVideoUrl);
+            }
+
             const incidentsCreated = statusRes.results?.summary?.incidents_created ?? 0;
             toast.success(`Real ML Pipeline & Ingestion Complete!`, {
               description: `Detected hazards automatically ingested into PostgreSQL/PostGIS (${incidentsCreated} incidents created).`,
@@ -544,7 +555,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                   </>
                 ) : (
                   <>
-                    <Play className="w-5 h-5 mr-2 fill-white" />
+                    <Cpu className="w-5 h-5 mr-2 text-white" />
                     <span>START REAL ML PROCESSING (FastAPI Backend)</span>
                   </>
                 )}
@@ -576,11 +587,20 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
               <div className="flex items-center gap-2">
                 <Camera className="w-4 h-4 text-emerald-400" />
                 <span className="text-xs xl:text-sm font-bold text-zinc-200">
-                  {inferenceResult ? 'Inference Output & Mask Overlay' : 'Raw Drone Sensor Feed Preview'}
+                  {realJobStatus?.status === 'COMPLETED'
+                    ? 'PROCESSED ML OUTPUT (Annotated Track Video)'
+                    : inferenceResult
+                    ? 'Inference Output & Mask Overlay'
+                    : 'Raw Drone Sensor Feed Preview'}
                 </span>
               </div>
 
-              {inferenceResult && (
+              {realJobStatus?.status === 'COMPLETED' ? (
+                <div className="flex items-center gap-1.5 bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-xl text-xs font-mono font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>PROCESSED ML OUTPUT</span>
+                </div>
+              ) : inferenceResult ? (
                 <div className="flex items-center gap-2 bg-zinc-800/90 px-3 py-1 rounded-xl border border-zinc-700/80">
                   <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
                   <span className="text-xs font-semibold text-zinc-300">AI Overlay</span>
@@ -590,6 +610,10 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                     className="scale-75 data-[state=checked]:bg-emerald-600"
                   />
                 </div>
+              ) : (
+                <div className="flex items-center gap-1.5 bg-zinc-800/80 text-zinc-400 border border-zinc-700/60 px-2.5 py-1 rounded-xl text-xs font-mono">
+                  <span>RAW PREVIEW</span>
+                </div>
               )}
             </div>
 
@@ -597,8 +621,10 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
             <div className="relative aspect-video w-full bg-black flex items-center justify-center overflow-hidden">
               {mediaType === 'video' ? (
                 <video
+                  key={mediaPreviewUrl}
                   src={mediaPreviewUrl}
                   controls
+                  playsInline
                   className="w-full h-full object-contain"
                 />
               ) : (

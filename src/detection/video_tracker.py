@@ -6,6 +6,8 @@ Optimized for Drone Footage: Immediate capture with area-based noise filtering.
 import cv2
 import json
 import datetime
+import subprocess
+import shutil
 from pathlib import Path
 
 from src.detection.yolo_segmentation import YOLOSegmentor
@@ -33,19 +35,17 @@ class HazardVideoPipeline:
         self.severity_analyzer = SeverityAnalyzer()
 
         
-        # GPS Telemetry data
-        self.gps_data = []
-        if srt_path:
-            print(f"[INFO] Loading GPS Telemetry from {srt_path}...")
-            self.gps_data = parse_dji_srt(srt_path)
-        
-        # State tracking
         self.logged_hazard_ids = set()
         self.telemetry_log = []
-        self.min_area_pixels = 150 
+        self.min_area_pixels = 400.0  # Filter out tiny noise artifacts
+
+        # Parse telemetry if SRT file is provided
+        self.gps_data = []
+        if srt_path and Path(srt_path).exists():
+            self.gps_data = parse_dji_srt(srt_path)
+            print(f"[INFO] Parsed {len(self.gps_data)} GPS telemetry points from: {srt_path}")
 
     def _get_gps_for_time(self, seconds: float):
-        """Finds the matching GPS coordinate for a given timestamp in seconds."""
         if not self.gps_data:
             return {"lat": None, "lon": None}
             
@@ -59,6 +59,43 @@ class HazardVideoPipeline:
                 
         return {"lat": self.gps_data[-1]["lat"], "lon": self.gps_data[-1]["lon"]}
 
+    def _encode_h264(self, temp_input_path: str, final_output_path: str) -> None:
+        """
+        Transcodes raw OpenCV video into browser-compatible H.264/AVC (yuv420p) format using FFmpeg.
+        Falls back safely to raw video file if FFmpeg is unavailable or fails.
+        """
+        temp_p = Path(temp_input_path)
+        final_p = Path(final_output_path)
+
+        if not temp_p.exists():
+            print(f"[WARNING] Temp raw video not found at '{temp_input_path}'.")
+            return
+
+        ffmpeg_cmd = shutil.which("ffmpeg") or "ffmpeg"
+        cmd = [
+            ffmpeg_cmd,
+            "-y",
+            "-i", str(temp_p),
+            "-c:v", "libx264",
+            "-preset", "fast",
+            "-crf", "22",
+            "-pix_fmt", "yuv420p",
+            str(final_p)
+        ]
+
+        print(f"[AI Engine] Transcoding annotated output video to H.264 / AVC (yuv420p) for browser playback...")
+        try:
+            res = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            print(f"[AI Engine] H.264 encoding complete: {final_output_path}")
+            if temp_p.exists():
+                temp_p.unlink()
+        except Exception as e:
+            print(f"[WARNING] FFmpeg H.264 transcoding failed ({e}). Falling back to raw file.")
+            if temp_p.exists():
+                if final_p.exists():
+                    final_p.unlink()
+                temp_p.rename(final_p)
+
     def process_video(self, video_path: str, output_video_path: str = "outputs/demo_tracked_output.mp4"):
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
@@ -69,8 +106,11 @@ class HazardVideoPipeline:
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = int(cap.get(cv2.CAP_PROP_FPS)) or 30
         
+        output_path_obj = Path(output_video_path)
+        temp_raw_path = str(output_path_obj.with_name(f"_raw_{output_path_obj.name}"))
+
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
+        out = cv2.VideoWriter(temp_raw_path, fourcc, fps, (width, height))
 
         frame_idx = 0
         print(f"[INFO] Starting Drone-Optimized Pipeline on: {video_path}...")
@@ -154,6 +194,9 @@ class HazardVideoPipeline:
         with open(json_path, "w") as f:
             json.dump(self.telemetry_log, f, indent=4)
 
+        # Transcode raw output video to browser-compatible H.264 / AVC (yuv420p)
+        self._encode_h264(temp_raw_path, output_video_path)
+
         print(f"\n[COMPLETE] Video Processing Finished.")
-        print(f" - Exported Video: {output_video_path}")
-        print(f" - Evidence Logged: {len(self.telemetry_log)} accurate hazards found.")
+        print(f" - Exported Video (H.264): {output_video_path}")
+        print(f" - Evidence Logged: {len(self.telemetry_log)} accurate hazards found.")

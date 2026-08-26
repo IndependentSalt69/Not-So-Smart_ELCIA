@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { getEvidenceMediaUrl, incidentService } from '@/services/incidentService';
+import { getEvidenceMediaUrl, getIncidentVideoUrlFromEvidencePath, incidentService } from '@/services/incidentService';
 import { DetectionObservation, EvidenceAsset, Incident } from '@/types/incident';
 import {
   AlertTriangle,
@@ -35,6 +35,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
   const [detectionsList, setDetectionsList] = useState<DetectionObservation[]>([]);
   const [loadingEvidence, setLoadingEvidence] = useState<boolean>(true);
   const [imageLoadError, setImageLoadError] = useState<boolean>(false);
+  const [videoLoadError, setVideoLoadError] = useState<boolean>(false);
   const totalFrames = 120;
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -70,15 +71,16 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
 
   const primaryEvidence = evidenceList.find((e) => e.isPrimary) || evidenceList[0];
 
-  // Reset image error state on incident or evidence asset switch
+  // Reset image and video error states on incident or evidence asset switch
   useEffect(() => {
     setImageLoadError(false);
+    setVideoLoadError(false);
   }, [incident.id, primaryEvidence?.id, primaryEvidence?.filePath]);
 
-  // Playback timer simulation for frame stepping
+  // Playback timer simulation for frame stepping (when no real video is active)
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isPlaying) {
+    if (isPlaying && (!derivedVideoUrl || videoLoadError)) {
       interval = setInterval(() => {
         setCurrentFrame((prev) => (prev >= totalFrames ? 0 : prev + 1));
       }, 100);
@@ -86,8 +88,23 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
     return () => clearInterval(interval);
   }, [isPlaying]);
 
-  const handleTogglePlay = () => {
-    setIsPlaying(!isPlaying);
+  const handleTogglePlay = async () => {
+    const video = videoRef.current;
+    if (video) {
+      if (video.paused) {
+        try {
+          await video.play();
+          setIsPlaying(true);
+        } catch (err) {
+          console.warn('Video playback failed:', err);
+        }
+      } else {
+        video.pause();
+        setIsPlaying(false);
+      }
+    } else {
+      setIsPlaying((prev) => !prev);
+    }
   };
 
   const handleStepBack = () => {
@@ -103,11 +120,21 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
   const handleReset = () => {
     setIsPlaying(false);
     setCurrentFrame(0);
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+    }
   };
 
   const mediaUrl =
     primaryEvidence?.mediaUrl ||
     (primaryEvidence?.filePath ? getEvidenceMediaUrl(primaryEvidence.filePath) : null);
+
+  const derivedVideoUrl =
+    primaryEvidence?.videoUrl ||
+    (primaryEvidence?.filePath ? getIncidentVideoUrlFromEvidencePath(primaryEvidence.filePath) : null) ||
+    (primaryEvidence?.mediaUrl ? getIncidentVideoUrlFromEvidencePath(primaryEvidence.mediaUrl) : null) ||
+    (incident.evidenceClip || null);
+
 
   const fallbackImage =
     showOverlay && incident.evidenceOverlay
@@ -225,36 +252,41 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
           />
         ) : (
           <div className="relative w-full h-full flex items-center justify-center">
-            {incident.evidenceClip ? (
+            {derivedVideoUrl && !videoLoadError ? (
               <video
                 ref={videoRef}
-                src={incident.evidenceClip}
-                className="w-full h-full object-cover"
-                loop
-                muted
+                src={derivedVideoUrl}
+                controls
                 playsInline
-                autoPlay={isPlaying}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+                onEnded={() => setIsPlaying(false)}
+                onError={() => setVideoLoadError(true)}
+                className="w-full h-full object-contain"
               />
             ) : (
-              <img
-                src={activeImage}
-                alt={incident.code || incident.id}
-                onError={() => {
-                  if (mediaUrl && !imageLoadError) {
-                    setImageLoadError(true);
-                  }
-                }}
-                className="w-full h-full object-contain filter contrast-125"
-              />
+              <div className="p-6 rounded-2xl bg-zinc-900 border border-zinc-800 text-center space-y-2.5 max-w-sm">
+                <Video className="w-8 h-8 text-zinc-500 mx-auto" />
+                <div className="text-xs xl:text-sm font-bold text-zinc-200">
+                  Processed Flight Video Unavailable
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  {videoLoadError
+                    ? 'The annotated output video clip could not be loaded from the static server.'
+                    : 'No job-scoped flight video is associated with this incident record.'}
+                </p>
+              </div>
             )}
 
-            {/* Video overlay watermark simulation */}
-            <div className="absolute top-3 left-3 bg-red-600/90 text-white font-mono text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 animate-pulse">
-              <span className="w-1.5 h-1.5 rounded-full bg-white" />
-              LIVE REPLAY
-            </div>
+            {derivedVideoUrl && !videoLoadError && (
+              <div className="absolute top-3 left-3 bg-red-600/90 text-white font-mono text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                ANNOTATED TRACK VIDEO
+              </div>
+            )}
           </div>
         )}
+
 
         {/* Media source indicator badge */}
         {!isUsingFallback && mediaUrl ? (

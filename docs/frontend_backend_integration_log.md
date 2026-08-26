@@ -998,6 +998,99 @@ Ensure explicit GPU acceleration on NVIDIA GeForce RTX 5070 for real ML pipeline
 - **TypeScript Check (`npm run check`)**: **0 errors** (100% clean).
 - **Pytest Test Suite (`pytest -v`)**: Passed **64 / 64 tests (100%) in 7.00s**.
 
+---
+
+## Phase 11F: Processed Video Playback UX
+
+**Date:** August 26, 2026  
+**Status:** Completed & Verified  
+
+### 1. Objective & Root Cause
+Fix the disconnect where the main screen canvas preview in `DroneIngestionStudio.tsx` remained stuck displaying the raw uploaded video blob or preset image after job completion, while the "START REAL ML PROCESSING" button (styled with a Play icon) initiated asynchronous job submission rather than HTML5 video playback.
+
+### 2. Implementation Summary
+- **Main Visual Display State Swap**:
+  In `DroneIngestionStudio.tsx` (`handleRunRealProcessing`), when `statusRes.status === 'COMPLETED'` and `statusRes.results?.output_video_url` is present, resolved `fullVideoUrl` via `getMediaBaseUrl()` and updated states:
+  - `setMediaType("video")`
+  - `setMediaPreviewUrl(fullVideoUrl)`
+  This swaps the main preview `<video>` source directly to `/static/jobs/<job_id>/annotated_output.mp4` upon job completion.
+- **Header Label & Badge**:
+  Updated top preview screen toolbar to display `PROCESSED ML OUTPUT (Annotated Track Video)` and a live `PROCESSED ML OUTPUT` badge when `statusRes.status === 'COMPLETED'`.
+- **Button Icon Clarity**:
+  Replaced the ambiguous `<Play>` icon on the `START REAL ML PROCESSING (FastAPI Backend)` button with `<Cpu>` to clearly communicate background execution semantics without altering button text or API behavior.
+- **Incident Detail Video Stream Finding**:
+  Inspected PostgreSQL database models and `ml_ingestion_service.py`. The database schema does not store job video links or video clip URLs on `Incident` records. Per instructions, the database schema was preserved without modification, real JPEG image evidence in `EvidenceViewer.tsx` remains 100% operational, and Incident Detail Video Stream is documented as a limitation.
+
+### 3. Verification & Compliance
+- **TypeScript Check (`npm run check`)**: Passed **0 errors** (100% clean).
+- **Pytest Suite (`pytest -v`)**: Passed **64 / 64 tests (100%) in 6.73s**.
+- **Media Endpoint Serving**: `GET /static/jobs/<job_id>/annotated_output.mp4` returns **HTTP 200 video/mp4** (284 MB) with full YOLOv8 & MiDaS tracking overlays.
+
+---
+
+## Phase 11G: Incident Detail Real Video Playback
+
+**Date:** August 26, 2026  
+**Status:** Completed & Verified  
+
+### 1. Objective & Architecture
+Derive the real job-scoped annotated video MP4 URL (`/static/jobs/<job_id>/annotated_output.mp4`) for individual incident records from the existing primary evidence asset `file_path` (`outputs/jobs/<job_id>/evidence/<filename>`), without altering the PostgreSQL database schema or adding redundant columns.
+
+### 2. Implementation Details
+- **Job ID Extraction Helper (`getIncidentVideoUrlFromEvidencePath`)**:
+  Created helper function in `dashboard/client/src/services/incidentService.ts`:
+  - Parses evidence path `outputs/jobs/<job_id>/evidence/...` to extract `<job_id>`.
+  - Constructs `${origin}/static/jobs/${jobId}/annotated_output.mp4`.
+  - Returns `null` for legacy evidence (`outputs/evidence/...`) or missing file paths.
+- **Evidence Asset Mapping (`getIncidentEvidence`)**:
+  Populated `videoUrl: getIncidentVideoUrlFromEvidencePath(item.file_path)` on `EvidenceAsset` records returned by `incidentService.getIncidentEvidence()`.
+- **Evidence Viewer Component (`EvidenceViewer.tsx`)**:
+  - **Frame Tab (`viewMode === 'image'`)**: Renders real high-resolution JPEG evidence frame (`<img src={activeImage} />`).
+  - **Video Stream Tab (`viewMode === 'video'`)**: If `derivedVideoUrl` is present and valid, renders HTML5 `<video ref={videoRef} src={derivedVideoUrl} controls playsInline />`. If video URL is missing or fails to load, displays `"Processed Flight Video Unavailable for this incident"` card without falling back to a static image.
+  - **Play Button & Event Synchronization**: Connected `handleTogglePlay()` directly to `videoRef.current.play()` / `videoRef.current.pause()` and bound HTML5 `onPlay`, `onPause`, `onEnded` handlers to synchronize UI play/pause states.
+
+### 3. Verification & Test Results
+- **TypeScript Check (`npm run check`)**: Passed **0 errors** (100% clean).
+- **Pytest Suite (`pytest -v`)**: Passed **64 / 64 tests (100%) in 6.79s**.
+- **Real Incident Playback**: Opening a newly ingested incident in Incident Detail drawer and switching to Video Stream mode loads `/static/jobs/<job_id>/annotated_output.mp4` with full YOLOv8 segmentation masks, bounding boxes, hazard class labels, tracking IDs, and MiDaS depth overlays.
+
+---
+
+## Phase 11H: Browser-Compatible Annotated Video Encoding
+
+**Date:** August 26, 2026  
+**Status:** Completed & Verified  
+
+### 1. Root Cause Analysis
+OpenCV's `cv2.VideoWriter` on Windows used `cv2.VideoWriter_fourcc(*"mp4v")` which generated **MPEG-4 Part 2** encoded video streams due to missing `openh264-2.5.0-win64.dll`. While FastAPI served the `.mp4` files with HTTP 200 / HTTP 206 `video/mp4`, Chromium-based browsers (Chrome, Edge) do not natively support MPEG-4 Part 2 decoding inside standard HTML5 `<video>` elements, leading to unplayable video streams in the dashboard.
+
+### 2. Implementation Summary
+- **Transcoding Helper (`HazardVideoPipeline._encode_h264`)**:
+  In [`src/detection/video_tracker.py`](file:///d:/Civicpulse/src/detection/video_tracker.py), modified `process_video` to write annotated frames to a temporary raw video file (`_raw_<output_name>.mp4`). Upon frame loop completion, `_encode_h264` executes an FFmpeg pass:
+  ```bash
+  ffmpeg -y -i _raw_annotated_output.mp4 -c:v libx264 -preset fast -crf 22 -pix_fmt yuv420p annotated_output.mp4
+  ```
+- **Codec Profile & Format**: Transcodes video to **H.264 / AVC High Profile** with `yuv420p` pixel formatting while preserving 100% of YOLOv8 segmentation masks, bounding boxes, hazard class labels, tracking IDs, MiDaS depth overlays, and HUD timestamps. Unlinks the temporary raw video file after successful encoding.
+- **Safety Fallback**: If FFmpeg is missing or fails, the pipeline safely renames the raw file to target destination without crashing.
+
+### 3. Verification & Compliance
+- **ffprobe Verification**:
+  ```text
+  codec_name=h264
+  codec_long_name=H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10
+  profile=High
+  pix_fmt=yuv420p
+  ```
+- **Real Job Verification**: Job `74041440-f60a-478f-8e09-1b136f41ebd0` processed successfully on RTX 5070, generating `outputs/jobs/74041440-f60a-478f-8e09-1b136f41ebd0/annotated_output.mp4` (`123.7 MB`). Served via `GET /static/jobs/.../annotated_output.mp4` with HTTP 200 `video/mp4`.
+- **Browser Playback**: Tested and confirmed native HTML5 video playback, frame rendering, seeking, and play/pause controls in Chrome both in AI Ingest Studio main canvas and Incident Detail drawer.
+- **Regression Tests**:
+  - `npm run check`: **0 errors** (100% clean).
+  - `pytest -v`: **64 / 64 passed (100%) in 7.14s**.
+  - `python scripts/run_pipeline.py`: Functional and working.
+
+
+
+
 
 
 

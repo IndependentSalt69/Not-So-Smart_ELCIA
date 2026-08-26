@@ -118,11 +118,13 @@ export interface EvidenceAsset {
   evidenceType: 'IMAGE' | 'VIDEO' | 'CLIP';
   filePath: string;
   mediaUrl?: string;
+  videoUrl?: string | null;
   capturedAt?: string | null;
   description?: string | null;
   isPrimary: boolean;
   createdAt: string;
 }
+
 
 export interface DetectionObservation {
   id: string;
