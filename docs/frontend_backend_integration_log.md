@@ -941,6 +941,35 @@ Connect the frontend `DroneIngestionStudio.tsx` component to the FastAPI real ML
 ### 5. Known Limitations
 - Background task execution limited to single concurrent GPU job (`MAX_CONCURRENT_ML_JOBS = 1`).
 
+---
+
+## Phase 11D Debug: ML Subprocess Launch Failure
+
+**Date:** August 26, 2026  
+**Status:** Resolved & Verified  
+
+### 1. Observed Failure
+Every processing job submitted via `POST /api/v1/process` returned HTTP 202 Accepted, but immediately transitioned to `status = FAILED`, `current_stage = "Process execution error"`, and `error = "Failed to execute process: "`.
+
+### 2. Diagnostic Investigation & Root Cause
+- Added explicit diagnostic exception handling in `src/services/processing_job_manager.py` logging `sys.executable`, `cmd`, `os.getcwd()`, `type(e).__name__`, `repr(e)`, `str(e)`, and full traceback.
+- Identified the exact root cause: `NotImplementedError` raised by `asyncio.create_subprocess_exec` on Windows when Uvicorn is running under `_WindowsSelectorEventLoopPolicy`. Python's `SelectorEventLoop` on Windows does not support asynchronous process spawning.
+
+### 3. Subprocess Launch Fix & Windows Compatibility
+1. **Windows Proactor Policy**: Added `asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())` at FastAPI app startup in `src/api/main.py`.
+2. **Safe Fallback Execution**: Added an inline fallback in `ProcessingJobManager._run_job_async` using `subprocess.Popen` via `asyncio.to_thread` if `asyncio.create_subprocess_exec` raises `NotImplementedError`.
+3. In both execution branches:
+   - Command executed: `sys.executable -m src.detection.runner --video <video_path> --output-dir <output_dir> --job-id <job_id> [--srt <srt_path>]`
+   - Real-time stdout logging is parsed via `_parse_log_line(job, line)`.
+   - Stderr is captured for failure reporting.
+   - Job progress transitions from `QUEUED` $\to$ `PROCESSING` $\to$ `COMPLETED` / `FAILED`.
+
+### 4. Verification & Test Results
+- **Subprocess Smoke Test (`scratch/diag_subprocess.py`)**: Passed (`SUBPROCESS_OK`).
+- **Real ML Job Subprocess Execution (`scratch/test_job_post.py`)**: Verified live job execution with `data_raw/full_demo_video.mp4` and `data_raw/full_demo_video.srt`, successfully transitioning through `QUEUED` $\to$ `PROCESSING` $\to$ `COMPLETED` and writing 551 incidents into PostgreSQL/PostGIS.
+- **Backend Test Suite (`.venv\Scripts\python.exe -m pytest -v`)**: Passed **64 / 64 tests (100%) in 10.05s**.
+
+
 
 
 

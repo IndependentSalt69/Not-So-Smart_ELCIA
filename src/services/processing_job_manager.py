@@ -207,37 +207,91 @@ class ProcessingJobManager:
             if job.uploaded_srt:
                 cmd.extend(["--srt", job.uploaded_srt])
 
+            returncode = -1
             stderr_lines: List[str] = []
 
             try:
-                proc = await asyncio.create_subprocess_exec(
-                    *cmd,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                )
+                loop_type = type(asyncio.get_running_loop()).__name__
+            except Exception:
+                loop_type = "Unknown"
 
-                async def read_stderr():
+            print(f"[JOB:{job.job_id}] START", flush=True)
+            print(f"[JOB:{job.job_id}] SUBPROCESS_EXECUTABLE={sys.executable}", flush=True)
+            print(f"[JOB:{job.job_id}] SUBPROCESS_ARGS={cmd}", flush=True)
+            print(f"[JOB:{job.job_id}] SUBPROCESS_CWD={os.getcwd()}", flush=True)
+            print(f"[JOB:{job.job_id}] EVENT_LOOP_TYPE={loop_type}", flush=True)
+
+            try:
+                try:
+                    proc = await asyncio.create_subprocess_exec(
+                        *cmd,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                    )
+
+                    async def read_stderr():
+                        while True:
+                            line = await proc.stderr.readline()
+                            if not line:
+                                break
+                            decoded = line.decode("utf-8", errors="replace").strip()
+                            if decoded:
+                                stderr_lines.append(decoded)
+
+                    stderr_task = asyncio.create_task(read_stderr())
+
                     while True:
-                        line = await proc.stderr.readline()
+                        line = await proc.stdout.readline()
                         if not line:
                             break
-                        decoded = line.decode("utf-8", errors="replace").strip()
-                        if decoded:
-                            stderr_lines.append(decoded)
+                        decoded_line = line.decode("utf-8", errors="replace").strip()
+                        self._parse_log_line(job, decoded_line)
 
-                stderr_task = asyncio.create_task(read_stderr())
+                    await proc.wait()
+                    await stderr_task
+                    returncode = proc.returncode
 
-                while True:
-                    line = await proc.stdout.readline()
-                    if not line:
-                        break
-                    decoded_line = line.decode("utf-8", errors="replace").strip()
-                    self._parse_log_line(job, decoded_line)
+                except NotImplementedError:
+                    import subprocess
+                    import threading
 
-                await proc.wait()
-                await stderr_task
+                    print(f"[JOB:{job.job_id}] Falling back to threading + subprocess.Popen due to NotImplementedError in {loop_type}", flush=True)
 
-                if proc.returncode == 0:
+                    def run_sync_subprocess() -> int:
+                        nonlocal stderr_lines
+                        p = subprocess.Popen(
+                            cmd,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True,
+                            bufsize=1,
+                            encoding="utf-8",
+                            errors="replace",
+                        )
+
+                        def read_err():
+                            if p.stderr:
+                                for eline in p.stderr:
+                                    eline_str = eline.strip()
+                                    if eline_str:
+                                        stderr_lines.append(eline_str)
+
+                        t_err = threading.Thread(target=read_err, daemon=True)
+                        t_err.start()
+
+                        if p.stdout:
+                            for oline in p.stdout:
+                                oline_str = oline.strip()
+                                if oline_str:
+                                    self._parse_log_line(job, oline_str)
+
+                        p.wait()
+                        t_err.join(timeout=5)
+                        return p.returncode
+
+                    returncode = await asyncio.to_thread(run_sync_subprocess)
+
+                if returncode == 0:
                     self._populate_completed_results(job)
                     
                     # Phase 11C: Database Ingestion
@@ -277,8 +331,7 @@ class ProcessingJobManager:
                         db.close()
 
                 else:
-
-                    err_msg = f"Runner process exited with code {proc.returncode}"
+                    err_msg = f"Runner process exited with code {returncode}"
                     if stderr_lines:
                         err_msg += f": {stderr_lines[-1]}"
                     job.status = JobStatus.FAILED
@@ -287,10 +340,31 @@ class ProcessingJobManager:
                     job.error = err_msg
 
             except Exception as e:
+                import traceback
+                err_type = type(e).__name__
+                err_repr = repr(e)
+                err_str = str(e) or err_repr
+                tb_str = "".join(traceback.format_exception(type(e), e, e.__traceback__))
+
+                log_lines = [
+                    f"[JOB:{job.job_id}] SUBPROCESS_EXECUTABLE={sys.executable}",
+                    f"[JOB:{job.job_id}] SUBPROCESS_ARGS={cmd}",
+                    f"[JOB:{job.job_id}] SUBPROCESS_CWD={os.getcwd()}",
+                    f"[JOB:{job.job_id}] EVENT_LOOP_TYPE={loop_type}",
+                    f"[JOB:{job.job_id}] SUBPROCESS_ERROR_TYPE={err_type}",
+                    f"[JOB:{job.job_id}] SUBPROCESS_ERROR_REPR={err_repr}",
+                    f"[JOB:{job.job_id}] SUBPROCESS_ERROR={err_str}",
+                    f"[JOB:{job.job_id}] SUBPROCESS_TRACEBACK=\n{tb_str}",
+                ]
+                full_log = "\n".join(log_lines)
+                print(full_log, file=sys.stderr, flush=True)
+
                 job.status = JobStatus.FAILED
                 job.completed_at = datetime.now(timezone.utc)
                 job.current_stage = "Process execution error"
-                job.error = f"Failed to execute process: {str(e)}"
+                job.error = f"Failed to execute process ({err_type}): {err_str}"
+
+
 
     def _parse_log_line(self, job: JobRecord, line: str):
         if f"[JOB:{job.job_id}] START" in line:

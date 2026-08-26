@@ -3,14 +3,24 @@ src/api/main.py
 CivicPulse FastAPI Application Entrypoint.
 """
 
+import asyncio
 from contextlib import asynccontextmanager
 import os
+import sys
+
+if sys.platform == "win32":
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    except Exception:
+        pass
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from src.core.config import settings
 from src.api.routes import api_router
+
 
 
 @asynccontextmanager
