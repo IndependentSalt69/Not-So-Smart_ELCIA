@@ -821,15 +821,46 @@ The Incident Queue continuously flickered between loading skeleton cards and rea
 - **`dashboard/client/src/components/incidents/IncidentQueueView.tsx`**:
   - Wrapped `sortedIncidents` with `useMemo` so evidence preloading effects only execute when incident items or sort options change.
 
-### 4. Verification & QA Results
-- **Continuous Flicker Elimination**: Cards remain 100% stable upon initial fetch, tab switching, drawer opening/closing, evidence thumbnail resolution, and filter adjustments.
-- **Automated Verification Script (`dashboard/scratch/verify_phase_11b_queue_views.ts`)**: Executed **8/8 test suites with 100% success**.
-- **TypeScript Static Check (`npm run check`)**: Passed with **0 errors**.
-- **Python Backend Test Suite (`python -m pytest -v`)**: Passed **44 / 44 tests (100%)**.
+---
 
+## Phase 11B: FastAPI Real ML Processing Jobs
 
+**Date:** August 26, 2026  
+**Status:** Completed & Verified  
 
+### 1. Objective
+Build backend processing job endpoints (`POST /api/v1/process`, `GET /api/v1/process/{job_id}`) backed by an in-memory `ProcessingJobManager` service (`src/services/processing_job_manager.py`). Enables FastAPI to receive drone video and SRT telemetry uploads, run `src/detection/runner.py` asynchronously via Python process isolation, enforce GPU concurrency safety (`MAX_CONCURRENT_ML_JOBS = 1`), and parse stdout logs into live job status responses.
 
+### 2. Files Inspected / Modified / Created
+- **Created:**
+  - `src/schemas/processing.py` (Pydantic models for process job submission and status polling)
+  - `src/services/processing_job_manager.py` (In-memory job registry, GPU concurrency semaphore, file upload validation, subprocess process isolation, and log parsing)
+  - `src/api/routes/processing.py` (FastAPI route handlers for `POST /api/v1/process` and `GET /api/v1/process/{job_id}`)
+  - `tests/api/test_processing.py` (Unit tests for file extension validation, size limits, 404 responses, and concurrency semaphore)
+  - `docs/processing_job_api.md` (API specification and local Windows execution guide)
+- **Modified:**
+  - `src/api/routes/__init__.py` (Registered `processing_router`)
+  - `src/api/main.py` (Mounted `outputs/jobs` static file directory under `/static/jobs`)
+  - `docs/frontend_backend_integration_log.md` (Updated integration log)
+
+### 3. API Endpoints Created
+- `POST /api/v1/process`: Accepts `multipart/form-data` (`video: UploadFile`, optional `srt: UploadFile`, optional `zone_id`, `drone_id`). Returns `HTTP 202 Accepted` with `job_id`, `status: QUEUED`, `created_at`.
+- `GET /api/v1/process/{job_id}`: Returns status (`QUEUED`, `PROCESSING`, `COMPLETED`, `FAILED`), progress %, hazards count, evidence count, error messages, and artifact output paths.
+
+### 4. GPU Concurrency & Process Isolation
+- Subprocess spawned asynchronously via `asyncio.create_subprocess_exec(sys.executable, "-m", "src.detection.runner", ...)` outside FastAPI GIL/event loop.
+- `MAX_CONCURRENT_ML_JOBS = 1` enforced via `asyncio.Semaphore(1)`. Subsequent jobs remain in `QUEUED` state until active ML job completes.
+
+### 5. Verification & Test Results
+- **Python Backend Test Suite (`.venv\Scripts\python.exe -m pytest -v`)**: Passed **54 / 54 tests (100%) in 6.09s**.
+- **Real Video ML Job Execution**: Verified `POST /api/v1/process` with `data_raw/full_demo_video.mp4` and `data_raw/full_demo_video.srt`, returning HTTP 202 and reaching `COMPLETED` status with 551 detected hazards and 551 evidence snapshots.
+- **Legacy Compatibility**: `python scripts/run_pipeline.py` and `python -m src.detection.runner` remain 100% functional.
+
+### 6. Known Limitations
+- Incidents and detections are not automatically persisted to PostgreSQL/PostGIS database in Phase 11B (deferred to Phase 11C).
+
+### 7. Next Step
+Proceed to Phase 11C: Automated Database Incident Ingestion Service.
 
 
 

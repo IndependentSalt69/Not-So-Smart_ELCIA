@@ -66,8 +66,9 @@ def create_application() -> FastAPI:
     from src.api.routes.health import router as health_router
     app.include_router(health_router)
 
-    # Ensure evidence output directory exists
+    # Ensure evidence output and job output directories exist
     os.makedirs(settings.EVIDENCE_DIR, exist_ok=True)
+    os.makedirs("outputs/jobs", exist_ok=True)
 
     # Mount static files for evidence under /static/evidence and /evidence
     app.mount(
@@ -80,6 +81,12 @@ def create_application() -> FastAPI:
         StaticFiles(directory=settings.EVIDENCE_DIR),
         name="evidence",
     )
+    app.mount(
+        "/static/jobs",
+        StaticFiles(directory="outputs/jobs"),
+        name="static_jobs",
+    )
+
 
     @app.get("/", tags=["root"])
     def root():
