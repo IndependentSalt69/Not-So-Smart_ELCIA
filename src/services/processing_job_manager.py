@@ -239,11 +239,45 @@ class ProcessingJobManager:
 
                 if proc.returncode == 0:
                     self._populate_completed_results(job)
-                    job.status = JobStatus.COMPLETED
-                    job.progress_pct = 100.0
-                    job.completed_at = datetime.now(timezone.utc)
-                    job.current_stage = "Pipeline completed successfully"
+                    
+                    # Phase 11C: Database Ingestion
+                    from src.db.session import SessionLocal
+                    from src.services.ml_ingestion_service import ingest_job_results
+                    
+                    db = SessionLocal()
+                    try:
+                        ingestion_summary = ingest_job_results(
+                            db=db,
+                            job_id=job.job_id,
+                            output_dir=job.output_dir,
+                            zone_id=job.zone_id,
+                        )
+                        if job.results and isinstance(job.results.get("summary"), dict):
+                            job.results["summary"]["incidents_created"] = ingestion_summary["incidents_created"]
+                            job.results["summary"]["detections_created"] = ingestion_summary["detections_created"]
+                            job.results["summary"]["evidence_created"] = ingestion_summary["evidence_created"]
+                            job.results["summary"]["skipped"] = ingestion_summary["skipped"]
+                            job.results["summary"]["failed"] = ingestion_summary["failed"]
+                            job.results["summary"]["missing_gps"] = ingestion_summary["missing_gps"]
+                        if job.results:
+                            job.results["incident_ids"] = ingestion_summary["incident_ids"]
+
+                        job.status = JobStatus.COMPLETED
+                        job.progress_pct = 100.0
+                        job.completed_at = datetime.now(timezone.utc)
+                        job.current_stage = "Pipeline completed and ingested into database"
+
+                    except Exception as ing_err:
+                        job.status = JobStatus.FAILED
+                        job.completed_at = datetime.now(timezone.utc)
+                        job.current_stage = "ML completed successfully, database ingestion failed"
+                        job.error = f"ML completed successfully, database ingestion failed: {str(ing_err)}"
+
+                    finally:
+                        db.close()
+
                 else:
+
                     err_msg = f"Runner process exited with code {proc.returncode}"
                     if stderr_lines:
                         err_msg += f": {stderr_lines[-1]}"

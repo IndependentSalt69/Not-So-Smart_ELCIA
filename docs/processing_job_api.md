@@ -97,8 +97,9 @@ Polls status, progress, hazard counts, evidence count, and artifact paths for a 
 Jobs transition through four deterministic states:
 1. `QUEUED`: File uploaded, job registered, waiting for GPU concurrency slot.
 2. `PROCESSING`: Subprocess executing `python -m src.detection.runner`.
-3. `COMPLETED`: ML pipeline finished successfully; artifacts verified.
-4. `FAILED`: Subprocess exited with non-zero exit code or error encountered.
+3. `COMPLETED`: ML pipeline completed successfully AND automatic database ingestion into PostgreSQL/PostGIS succeeded (`incidents`, `detections`, `evidence`).
+4. `FAILED`: Subprocess exited with non-zero exit code OR database ingestion failed.
+
 
 ---
 

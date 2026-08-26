@@ -856,11 +856,48 @@ Build backend processing job endpoints (`POST /api/v1/process`, `GET /api/v1/pro
 - **Real Video ML Job Execution**: Verified `POST /api/v1/process` with `data_raw/full_demo_video.mp4` and `data_raw/full_demo_video.srt`, returning HTTP 202 and reaching `COMPLETED` status with 551 detected hazards and 551 evidence snapshots.
 - **Legacy Compatibility**: `python scripts/run_pipeline.py` and `python -m src.detection.runner` remain 100% functional.
 
-### 6. Known Limitations
-- Incidents and detections are not automatically persisted to PostgreSQL/PostGIS database in Phase 11B (deferred to Phase 11C).
+---
 
-### 7. Next Step
-Proceed to Phase 11C: Automated Database Incident Ingestion Service.
+## Phase 11C: Automatic ML Output → PostgreSQL/PostGIS Ingestion
+
+**Date:** August 26, 2026  
+**Status:** Completed & Verified  
+
+### 1. Objective
+Automatically ingest detected hazards, frame observations, and evidence snapshot JPEGs from completed ML processing jobs directly into PostgreSQL/PostGIS (`incidents`, `detections`, `evidence` tables). Ensures job status is marked `COMPLETED` only after both ML execution and DB ingestion succeed atomically.
+
+### 2. Files Inspected / Modified / Created
+- **Created:**
+  - `src/services/ml_ingestion_service.py` (Core ML output ingestion service, severity score normalizer, priority mapper, location builder, and atomic database transaction runner)
+  - `tests/services/test_ml_ingestion.py` (Unit and integration tests for severity scaling, 4-class mapping, GeoJSON [lon, lat], null GPS, missing files, and duplicate ingestion idempotency)
+  - `docs/ml_output_database_ingestion.md` (Ingestion service architecture, mapping contracts, and idempotency guide)
+- **Modified:**
+  - `src/services/processing_job_manager.py` (Integrated `ingest_job_results` upon subprocess completion before setting status to `COMPLETED`)
+  - `docs/processing_job_api.md` (Updated `COMPLETED` state definition)
+  - `docs/frontend_backend_integration_log.md` (Updated integration log)
+
+### 3. Key Telemetry & Schema Mappings
+- **Four-Class Mapping**:
+  - `waterlogging` $\to$ `IncidentType.WATERLOGGING`
+  - `pothole` $\to$ `IncidentType.POTHOLE`
+  - `drainage_overflow` $\to$ `IncidentType.DRAINAGE_OVERFLOW`
+  - `damaged_footpath` $\to$ `IncidentType.DAMAGED_FOOTPATH`
+- **Severity Normalization**: Backend score = $\text{round}(\text{ml\_score} / 10.0, 2)$ ($0.0 \le \text{score} \le 10.0$).
+- **Priority Mapping**: ML score $> 70$ or `risk_level == "CRITICAL"` $\to$ `P1`; ML score $> 40$ or `risk_level == "HIGH"` $\to$ `P2`; else $\to$ `P3`.
+- **Location Geometry**: Stored as PostGIS Point geometry with GeoJSON coordinate order `[longitude, latitude]`. Null GPS coordinates set `location = None`.
+- **Idempotency Strategy**: Job-scoped incident code `INC-<job_id[:8].upper()>-<hazard_id>`. Second ingestion run against the same job yields `0` new incidents and `skipped = N` with 0 database row count increase. Zero database migrations required.
+
+### 4. Verification & Test Results
+- **Pytest Test Suite (`.venv\Scripts\python.exe -m pytest -v`)**: Passed **64 / 64 tests (100%) in 10.80s**.
+- **Real Job Ingestion Verification (`scratch/verify_phase_11c_real_ingestion.py`)**: Successfully ingested 551 real ML hazards from `phase11a-test` into PostgreSQL/PostGIS. Verified Incident, Detection, Evidence records, and API retrieval via `GET /api/v1/incidents/{id}`.
+- **Duplicate Ingestion Test**: Second run against identical job produced 0 new incidents, 551 skipped hazards, and 0 database row count increase.
+
+### 5. Known Limitations
+- Dashboard UI integration is deferred to Phase 11D.
+
+### 6. Next Step
+Proceed to Phase 11D: Dashboard Ingestion Studio Integration.
+
 
 
 
