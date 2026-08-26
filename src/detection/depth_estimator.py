@@ -7,10 +7,13 @@ import cv2
 import numpy as np
 
 class DepthEstimator:
-    def __init__(self, model_type="DPT_Large"):
+    def __init__(self, model_type="DPT_Large", device=None):
         print(f"[AI Engine] Loading {model_type} Depth Model...")
         
-        if torch.cuda.is_available():
+        if device is not None:
+            self.device = torch.device(device)
+            print(f"[AI Engine] Using specified device: {self.device}")
+        elif torch.cuda.is_available():
             self.device = torch.device("cuda")
             print("[AI Engine] Using NVIDIA CUDA Acceleration.")
         elif torch.backends.mps.is_available():
@@ -19,6 +22,7 @@ class DepthEstimator:
         else:
             self.device = torch.device("cpu")
             print("[AI Engine] Warning: Using CPU for depth estimation (this will be slow).")
+
             
         # Load high-precision DPT model
         self.midas = torch.hub.load("intel-isl/MiDaS", model_type, trust_repo=True)

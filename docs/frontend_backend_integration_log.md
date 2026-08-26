@@ -969,6 +969,36 @@ Every processing job submitted via `POST /api/v1/process` returned HTTP 202 Acce
 - **Real ML Job Subprocess Execution (`scratch/test_job_post.py`)**: Verified live job execution with `data_raw/full_demo_video.mp4` and `data_raw/full_demo_video.srt`, successfully transitioning through `QUEUED` $\to$ `PROCESSING` $\to$ `COMPLETED` and writing 551 incidents into PostgreSQL/PostGIS.
 - **Backend Test Suite (`.venv\Scripts\python.exe -m pytest -v`)**: Passed **64 / 64 tests (100%) in 10.05s**.
 
+---
+
+## Phase 11E: GPU Acceleration, Real Media Resolution & Processed Video Hardening
+
+**Date:** August 26, 2026  
+**Status:** Completed & Verified  
+
+### 1. Objective
+Ensure explicit GPU acceleration on NVIDIA GeForce RTX 5070 for real ML pipeline execution, fix evidence static media URL resolution (`getEvidenceMediaUrl`) to properly load job-scoped evidence JPEGs, and display the real annotated output MP4 video in the AI Ingestion Studio upon job completion.
+
+### 2. Files Modified / Created
+- **Created:**
+  - `docs/real_media_runtime.md` (Detailed runtime architecture for GPU targeting, evidence resolution, and annotated video playback)
+- **Modified:**
+  - `src/detection/runner.py` (Added explicit CUDA verification, logging `[JOB:<id>] DEVICE=cuda` and `[JOB:<id>] GPU=NVIDIA GeForce RTX 5070`, failing cleanly if CUDA is unavailable, and passing `device=device` to pipeline)
+  - `src/detection/video_tracker.py` (Propagated `device` parameter to `YOLOSegmentor` and `DepthEstimator`)
+  - `src/detection/yolo_segmentation.py` (Updated `YOLOSegmentor` to accept `device` and pass `device=self.device` to `self.model.track(...)`)
+  - `src/detection/depth_estimator.py` (Updated `DepthEstimator` to accept explicit `device`)
+  - `dashboard/client/src/services/incidentService.ts` (Updated `getEvidenceMediaUrl` helper to map `outputs/jobs/<job_id>/...` to `/static/jobs/<job_id>/...`)
+  - `dashboard/client/src/components/ingestion/DroneIngestionStudio.tsx` (Added `Processed Flight Video` card rendering `<video controls src={output_video_url} />`)
+  - `docs/frontend_backend_integration_log.md` (Updated integration log)
+
+### 3. Verification Summary
+- **PyTorch CUDA Diagnostic**: `CUDA available: True`, `device: cuda`, `GPU: NVIDIA GeForce RTX 5070`.
+- **Static Job Evidence HTTP GET**: `GET /static/jobs/phase11a-test/evidence/hazard_18_CRITICAL.jpg` returned **HTTP 200 image/jpeg** (146,990 bytes).
+- **Static Job Annotated Video HTTP GET**: `GET /static/jobs/phase11a-test/annotated_output.mp4` returned **HTTP 200 video/mp4** (284,180,989 bytes).
+- **TypeScript Check (`npm run check`)**: **0 errors** (100% clean).
+- **Pytest Test Suite (`pytest -v`)**: Passed **64 / 64 tests (100%) in 7.00s**.
+
+
 
 
 

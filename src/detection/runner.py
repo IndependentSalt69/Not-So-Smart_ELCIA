@@ -136,6 +136,19 @@ def main():
 
     output_video_path = str(output_dir / "annotated_output.mp4")
 
+    # 4. Validate CUDA availability for GPU processing
+    import torch
+    if torch.cuda.is_available():
+        device = "cuda"
+        gpu_name = torch.cuda.get_device_name(0)
+        print(f"[JOB:{job_id}] DEVICE={device}")
+        print(f"[JOB:{job_id}] GPU={gpu_name}")
+    else:
+        msg = "CUDA unavailable for real GPU processing."
+        print(f"[JOB:{job_id}] ERROR={msg}")
+        print(f"[JOB:{job_id}] EXIT=1")
+        sys.exit(1)
+
     # 5. Execute HazardVideoPipeline
     print(f"[JOB:{job_id}] PIPELINE_START")
     try:
@@ -143,11 +156,13 @@ def main():
             weights_path=args.weights,
             output_dir=str(output_dir),
             srt_path=args.srt,
+            device=device,
         )
         pipeline.process_video(
             video_path=str(video_path),
             output_video_path=output_video_path,
         )
+
 
         telemetry_path = output_dir / "hazard_telemetry.json"
         print(f"[JOB:{job_id}] PIPELINE_COMPLETE")

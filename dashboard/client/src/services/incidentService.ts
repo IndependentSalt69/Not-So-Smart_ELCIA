@@ -15,13 +15,31 @@ export function getEvidenceMediaUrl(filePath?: string | null): string {
     return filePath;
   }
 
-  // Extract filename only (e.g. "outputs/evidence/hazard_3_LOW.jpg" -> "hazard_3_LOW.jpg")
-  const cleanFilename = filePath.replace(/^.*[\\\/]/, '');
+  const origin = getMediaBaseUrl();
+  const normalizedPath = filePath.replace(/\\/g, '/');
+
+  // Map outputs/jobs/<job_id>/... -> /static/jobs/<job_id>/...
+  const jobsMatch = normalizedPath.match(/(?:^|\/)outputs\/jobs\/([^\/]+)\/(.+)$/);
+  if (jobsMatch) {
+    const jobId = jobsMatch[1];
+    const subPath = jobsMatch[2];
+    return `${origin}/static/jobs/${jobId}/${subPath}`;
+  }
+
+  // Map outputs/evidence/<filename> -> /static/evidence/<filename>
+  const evidenceMatch = normalizedPath.match(/(?:^|\/)outputs\/evidence\/([^\/]+)$/);
+  if (evidenceMatch) {
+    const filename = evidenceMatch[1];
+    return `${origin}/static/evidence/${filename}`;
+  }
+
+  // Fallback filename extraction
+  const cleanFilename = normalizedPath.replace(/^.*[\\\/]/, '');
   if (!cleanFilename) return '';
 
-  const origin = getMediaBaseUrl();
   return `${origin}/static/evidence/${cleanFilename}`;
 }
+
 
 // In-memory cache & pending promise deduplicator for primary evidence media URLs
 const primaryEvidenceCache = new Map<string, string | null>();

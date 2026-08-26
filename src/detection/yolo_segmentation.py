@@ -8,6 +8,9 @@ import numpy as np
 from ultralytics import YOLO
 from typing import List, Dict, Any, Optional
 
+import torch
+
+
 class YOLOSegmentor:
     def __init__(
         self,
@@ -17,6 +20,7 @@ class YOLOSegmentor:
         imgsz: int = 640,                 # Set to 1280 for maximum range if needed
         tracker_config: str = "configs/custom_bytetrack.yaml",
         target_classes: Optional[Dict[int, str]] = None,
+        device: Optional[str] = None,
     ):
         self.model_path = model_path
         self.conf_threshold = conf_threshold
@@ -29,7 +33,8 @@ class YOLOSegmentor:
             2: "drainage_overflow",
             3: "damaged_footpath"
         }
-        print(f"[AI Engine] Loading YOLO Segmentation Model from: {self.model_path}")
+        self.device = device if device is not None else ("cuda" if torch.cuda.is_available() else "cpu")
+        print(f"[AI Engine] Loading YOLO Segmentation Model from: {self.model_path} on device={self.device}")
         self.model = YOLO(self.model_path)
 
     def _parse_results(self, results, h: int, w: int) -> List[Dict[str, Any]]:
@@ -98,9 +103,11 @@ class YOLOSegmentor:
             conf=self.conf_threshold,
             iou=self.iou_threshold,
             imgsz=self.imgsz,
+            device=self.device,
             verbose=False,
         )
         return self._parse_results(results, h, w)
+
 
     def draw_detections(self, frame: np.ndarray, detections: List[Dict[str, Any]]) -> np.ndarray:
         annotated = frame.copy()

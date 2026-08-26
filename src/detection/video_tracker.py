@@ -13,16 +13,25 @@ from src.detection.depth_estimator import DepthEstimator
 from src.detection.severity_analyzer import SeverityAnalyzer
 from scripts.gps_parser import parse_dji_srt
 
+import torch
+
+
 class HazardVideoPipeline:
-    def __init__(self, weights_path="models/production/civicpulse_best.pt", output_dir="outputs", srt_path=None):
+    def __init__(self, weights_path="models/production/civicpulse_best.pt", output_dir="outputs", srt_path=None, device=None):
         self.output_dir = Path(output_dir)
         self.evidence_dir = self.output_dir / "evidence"
         self.evidence_dir.mkdir(parents=True, exist_ok=True)
         
-        # Initialize modules
-        self.segmentor = YOLOSegmentor(model_path=weights_path)
-        self.depth_estimator = DepthEstimator(model_type="DPT_Large")
+        if device is not None:
+            self.device = device
+        else:
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        # Initialize modules with explicit device target
+        self.segmentor = YOLOSegmentor(model_path=weights_path, device=self.device)
+        self.depth_estimator = DepthEstimator(model_type="DPT_Large", device=self.device)
         self.severity_analyzer = SeverityAnalyzer()
+
         
         # GPS Telemetry data
         self.gps_data = []
