@@ -43,8 +43,6 @@ The platform addresses severe urban challenges—specifically **waterlogging inu
 
 **Dashboard:** [https://civicpulse-44d.pages.dev](https://civicpulse-44d.pages.dev)
 
-> Note: The public dashboard requires the CivicPulse backend and processing host to be running during the live demonstration.
-
 ---
 
 ## Key System Accomplishments & Verification Status
