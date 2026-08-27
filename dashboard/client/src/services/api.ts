@@ -23,6 +23,27 @@ export const getMediaBaseUrl = (): string => {
   }
 };
 
+export const isMockDataEnabled = (): boolean => {
+  if (typeof process !== 'undefined' && process.env) {
+    if (process.env.VITE_USE_MOCK_DATA !== undefined) {
+      const val = String(process.env.VITE_USE_MOCK_DATA).toLowerCase();
+      return val === 'true' || val === '1';
+    }
+    if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
+      return true;
+    }
+  }
+
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_USE_MOCK_DATA !== undefined) {
+      const val = String(import.meta.env.VITE_USE_MOCK_DATA).toLowerCase();
+      return val === 'true' || val === '1';
+    }
+  } catch {}
+
+  return false;
+};
+
 const BASE_URL = getBaseUrl();
 
 export class ApiError extends Error {

@@ -3,6 +3,7 @@ import { incidentService } from '../services/incidentService';
 
 describe('Incident Service', () => {
   beforeEach(() => {
+    process.env.VITE_USE_MOCK_DATA = 'true';
     incidentService.resetToMockData();
   });
 

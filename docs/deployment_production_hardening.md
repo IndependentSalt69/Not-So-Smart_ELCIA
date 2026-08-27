@@ -85,14 +85,31 @@ Production environment parameters:
 
 ---
 
-## 11. Local Regression Results
-- **Pytest Backend Test Suite**: **64 / 64 passed (100%) in 6.83s**.
+## 12. Local Regression Results
+- **Pytest Backend Test Suite**: **64 / 64 passed (100%) in 6.71s**.
+- **Vitest Frontend Test Suite**: **30 / 30 passed (100%) in 7.73s**.
 - **TypeScript Type Check**: **0 errors** (`tsc --noEmit` passed cleanly).
 - **Application Behavior**: Preserved 100% compatibility across ML processing, API endpoints, PostGIS ingestion, and frontend UI.
 
 ---
 
-## 12. Remaining Deployment Prerequisites
+## 13. Production Data Source & Mock Data Isolation
+
+### Production Data Source
+PostgreSQL/PostGIS is the single authoritative source of truth for incidents, evidence, detections, inspections, and assignments in production. Mock incident fixtures are available only when explicitly enabled for offline development or unit testing.
+
+- **Production Setting**: `VITE_USE_MOCK_DATA=false` (Default)
+- **Mock Mode Setting**: `VITE_USE_MOCK_DATA=true` (Used explicitly in unit testing or offline development)
+
+### Production Incident State Architecture
+1. **No Auto-Seeding**: `ensureBackendSeeded()` is completely disabled when `VITE_USE_MOCK_DATA=false`. No mock fixtures (`INITIAL_MOCK_INCIDENTS`) are inserted into PostgreSQL.
+2. **No Mock Fallback**: If backend API queries fail or return empty results, the dashboard renders an appropriate empty state ("No incidents found" / "Evidence unavailable") rather than substituting mock incidents.
+3. **LocalStorage Handling**: LocalStorage key `civicpulse_incidents_v1` is ignored in production mode. Stale mock incident objects in local browser storage are never loaded into the production queue or migrated to the backend. LocalStorage is strictly reserved for user UI preferences (theme, view mode, filters).
+4. **Real Media Resolution**: Evidence and video stream URLs are derived strictly from real backend file paths returned by `GET /api/v1/incidents/{id}/evidence`.
+
+---
+
+## 14. Remaining Deployment Prerequisites
 1. Select/initialize public Cloudflare Tunnel hostname.
 2. Update `dashboard/client/.env` setting `VITE_API_BASE_URL` to public HTTPS URL.
 3. Build production frontend bundle (`npm run build`).

@@ -1,6 +1,6 @@
 import { generateSvgFrame, INITIAL_MOCK_INCIDENTS } from '@/data/mockIncidents';
 import { canTransition } from '@/lib/stateMachine';
-import { api, ApiError, getMediaBaseUrl } from '@/services/api';
+import { api, ApiError, getMediaBaseUrl, isMockDataEnabled } from '@/services/api';
 
 /**
  * Convert backend relative evidence path to browser-accessible static media URL
@@ -267,31 +267,36 @@ export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Inciden
 
 const STORAGE_KEY = 'civicpulse_incidents_v1';
 
-// In-memory cache synced with localStorage for simulated persistence
+// In-memory cache synced with localStorage for simulated persistence (mock mode only)
 let incidentsState: Incident[] = (() => {
-  try {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        return JSON.parse(stored);
+  if (isMockDataEnabled()) {
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          return JSON.parse(stored);
+        }
       }
+    } catch (e) {
+      console.error('Failed to load incidents from localStorage:', e);
     }
-  } catch (e) {
-    console.error('Failed to load incidents from localStorage:', e);
+    return [...INITIAL_MOCK_INCIDENTS];
   }
-  return [...INITIAL_MOCK_INCIDENTS];
+  return [];
 })();
 
 type StateListener = () => void;
 const listeners = new Set<StateListener>();
 
 const persist = (notify = true) => {
-  try {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(incidentsState));
+  if (isMockDataEnabled()) {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(incidentsState));
+      }
+    } catch (e) {
+      console.error('Failed to persist incidents to localStorage:', e);
     }
-  } catch (e) {
-    console.error('Failed to persist incidents to localStorage:', e);
   }
   if (notify) {
     listeners.forEach((listener) => listener());
@@ -325,7 +330,7 @@ function upsertSingleIncidentState(item: Incident, notify = true) {
 let isSeeding = false;
 
 async function ensureBackendSeeded() {
-  if (isSeeding) return;
+  if (!isMockDataEnabled() || isSeeding) return;
   isSeeding = true;
   try {
     const listResp = await api.get<BackendIncidentListResponse>('/incidents/');
@@ -413,7 +418,11 @@ export const incidentService = {
         return { active, completed, rejected };
       }
     } catch (err) {
-      console.warn('Failed to fetch backend queue tab counts, falling back to local state:', err);
+      console.warn('Failed to fetch backend queue tab counts:', err);
+    }
+
+    if (!isMockDataEnabled()) {
+      return { active: 0, completed: 0, rejected: 0 };
     }
 
     let active = 0;
@@ -441,9 +450,69 @@ export const incidentService = {
     sortField: SortField = 'timestamp',
     sortDir: SortDirection = 'desc'
   ): Promise<Incident[]> {
-    try {
-      await ensureBackendSeeded();
+    if (isMockDataEnabled()) {
+      let result = [...incidentsState];
 
+      if (filters) {
+        if (filters.queueTab === 'completed') {
+          result = result.filter((inc) => inc.status === 'CLOSED');
+        } else if (filters.queueTab === 'rejected') {
+          result = result.filter((inc) => inc.status === 'REJECTED');
+        } else if (filters.queueTab === 'active' || (!filters.queueTab && (!filters.status || filters.status === 'all'))) {
+          result = result.filter((inc) => inc.status !== 'CLOSED' && inc.status !== 'REJECTED');
+        }
+
+        if (filters.type && filters.type !== 'all') {
+          result = result.filter((inc) => inc.type === filters.type);
+        }
+        if (filters.priority && filters.priority !== 'all') {
+          result = result.filter((inc) => inc.priority === filters.priority);
+        }
+        if (filters.status && filters.status !== 'all') {
+          result = result.filter((inc) => inc.status === filters.status);
+        }
+        if (filters.zoneId && filters.zoneId !== 'all') {
+          result = result.filter((inc) => inc.zoneId === filters.zoneId);
+        }
+        if (filters.searchQuery && filters.searchQuery.trim() !== '') {
+          const q = filters.searchQuery.toLowerCase().trim();
+          result = result.filter(
+            (inc) =>
+              inc.id.toLowerCase().includes(q) ||
+              (inc.code && inc.code.toLowerCase().includes(q)) ||
+              inc.locationDescription.toLowerCase().includes(q) ||
+              inc.zone.toLowerCase().includes(q) ||
+              inc.type.toLowerCase().includes(q)
+          );
+        }
+      }
+
+      result.sort((a, b) => {
+        let comparison = 0;
+        switch (sortField) {
+          case 'severity':
+            comparison = a.severity - b.severity;
+            break;
+          case 'confidence':
+            comparison = a.confidence - b.confidence;
+            break;
+          case 'priority': {
+            const rank = { P1: 3, P2: 2, P3: 1 };
+            comparison = rank[a.priority] - rank[b.priority];
+            break;
+          }
+          case 'timestamp':
+          default:
+            comparison = new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+            break;
+        }
+        return sortDir === 'asc' ? comparison : -comparison;
+      });
+
+      return result;
+    }
+
+    try {
       const queryParams: Record<string, string | number | undefined> = {};
 
       if (filters) {
@@ -514,74 +583,20 @@ export const incidentService = {
         return backendIncidents;
       }
     } catch (err) {
-      console.warn('Backend API fetch failed, falling back to local state:', err);
+      console.warn('Backend API fetch failed:', err);
     }
 
-    let result = [...incidentsState];
-
-    if (filters) {
-      if (filters.queueTab === 'completed') {
-        result = result.filter((inc) => inc.status === 'CLOSED');
-      } else if (filters.queueTab === 'rejected') {
-        result = result.filter((inc) => inc.status === 'REJECTED');
-      } else if (filters.queueTab === 'active' || (!filters.queueTab && (!filters.status || filters.status === 'all'))) {
-        result = result.filter((inc) => inc.status !== 'CLOSED' && inc.status !== 'REJECTED');
-      }
-
-      if (filters.type && filters.type !== 'all') {
-        result = result.filter((inc) => inc.type === filters.type);
-      }
-      if (filters.priority && filters.priority !== 'all') {
-        result = result.filter((inc) => inc.priority === filters.priority);
-      }
-      if (filters.status && filters.status !== 'all') {
-        result = result.filter((inc) => inc.status === filters.status);
-      }
-      if (filters.zoneId && filters.zoneId !== 'all') {
-        result = result.filter((inc) => inc.zoneId === filters.zoneId);
-      }
-      if (filters.searchQuery && filters.searchQuery.trim() !== '') {
-        const q = filters.searchQuery.toLowerCase().trim();
-        result = result.filter(
-          (inc) =>
-            inc.id.toLowerCase().includes(q) ||
-            (inc.code && inc.code.toLowerCase().includes(q)) ||
-            inc.locationDescription.toLowerCase().includes(q) ||
-            inc.zone.toLowerCase().includes(q) ||
-            inc.type.toLowerCase().includes(q)
-        );
-      }
-    }
-
-    result.sort((a, b) => {
-      let comparison = 0;
-      switch (sortField) {
-        case 'severity':
-          comparison = a.severity - b.severity;
-          break;
-        case 'confidence':
-          comparison = a.confidence - b.confidence;
-          break;
-        case 'priority': {
-          const rank = { P1: 3, P2: 2, P3: 1 };
-          comparison = rank[a.priority] - rank[b.priority];
-          break;
-        }
-        case 'timestamp':
-        default:
-          comparison = new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-          break;
-      }
-      return sortDir === 'asc' ? comparison : -comparison;
-    });
-
-    return result;
+    return [];
   },
 
   /**
    * Get single incident by ID (UUID or tracking code) from GET /api/v1/incidents/{incident_id}
    */
   async getIncidentById(id: string): Promise<Incident | undefined> {
+    if (isMockDataEnabled()) {
+      return incidentsState.find((inc) => inc.id === id || inc.code === id);
+    }
+
     try {
       const item = await api.get<BackendIncidentItem>(`/incidents/${id}`);
       if (item && (item.id || item.incident_code)) {
@@ -593,11 +608,10 @@ export const incidentService = {
       if (err instanceof ApiError && err.status === 404) {
         console.warn(`Incident '${id}' not found on backend API.`);
       } else {
-        console.warn(`Failed to fetch incident '${id}' from backend API, checking local state:`, err);
+        console.warn(`Failed to fetch incident '${id}' from backend API:`, err);
       }
     }
 
-    // Fallback to local state lookup
     return incidentsState.find((inc) => inc.id === id || inc.code === id);
   },
 
@@ -863,6 +877,9 @@ export const incidentService = {
   /**
    * Assign an incident to a mitigation crew and recommended action
    */
+  /**
+   * Assign an incident to a mitigation crew and recommended action
+   */
   async assignIncident(
     id: string,
     owner: string,
@@ -870,6 +887,38 @@ export const incidentService = {
     actor: string = 'Dispatch Supervisor',
     assignedToUserId?: string
   ): Promise<Incident> {
+    if (isMockDataEnabled()) {
+      const incidentIndex = incidentsState.findIndex((inc) => inc.id === id || inc.code === id);
+      if (incidentIndex === -1) {
+        throw new Error(`Incident ${id} not found`);
+      }
+
+      const incident = incidentsState[incidentIndex];
+      if (!canTransition(incident.status, 'ASSIGNED')) {
+        throw new Error(`Cannot assign incident in status ${incident.status}. Must be in VERIFIED status first.`);
+      }
+
+      const updated: Incident = {
+        ...incident,
+        owner,
+        recommendedAction: action,
+        status: 'ASSIGNED',
+        history: [
+          ...incident.history,
+          {
+            status: 'ASSIGNED',
+            timestamp: new Date().toISOString(),
+            actor,
+            notes: `Assigned to: ${owner} | Action: ${action}`,
+          },
+        ],
+      };
+
+      incidentsState[incidentIndex] = updated;
+      persist();
+      return updated;
+    }
+
     let userId = assignedToUserId;
 
     if (!userId) {
@@ -900,57 +949,19 @@ export const incidentService = {
       }
     }
 
-    // Always update status to ASSIGNED
-    try {
-      const updatedWithStatus = await this.updateIncidentStatus(
-        id,
-        'ASSIGNED',
-        actor,
-        `Assigned to: ${owner} | Action: ${action}`
-      );
-      const fullUpdated: Incident = {
-        ...updatedWithStatus,
-        owner,
-        recommendedAction: action,
-      };
-      upsertSingleIncidentState(fullUpdated);
-      return fullUpdated;
-    } catch (err: any) {
-      if (err instanceof ApiError) {
-        throw err;
-      }
-      console.warn(`Backend status update failed in assignIncident for '${id}', falling back:`, err);
-    }
-
-    const incidentIndex = incidentsState.findIndex((inc) => inc.id === id || inc.code === id);
-    if (incidentIndex === -1) {
-      throw new Error(`Incident ${id} not found`);
-    }
-
-    const incident = incidentsState[incidentIndex];
-    if (!canTransition(incident.status, 'ASSIGNED')) {
-      throw new Error(`Cannot assign incident in status ${incident.status}. Must be in VERIFIED status first.`);
-    }
-
-    const updated: Incident = {
-      ...incident,
+    const updatedWithStatus = await this.updateIncidentStatus(
+      id,
+      'ASSIGNED',
+      actor,
+      `Assigned to: ${owner} | Action: ${action}`
+    );
+    const fullUpdated: Incident = {
+      ...updatedWithStatus,
       owner,
       recommendedAction: action,
-      status: 'ASSIGNED',
-      history: [
-        ...incident.history,
-        {
-          status: 'ASSIGNED',
-          timestamp: new Date().toISOString(),
-          actor,
-          notes: `Assigned to: ${owner} | Action: ${action}`,
-        },
-      ],
     };
-
-    incidentsState[incidentIndex] = updated;
-    persist();
-    return updated;
+    upsertSingleIncidentState(fullUpdated);
+    return fullUpdated;
   },
 
   /**
@@ -962,111 +973,107 @@ export const incidentService = {
     actor: string = 'Command Operator',
     notes?: string
   ): Promise<Incident> {
-    try {
-      const payload = {
+    if (isMockDataEnabled()) {
+      const incidentIndex = incidentsState.findIndex((inc) => inc.id === id || inc.code === id);
+      if (incidentIndex === -1) {
+        throw new Error(`Incident ${id} not found`);
+      }
+
+      const incident = incidentsState[incidentIndex];
+      if (!canTransition(incident.status, nextStatus)) {
+        throw new Error(
+          `Invalid status transition from ${incident.status} to ${nextStatus}. Transition is not allowed.`
+        );
+      }
+
+      const updated: Incident = {
+        ...incident,
         status: nextStatus,
-        changed_by: null,
-        comment: notes || (actor ? `Status changed by ${actor}` : `Status updated to ${nextStatus}`),
+        history: [
+          ...incident.history,
+          {
+            status: nextStatus,
+            timestamp: new Date().toISOString(),
+            actor,
+            notes,
+          },
+        ],
       };
 
-      const responseItem = await api.patch<BackendIncidentItem>(`/incidents/${id}/status`, payload);
-
-      if (responseItem && (responseItem.id || responseItem.incident_code)) {
-        const updated = mapBackendIncidentToFrontend(responseItem);
-        upsertSingleIncidentState(updated);
-        return updated;
-      }
-    } catch (err: any) {
-      if (err instanceof ApiError) {
-        console.error(`Backend status mutation failed for incident '${id}':`, err.message);
-        throw err;
-      }
-      console.warn(`Backend API status update failed for incident '${id}', attempting local state fallback:`, err);
+      incidentsState[incidentIndex] = updated;
+      persist();
+      return updated;
     }
 
-    const incidentIndex = incidentsState.findIndex((inc) => inc.id === id || inc.code === id);
-    if (incidentIndex === -1) {
-      throw new Error(`Incident ${id} not found`);
-    }
-
-    const incident = incidentsState[incidentIndex];
-    if (!canTransition(incident.status, nextStatus)) {
-      throw new Error(
-        `Invalid status transition from ${incident.status} to ${nextStatus}. Transition is not allowed.`
-      );
-    }
-
-    const updated: Incident = {
-      ...incident,
+    const payload = {
       status: nextStatus,
-      history: [
-        ...incident.history,
-        {
-          status: nextStatus,
-          timestamp: new Date().toISOString(),
-          actor,
-          notes,
-        },
-      ],
+      changed_by: null,
+      comment: notes || (actor ? `Status changed by ${actor}` : `Status updated to ${nextStatus}`),
     };
 
-    incidentsState[incidentIndex] = updated;
-    persist();
-    return updated;
+    const responseItem = await api.patch<BackendIncidentItem>(`/incidents/${id}/status`, payload);
+
+    if (responseItem && (responseItem.id || responseItem.incident_code)) {
+      const updated = mapBackendIncidentToFrontend(responseItem);
+      upsertSingleIncidentState(updated);
+      return updated;
+    }
+
+    throw new Error(`Failed to update status for incident ${id} on backend API.`);
   },
 
   /**
    * Add a newly detected/inferred incident to the active list and publish to FastAPI backend
    */
   async createIncident(incident: Incident): Promise<Incident> {
-    try {
-      const zonesResp = await api.get<{ id: string; code: string }[]>('/zones/');
-      let zoneId = zonesResp?.[0]?.id;
-
-      if (incident.zoneId && Array.isArray(zonesResp) && zonesResp.length > 0) {
-        const matched = zonesResp.find((z) => z.code === incident.zoneId);
-        if (matched) zoneId = matched.id;
-      }
-
-      if (!zoneId) {
-        const newZone = await api.post<{ id: string }>('/zones/', {
-          code: incident.zoneId || 'EC-01',
-          name: 'Electronics City Primary Zone',
-          description: 'Surveillance zone created by ingestion studio',
-        });
-        zoneId = newZone.id;
-      }
-
-      const payload = {
-        incident_code: incident.code || incident.id || `INC-${Math.floor(1000 + Math.random() * 9000)}`,
-        incident_type: mapFrontendTypeToBackend(incident.type),
-        confidence: incident.confidence,
-        severity_score: incident.severity,
-        priority: incident.priority,
-        zone_id: zoneId,
-        status: incident.status || 'DETECTED',
-        started_at: incident.timestamp || new Date().toISOString(),
-        recommended_action: incident.recommendedAction,
-        location: incident.coordinates
-          ? {
-              type: 'Point',
-              coordinates: [incident.coordinates.lng, incident.coordinates.lat],
-            }
-          : undefined,
-      };
-
-      const responseItem = await api.post<BackendIncidentItem>('/incidents/', payload);
-      if (responseItem && (responseItem.id || responseItem.incident_code)) {
-        const created = mapBackendIncidentToFrontend(responseItem);
-        upsertSingleIncidentState(created);
-        return created;
-      }
-    } catch (err) {
-      console.warn('Failed to publish incident to backend API, saving locally:', err);
+    if (isMockDataEnabled()) {
+      upsertSingleIncidentState(incident);
+      return incident;
     }
 
-    upsertSingleIncidentState(incident);
-    return incident;
+    const zonesResp = await api.get<{ id: string; code: string }[]>('/zones/');
+    let zoneId = zonesResp?.[0]?.id;
+
+    if (incident.zoneId && Array.isArray(zonesResp) && zonesResp.length > 0) {
+      const matched = zonesResp.find((z) => z.code === incident.zoneId);
+      if (matched) zoneId = matched.id;
+    }
+
+    if (!zoneId) {
+      const newZone = await api.post<{ id: string }>('/zones/', {
+        code: incident.zoneId || 'EC-01',
+        name: 'Electronics City Primary Zone',
+        description: 'Surveillance zone created by ingestion studio',
+      });
+      zoneId = newZone.id;
+    }
+
+    const payload = {
+      incident_code: incident.code || incident.id || `INC-${Math.floor(1000 + Math.random() * 9000)}`,
+      incident_type: mapFrontendTypeToBackend(incident.type),
+      confidence: incident.confidence,
+      severity_score: incident.severity,
+      priority: incident.priority,
+      zone_id: zoneId,
+      status: incident.status || 'DETECTED',
+      started_at: incident.timestamp || new Date().toISOString(),
+      recommended_action: incident.recommendedAction,
+      location: incident.coordinates
+        ? {
+            type: 'Point',
+            coordinates: [incident.coordinates.lng, incident.coordinates.lat],
+          }
+        : undefined,
+    };
+
+    const responseItem = await api.post<BackendIncidentItem>('/incidents/', payload);
+    if (responseItem && (responseItem.id || responseItem.incident_code)) {
+      const created = mapBackendIncidentToFrontend(responseItem);
+      upsertSingleIncidentState(created);
+      return created;
+    }
+
+    throw new Error('Failed to create incident on backend API.');
   },
 
   /**
@@ -1080,8 +1087,13 @@ export const incidentService = {
    * Reset mock data to original default fixtures
    */
   resetToMockData(): void {
-    incidentsState = [...INITIAL_MOCK_INCIDENTS];
-    persist();
+    if (isMockDataEnabled()) {
+      incidentsState = JSON.parse(JSON.stringify(INITIAL_MOCK_INCIDENTS));
+      persist();
+    } else {
+      incidentsState = [];
+      persist(true);
+    }
   },
 };
 

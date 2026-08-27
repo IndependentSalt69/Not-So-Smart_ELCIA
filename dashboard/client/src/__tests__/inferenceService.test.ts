@@ -1,8 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { incidentService } from '../services/incidentService';
 import { inferenceService } from '../services/inferenceService';
 
 describe('inferenceService', () => {
+  beforeEach(() => {
+    process.env.VITE_USE_MOCK_DATA = 'true';
+    incidentService.resetToMockData();
+  });
   it('should return sample footage presets', () => {
     const presets = inferenceService.getSamplePresets();
     expect(presets.length).toBeGreaterThanOrEqual(3);

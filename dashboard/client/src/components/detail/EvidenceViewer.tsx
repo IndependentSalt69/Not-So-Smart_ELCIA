@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
+import { isMockDataEnabled } from '@/services/api';
 import { getEvidenceMediaUrl, getIncidentVideoUrlFromEvidencePath, incidentService } from '@/services/incidentService';
 import { DetectionObservation, EvidenceAsset, Incident } from '@/types/incident';
 import {
@@ -239,17 +240,31 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
       {/* Screen Canvas Area */}
       <div className="relative aspect-video w-full bg-black flex items-center justify-center overflow-hidden select-none">
         {viewMode === 'image' ? (
-          <img
-            src={activeImage}
-            alt={incident.code || incident.id}
-            onError={() => {
-              if (mediaUrl && !imageLoadError) {
-                console.warn(`Evidence media failed to load at '${mediaUrl}', falling back to simulated preview.`);
-                setImageLoadError(true);
-              }
-            }}
-            className="w-full h-full object-contain"
-          />
+          !isMockDataEnabled() && isUsingFallback ? (
+            <div className="p-6 rounded-2xl bg-zinc-900 border border-zinc-800 text-center space-y-2.5 max-w-sm">
+              <Camera className="w-8 h-8 text-zinc-500 mx-auto" />
+              <div className="text-xs xl:text-sm font-bold text-zinc-200">
+                Evidence Snapshot Unavailable
+              </div>
+              <p className="text-[11px] text-zinc-400 leading-relaxed">
+                {imageLoadError
+                  ? 'The evidence snapshot image could not be loaded from the static server.'
+                  : 'No evidence snapshot is attached to this incident record.'}
+              </p>
+            </div>
+          ) : (
+            <img
+              src={activeImage}
+              alt={incident.code || incident.id}
+              onError={() => {
+                if (mediaUrl && !imageLoadError) {
+                  console.warn(`Evidence media failed to load at '${mediaUrl}'.`);
+                  setImageLoadError(true);
+                }
+              }}
+              className="w-full h-full object-contain"
+            />
+          )
         ) : (
           <div className="relative w-full h-full flex items-center justify-center">
             {derivedVideoUrl && !videoLoadError ? (
@@ -294,7 +309,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span>REAL EVIDENCE CAPTURE</span>
           </div>
-        ) : isUsingFallback && primaryEvidence ? (
+        ) : isUsingFallback && isMockDataEnabled() ? (
           <div className="absolute top-3 right-3 bg-amber-950/85 text-amber-300 border border-amber-700 font-mono text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1.5 shadow-md">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
             <span>PREVIEW FALLBACK</span>

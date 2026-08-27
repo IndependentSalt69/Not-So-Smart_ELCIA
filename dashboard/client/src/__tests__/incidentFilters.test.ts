@@ -1,8 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { INITIAL_MOCK_INCIDENTS } from '../data/mockIncidents';
 import { incidentService } from '../services/incidentService';
 
 describe('Incident Filtering Logic', () => {
+  beforeEach(() => {
+    process.env.VITE_USE_MOCK_DATA = 'true';
+    incidentService.resetToMockData();
+  });
   it('correctly filters by Type (waterlogging vs pothole)', async () => {
     const water = await incidentService.getIncidents({ type: 'waterlogging' });
     expect(water.length).toBeGreaterThan(0);
