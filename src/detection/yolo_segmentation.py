@@ -1,23 +1,22 @@
 """
 src/detection/yolo_segmentation.py
 Handles YOLOv8-seg model inference, custom ByteTrack tracking,
-and smooth visualization overlays.
+and smooth visualization overlays with Mac M-series (MPS) & dynamic threshold support.
 """
 import cv2
 import numpy as np
 from ultralytics import YOLO
 from typing import List, Dict, Any, Optional
-
 import torch
 
 
 class YOLOSegmentor:
     def __init__(
         self,
-        model_path: str = "models/production/civicpulse_best.pt",
-        conf_threshold: float = 0.20,     # Lowered from 0.35 to catch distant hazards
+        model_path: str = "models/production/best.pt",
+        conf_threshold: float = 0.35,     # Base confidence floor
         iou_threshold: float = 0.45,
-        imgsz: int = 640,                 # Set to 1280 for maximum range if needed
+        imgsz: int = 640,
         tracker_config: str = "configs/custom_bytetrack.yaml",
         target_classes: Optional[Dict[int, str]] = None,
         device: Optional[str] = None,
@@ -33,7 +32,26 @@ class YOLOSegmentor:
             2: "drainage_overflow",
             3: "damaged_footpath"
         }
-        self.device = device if device is not None else ("cuda" if torch.cuda.is_available() else "cpu")
+
+        # Class-specific confidence thresholds to suppress false positives
+        # TUNED HACKATHON THRESHOLDS
+        self.class_conf_thresholds = {
+            "waterlogging": 0.75,       # EXTREME STRICTNESS: Kills shiny road false positives
+            "drainage_overflow": 0.50,  # Moderate
+            "pothole": 0.20,            # REVERTED TO ORIGINAL: Max sensitivity for tiny/distant holes
+            "damaged_footpath": 0.25    # HIGH SENSITIVITY: Catches more broken road edges
+        }
+
+        # Device Selection: CUDA (NVIDIA) -> MPS (Apple Silicon) -> CPU
+        if device is not None:
+            self.device = device
+        elif torch.cuda.is_available():
+            self.device = "cuda"
+        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            self.device = "mps"
+        else:
+            self.device = "cpu"
+
         print(f"[AI Engine] Loading YOLO Segmentation Model from: {self.model_path} on device={self.device}")
         self.model = YOLO(self.model_path)
 
@@ -60,7 +78,12 @@ class YOLOSegmentor:
 
             cls_name = self.target_classes.get(
                 cls_id, res.names.get(cls_id, f"class_{cls_id}")
-            )
+            ).lower()
+
+            # Apply per-class confidence threshold filter
+            min_required_conf = self.class_conf_thresholds.get(cls_name, self.conf_threshold)
+            if conf < min_required_conf:
+                continue
 
             mask_polygon = None
             mask_area_pixels = 0.0
@@ -70,12 +93,16 @@ class YOLOSegmentor:
                 xy_coords = masks[i].xy
                 if len(xy_coords) > 0 and len(xy_coords[0]) >= 3:
                     polygon_points = np.array(xy_coords[0], dtype=np.int32)
-                    mask_polygon = polygon_points
-                    mask_area_pixels = float(cv2.contourArea(polygon_points))
+                    mask_area = float(cv2.contourArea(polygon_points))
 
-                    M = cv2.moments(polygon_points)
-                    if M["m00"] != 0:
-                        centroid = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+                    # Discard microscopic artifact polygons (< 150px)
+                    if mask_area >= 150.0:
+                        mask_polygon = polygon_points
+                        mask_area_pixels = mask_area
+
+                        M = cv2.moments(polygon_points)
+                        if M["m00"] != 0:
+                            centroid = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
 
             coverage_ratio = mask_area_pixels / float(h * w) if (h * w) > 0 else 0.0
 
@@ -108,11 +135,10 @@ class YOLOSegmentor:
         )
         return self._parse_results(results, h, w)
 
-
     def draw_detections(self, frame: np.ndarray, detections: List[Dict[str, Any]]) -> np.ndarray:
         annotated = frame.copy()
         color_palette = {
-            "waterlogging": (235, 150, 50),     # Orange/Blue
+            "waterlogging": (235, 150, 50),     # Blue/Orange
             "pothole": (40, 50, 230),           # Red
             "drainage_overflow": (0, 255, 255), # Yellow
             "damaged_footpath": (0, 255, 0)     # Green
