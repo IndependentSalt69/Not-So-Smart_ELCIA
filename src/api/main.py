@@ -53,17 +53,16 @@ def create_application() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Configure CORS
+    # Configure CORS driven by environment settings
+    cors_origins = (
+        [settings.CORS_ORIGINS]
+        if isinstance(settings.CORS_ORIGINS, str)
+        else settings.CORS_ORIGINS
+    )
+
     app.add_middleware(
         CORSMiddleware,
-        #allow_origins=settings.CORS_ORIGINS,
-        allow_origins=[
-        "http://localhost:3001",
-        "http://127.0.0.1:3001",
-        "http://localhost:3000",
-        "http://localhost:5173", # Standard Vite port just in case
-        "*" # (Optional Hackathon move: just allow everything)
-        ],
+        allow_origins=cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
