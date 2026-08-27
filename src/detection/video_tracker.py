@@ -1,7 +1,7 @@
 """
 src/detection/video_tracker.py
-Orchestrates the YOLOSegmentor, DepthEstimator, and SeverityAnalyzer.
-Optimized for Drone Footage: Immediate capture with area-based noise filtering.
+Orchestrates YOLOSegmentor, DepthEstimator, and SeverityAnalyzer.
+Features temporal persistence, texture variance validation, and H.264 encoding.
 """
 import cv2
 import json
@@ -9,6 +9,7 @@ import datetime
 import subprocess
 import shutil
 from pathlib import Path
+from typing import Optional
 
 from src.detection.yolo_segmentation import YOLOSegmentor
 from src.detection.depth_estimator import DepthEstimator
@@ -19,33 +20,48 @@ import torch
 
 
 class HazardVideoPipeline:
-    def __init__(self, weights_path="models/production/civicpulse_best.pt", output_dir="outputs", srt_path=None, device=None):
+    def __init__(
+        self, 
+        weights_path: str = "models/production/civicpulse_best.pt", 
+        output_dir: str = "outputs", 
+        srt_path: Optional[str] = None, 
+        device: Optional[str] = None
+    ):
         self.output_dir = Path(output_dir)
         self.evidence_dir = self.output_dir / "evidence"
         self.evidence_dir.mkdir(parents=True, exist_ok=True)
         
+        # Hardware target resolution (MPS -> CUDA -> CPU)
         if device is not None:
             self.device = device
+        elif torch.cuda.is_available():
+            self.device = "cuda"
+        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            self.device = "mps"
         else:
-            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+            self.device = "cpu"
 
-        # Initialize modules with explicit device target
+        print(f"[AI Engine] Initializing HazardVideoPipeline on device={self.device}")
+
+        # Core ML Submodules
         self.segmentor = YOLOSegmentor(model_path=weights_path, device=self.device)
         self.depth_estimator = DepthEstimator(model_type="DPT_Large", device=self.device)
         self.severity_analyzer = SeverityAnalyzer()
 
-        
+        # State tracking
         self.logged_hazard_ids = set()
+        self.track_hit_counter = {}  # {track_id: hit_count}
         self.telemetry_log = []
-        self.min_area_pixels = 400.0  # Filter out tiny noise artifacts
+        self.min_area_pixels = 350.0
 
-        # Parse telemetry if SRT file is provided
+        # DJI Telemetry Parser
         self.gps_data = []
         if srt_path and Path(srt_path).exists():
             self.gps_data = parse_dji_srt(srt_path)
             print(f"[INFO] Parsed {len(self.gps_data)} GPS telemetry points from: {srt_path}")
 
     def _get_gps_for_time(self, seconds: float):
+        """Matches video frame timestamp to closest SRT GPS coordinate."""
         if not self.gps_data:
             return {"lat": None, "lon": None}
             
@@ -59,11 +75,26 @@ class HazardVideoPipeline:
                 
         return {"lat": self.gps_data[-1]["lat"], "lon": self.gps_data[-1]["lon"]}
 
+    def _is_surface_smooth(self, frame, bbox) -> bool:
+        """
+        Validates whether a region of interest (ROI) exhibits the optical smoothness 
+        characteristic of standing water vs. the grain/texture of dry asphalt.
+        """
+        x1, y1, x2, y2 = [int(v) for v in bbox]
+        h, w = frame.shape[:2]
+        roi = frame[max(0, y1):min(h, y2), max(0, x1):min(w, x2)]
+        
+        if roi.size == 0:
+            return False
+
+        gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        laplacian_var = cv2.Laplacian(gray_roi, cv2.CV_64F).var()
+        
+        # Dry textured asphalt typically scores > 600; true standing water is smoother (< 550)
+        return laplacian_var < 550.0
+
     def _encode_h264(self, temp_input_path: str, final_output_path: str) -> None:
-        """
-        Transcodes raw OpenCV video into browser-compatible H.264/AVC (yuv420p) format with +faststart using FFmpeg.
-        Verifies codec output via ffprobe. Fails explicitly if transcoding or codec verification fails.
-        """
+        """Transcodes raw OpenCV video to browser-compatible H.264 (yuv420p)."""
         temp_raw_p = Path(temp_input_path)
         final_p = Path(final_output_path)
         temp_h264_p = final_p.with_name(f"_h264_{final_p.name}")
@@ -86,36 +117,16 @@ class HazardVideoPipeline:
             str(temp_h264_p)
         ]
 
-        print(f"[AI Engine] Transcoding annotated video to H.264 / AVC (yuv420p, +faststart) for browser playback...")
+        print(f"[AI Engine] Transcoding annotated video to H.264 / AVC (yuv420p, +faststart)...")
         
         try:
-            res = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        except subprocess.CalledProcessError as err:
-            log_msg = (
-                f"FFmpeg H.264 transcoding failed with returncode {err.returncode}.\n"
-                f"Command: {' '.join(cmd)}\n"
-                f"Input file: {temp_input_path}\n"
-                f"Output file: {temp_h264_p}\n"
-                f"Stdout: {err.stdout}\n"
-                f"Stderr: {err.stderr}"
-            )
-            print(f"[ERROR] {log_msg}")
-            if temp_h264_p.exists():
-                temp_h264_p.unlink()
-            raise RuntimeError(log_msg) from err
+            subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         except Exception as err:
-            log_msg = f"Failed to execute FFmpeg command '{' '.join(cmd)}': {err}"
-            print(f"[ERROR] {log_msg}")
             if temp_h264_p.exists():
                 temp_h264_p.unlink()
-            raise RuntimeError(log_msg) from err
+            raise RuntimeError(f"FFmpeg transcoding failed: {err}") from err
 
-        if not temp_h264_p.exists() or temp_h264_p.stat().st_size == 0:
-            log_msg = f"FFmpeg output file missing or 0 bytes after encoding: {temp_h264_p}"
-            print(f"[ERROR] {log_msg}")
-            raise RuntimeError(log_msg)
-
-        # Verify codec output using ffprobe
+        # Verify codec output
         probe_cmd = [
             ffprobe_cmd,
             "-v", "error",
@@ -128,30 +139,20 @@ class HazardVideoPipeline:
             probe_res = subprocess.run(probe_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             detected_codec = probe_res.stdout.strip().lower()
             if detected_codec != "h264":
-                log_msg = f"Codec verification failed for '{temp_h264_p}': expected 'h264', got '{detected_codec}'."
-                print(f"[ERROR] {log_msg}")
                 if temp_h264_p.exists():
                     temp_h264_p.unlink()
-                raise RuntimeError(log_msg)
-            print(f"[AI Engine] Verified output codec: {detected_codec} (H.264 / AVC)")
+                raise RuntimeError(f"Expected codec 'h264', got '{detected_codec}'")
         except Exception as err:
-            log_msg = f"ffprobe codec verification failed: {err}"
-            print(f"[ERROR] {log_msg}")
-            if temp_h264_p.exists():
-                temp_h264_p.unlink()
-            raise RuntimeError(log_msg) from err
+            raise RuntimeError(f"ffprobe verification failed: {err}") from err
 
-        # Promote H.264 file to final output path
         if final_p.exists():
             final_p.unlink()
         temp_h264_p.rename(final_p)
 
-        # Unlink raw temp file ONLY after verification & promotion succeeds
         if temp_raw_p.exists():
             temp_raw_p.unlink()
 
-        print(f"[AI Engine] H.264 encoding complete & verified: {final_output_path}")
-
+        print(f"[AI Engine] H.264 encoding verified: {final_output_path}")
 
     def process_video(self, video_path: str, output_video_path: str = "outputs/demo_tracked_output.mp4"):
         cap = cv2.VideoCapture(video_path)
@@ -169,6 +170,11 @@ class HazardVideoPipeline:
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         out = cv2.VideoWriter(temp_raw_path, fourcc, fps, (width, height))
 
+        # Reset run state
+        self.logged_hazard_ids.clear()
+        self.track_hit_counter.clear()
+        self.telemetry_log.clear()
+
         frame_idx = 0
         print(f"[INFO] Starting Drone-Optimized Pipeline on: {video_path}...")
 
@@ -180,7 +186,7 @@ class HazardVideoPipeline:
             frame_idx += 1
             current_time_sec = frame_idx / fps
             
-            # Get tracked detections and draw standard annotations
+            # Run segmentation and tracking
             detections = self.segmentor.track_frame(frame, persist=True)
             annotated_frame = self.segmentor.draw_detections(frame, detections)
 
@@ -188,58 +194,78 @@ class HazardVideoPipeline:
                 track_id = det["track_id"]
                 poly = det["mask_polygon"]
                 area = det["mask_area_px"]
-                cls_id = det["class_id"]  # Get the unified class ID (0, 1, 2, or 3)
+                cls_id = det["class_id"]
+                cls_name = det["class_name"].lower()
 
-                # Check for valid ID, mask, AND that it is larger than our noise filter
-                if track_id is not None and poly is not None and area > self.min_area_pixels:
+                if track_id is None or poly is None or area < self.min_area_pixels:
+                    continue
+
+                # Track temporal persistence
+                self.track_hit_counter[track_id] = self.track_hit_counter.get(track_id, 0) + 1
+                hits = self.track_hit_counter[track_id]
+
+                # --- VALIDATION GATES ---
+                # 1. Temporal Persistence: Potholes & road damage log fast (2 hits); waterlogging requires 5 hits
+                min_required_hits = 5 if cls_name == "waterlogging" else 2
+                if hits < min_required_hits:
+                    continue
+
+                # 2. Surface Texture Check for Waterlogging
+                if cls_name == "waterlogging" and not self._is_surface_smooth(frame, det["bbox"]):
+                    continue
+
+                # --- INCIDENT INGESTION ---
+                if track_id not in self.logged_hazard_ids:
+                    self.logged_hazard_ids.add(track_id)
             
-                    # If we haven't analyzed this hazard yet, do it IMMEDIATELY
-                    if track_id not in self.logged_hazard_ids:
-                        self.logged_hazard_ids.add(track_id)
-                
-                        # Initialize default metrics
-                        depth_map = None
-                
-                        # ONLY run MiDaS depth calculation if it's a Pothole (Class ID 1)
-                        if cls_id == 1:
-                            print(f"[AI Engine] Pothole detected (ID: {track_id}). Running depth estimation...")
-                            depth_map = self.depth_estimator.estimate_depth(frame)
-                
-                        # Compute severity (handles depth_map being present or None)
-                        metrics = self.severity_analyzer.calculate_hazard_severity(poly, depth_map, frame.shape)
-                        
-                        # Extract Evidence Snapshot
-                        evidence_filename = f"hazard_{track_id}_{metrics['risk_level']}.jpg"
-                        evidence_filepath = self.evidence_dir / evidence_filename
-                        cv2.imwrite(str(evidence_filepath), frame)
+                    depth_map = None
+            
+                    # Monocular depth estimation dedicated strictly to Potholes (Class ID 1)
+                    if cls_id == 1:
+                        print(f"[AI Engine] Pothole confirmed (ID: {track_id}). Running depth estimation...")
+                        depth_map = self.depth_estimator.estimate_depth(frame)
+            
+                    # Severity evaluation
+                    metrics = self.severity_analyzer.calculate_hazard_severity(poly, depth_map, frame.shape)
+                    
+                    # Save Evidence Snapshot
+                    evidence_filename = f"hazard_{track_id}_{metrics['risk_level']}.jpg"
+                    evidence_filepath = self.evidence_dir / evidence_filename
+                    cv2.imwrite(str(evidence_filepath), frame)
 
-                        # Append to Telemetry Record
-                        # 1. Look up GPS location for the current video timestamp
-                        gps_loc = self._get_gps_for_time(current_time_sec)
+                    # Lookup GPS Coordinates
+                    gps_loc = self._get_gps_for_time(current_time_sec)
 
-                        # 2. Append coordinates and timestamp into the dictionary
-                        log_entry = {
-                            "hazard_id": track_id,
-                            "frame_logged": frame_idx,
-                            "timestamp_sec": round(current_time_sec, 2),
-                            "latitude": gps_loc["lat"],
-                            "longitude": gps_loc["lon"],
-                            "class_name": det["class_name"],
-                            "risk_level": metrics["risk_level"],
-                            "severity_score": metrics["severity_score"],
-                            "relative_depth_drop": metrics["relative_depth"],
-                            "area_coverage_pct": metrics["area_percentage"],
-                            "mask_pixels": area,
-                            "evidence_file": evidence_filename
-                        }
-                        self.telemetry_log.append(log_entry)
-                        print(f"[DRONE CAPTURE] {det['class_name'].upper()} (ID: {track_id}) @ Lat: {gps_loc['lat']}, Lon: {gps_loc['lon']}")
+                    # Append to Telemetry Record
+                    log_entry = {
+                        "hazard_id": track_id,
+                        "frame_logged": frame_idx,
+                        "timestamp_sec": round(current_time_sec, 2),
+                        "latitude": gps_loc["lat"],
+                        "longitude": gps_loc["lon"],
+                        "class_name": det["class_name"],
+                        "risk_level": metrics["risk_level"],
+                        "severity_score": metrics["severity_score"],
+                        "relative_depth_drop": metrics["relative_depth"],
+                        "area_coverage_pct": metrics["area_percentage"],
+                        "mask_pixels": area,
+                        "evidence_file": evidence_filename
+                    }
+                    self.telemetry_log.append(log_entry)
+                    print(f"[DRONE CAPTURE] {det['class_name'].upper()} (ID: {track_id}) @ Lat: {gps_loc['lat']}, Lon: {gps_loc['lon']}")
 
-                # Draw a "Logged" marker on the video if we successfully recorded it
+                # Overlay status label
                 if track_id in self.logged_hazard_ids:
                     x, y = int(det["bbox"][0]), int(det["bbox"][1])
-                    cv2.putText(annotated_frame, f"Logged", 
-                                (x, max(35, y + 15)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                    cv2.putText(
+                        annotated_frame, 
+                        "Logged", 
+                        (x, max(35, y + 15)), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 
+                        0.5, 
+                        (0, 0, 255), 
+                        2
+                    )
 
             out.write(annotated_frame)
 
@@ -251,9 +277,9 @@ class HazardVideoPipeline:
         with open(json_path, "w") as f:
             json.dump(self.telemetry_log, f, indent=4)
 
-        # Transcode raw output video to browser-compatible H.264 / AVC (yuv420p)
+        # Transcode raw output video to browser-compatible H.264
         self._encode_h264(temp_raw_path, output_video_path)
 
         print(f"\n[COMPLETE] Video Processing Finished.")
         print(f" - Exported Video (H.264): {output_video_path}")
-        print(f" - Evidence Logged: {len(self.telemetry_log)} accurate hazards found.")
+        print(f" - Evidence Logged: {len(self.telemetry_log)} accurate hazards found.")

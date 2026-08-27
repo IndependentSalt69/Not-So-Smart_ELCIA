@@ -35,11 +35,12 @@ class YOLOSegmentor:
 
         # Class-specific confidence thresholds to suppress false positives
         # TUNED HACKATHON THRESHOLDS
+        # BALANCED HACKATHON THRESHOLDS
         self.class_conf_thresholds = {
-            "waterlogging": 0.75,       # EXTREME STRICTNESS: Kills shiny road false positives
-            "drainage_overflow": 0.50,  # Moderate
-            "pothole": 0.20,            # REVERTED TO ORIGINAL: Max sensitivity for tiny/distant holes
-            "damaged_footpath": 0.25    # HIGH SENSITIVITY: Catches more broken road edges
+            "waterlogging": 0.52,       # Balanced: catches genuine pools without relying purely on high YOLO certainty
+            "drainage_overflow": 0.45,  # Balanced
+            "pothole": 0.20,            # Sensitive: preserves early/distant pothole detection
+            "damaged_footpath": 0.25    # Sensitive: captures broken road edges & walkway cracks
         }
 
         # Device Selection: CUDA (NVIDIA) -> MPS (Apple Silicon) -> CPU
