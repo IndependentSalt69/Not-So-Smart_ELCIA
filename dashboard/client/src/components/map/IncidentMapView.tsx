@@ -296,14 +296,14 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
           <div className="flex items-center gap-2.5">
             <Compass className="w-5 h-5 xl:w-6 xl:h-6 text-emerald-600 dark:text-emerald-400" />
             <h2 className="text-lg xl:text-xl font-black text-zinc-900 dark:text-white tracking-tight">
-              Google Maps Spatial Operations Center
+              Issue Map & Locations
             </h2>
             <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-              Live Satellite Aerial
+              Interactive Map
             </span>
           </div>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">
-            Real GPS coordinate surveillance across Electronics City Phase 1 & 2 corridors.
+            Interactive map showing location of reported issues across operational zones.
           </p>
         </div>
 
@@ -334,7 +334,7 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
               className="h-8 px-3.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs cursor-pointer"
             >
               <Crosshair className="w-4 h-4 mr-1" />
-              <span>Fly to Coords</span>
+              <span>Go to Location</span>
             </Button>
           </div>
 

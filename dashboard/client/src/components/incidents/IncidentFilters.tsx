@@ -153,10 +153,10 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
   ];
 
   const priorityItems: { id: PriorityLevel | 'all'; label: string; color?: string }[] = [
-    { id: 'all', label: 'All Pri' },
-    { id: 'P1', label: 'P1 Critical', color: 'text-red-600 dark:text-red-400' },
-    { id: 'P2', label: 'P2 High', color: 'text-orange-600 dark:text-orange-400' },
-    { id: 'P3', label: 'P3 Routine', color: 'text-amber-600 dark:text-amber-400' },
+    { id: 'all', label: 'All Urgencies' },
+    { id: 'P1', label: 'High Urgency', color: 'text-red-600 dark:text-red-400' },
+    { id: 'P2', label: 'Medium Urgency', color: 'text-orange-600 dark:text-orange-400' },
+    { id: 'P3', label: 'Low Urgency', color: 'text-amber-600 dark:text-amber-400' },
   ];
 
   return (
@@ -167,7 +167,7 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
           <Input
-            placeholder="Search by ID (e.g. EC-0142), road name, or description..."
+            placeholder="Search by issue ID, location, or description..."
             value={filters.searchQuery || ''}
             onChange={handleSearchChange}
             className="pl-10 pr-9 h-11 rounded-2xl text-sm bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 w-full font-medium"
@@ -211,10 +211,10 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all" className="text-sm">All Zones</SelectItem>
-                <SelectItem value="EC-01" className="text-sm">EC-01: Phase 1 West / Arterial</SelectItem>
-                <SelectItem value="EC-02" className="text-sm">EC-02: Phase 1 East Commercial</SelectItem>
+                <SelectItem value="EC-01" className="text-sm">EC-01: Phase 1 West</SelectItem>
+                <SelectItem value="EC-02" className="text-sm">EC-02: Phase 1 East</SelectItem>
                 <SelectItem value="EC-03" className="text-sm">EC-03: Phase 2 Tech Park</SelectItem>
-                <SelectItem value="EC-04" className="text-sm">EC-04: Main Junction Corridor</SelectItem>
+                <SelectItem value="EC-04" className="text-sm">EC-04: Main Junction</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -223,12 +223,12 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
           <div className="w-full sm:w-64">
             <Select value={filters.status || 'all'} onValueChange={handleStatusChange}>
               <SelectTrigger className="h-10 rounded-xl text-sm font-semibold border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 w-full">
-                <SelectValue placeholder={filters.queueTab === 'completed' ? 'All Completed' : filters.queueTab === 'rejected' ? 'All Rejected' : 'All Active Statuses'} />
+                <SelectValue placeholder={filters.queueTab === 'completed' ? 'All Resolved' : filters.queueTab === 'rejected' ? 'All Rejected' : 'All Active Statuses'} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all" className="text-sm">
                   {filters.queueTab === 'completed'
-                    ? 'All Completed'
+                    ? 'All Resolved'
                     : filters.queueTab === 'rejected'
                     ? 'All Rejected'
                     : 'All Active Statuses'}
@@ -238,7 +238,7 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
                     <SelectItem value="DETECTED" className="text-sm">
                       <span className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-rose-500" />
-                        <span>Detected (Unverified)</span>
+                        <span>New (Pending Review)</span>
                       </span>
                     </SelectItem>
                     <SelectItem value="VERIFIED" className="text-sm">
@@ -256,13 +256,13 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
                     <SelectItem value="IN_PROGRESS" className="text-sm">
                       <span className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                        <span>In Progress</span>
+                        <span>Work in Progress</span>
                       </span>
                     </SelectItem>
                     <SelectItem value="RE_INSPECTION" className="text-sm">
                       <span className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-cyan-500" />
-                        <span>Re-inspection</span>
+                        <span>Needs Follow-up</span>
                       </span>
                     </SelectItem>
                   </>
@@ -271,7 +271,7 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
                   <SelectItem value="CLOSED" className="text-sm">
                     <span className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-zinc-500" />
-                      <span>Closed & Resolved</span>
+                      <span>Resolved</span>
                     </span>
                   </SelectItem>
                 )}
@@ -279,7 +279,7 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
                   <SelectItem value="REJECTED" className="text-sm">
                     <span className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-slate-400" />
-                      <span>Rejected (False Pos)</span>
+                      <span>Rejected</span>
                     </span>
                   </SelectItem>
                 )}

@@ -179,6 +179,11 @@ export default function CivicPulseDashboard() {
           <AnalyticsDashboard
             analytics={analytics}
             loading={analyticsLoading}
+            onSelectType={(type) => {
+              setFilters({ ...filters, type });
+              setActiveView('queue');
+              toast.info(`Filtered Incident Queue by ${type.replace('_', ' ')}`);
+            }}
           />
         )}
       </main>

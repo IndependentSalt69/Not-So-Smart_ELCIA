@@ -156,7 +156,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
             {viewMode === 'image' ? <Camera className="w-4 h-4" /> : <Video className="w-4 h-4" />}
           </div>
           <div className="text-xs font-bold text-zinc-200">
-            {viewMode === 'image' ? 'Drone Aerial Capture' : 'Sensor Video Stream'}
+            {viewMode === 'image' ? 'Photos & Evidence' : 'Inspection Video'}
           </div>
         </div>
 
@@ -165,7 +165,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
           {viewMode === 'image' && (
             <div className="flex items-center gap-2 bg-zinc-800/80 px-2.5 py-1 rounded-lg border border-zinc-700/60">
               <Sparkles className={cn('w-3.5 h-3.5', showOverlay ? 'text-emerald-400' : 'text-zinc-400')} />
-              <span className="text-[11px] font-semibold text-zinc-300 select-none">AI Overlay</span>
+              <span className="text-[11px] font-semibold text-zinc-300 select-none">Show Detected Issues</span>
               <Switch
                 checked={showOverlay}
                 onCheckedChange={setShowOverlay}
@@ -183,7 +183,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
                 viewMode === 'image' ? 'bg-zinc-700 text-white shadow-2xs' : 'text-zinc-400 hover:text-zinc-200'
               )}
             >
-              Frame
+              Photos
             </button>
             <button
               onClick={() => setViewMode('video')}
@@ -192,7 +192,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
                 viewMode === 'video' ? 'bg-zinc-700 text-white shadow-2xs' : 'text-zinc-400 hover:text-zinc-200'
               )}
             >
-              Video Stream
+              Inspection Video
             </button>
           </div>
         </div>

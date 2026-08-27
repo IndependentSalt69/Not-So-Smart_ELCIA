@@ -39,19 +39,19 @@ export const IncidentStepper: React.FC<IncidentStepperProps> = ({
         };
       case 'IN_PROGRESS':
         return {
-          label: 'Request Drone Re-inspection',
+          label: 'Request Follow-up Inspection',
           nextStatus: 'RE_INSPECTION' as IncidentStatus,
           icon: RefreshCw,
           btnClass: 'bg-cyan-600 hover:bg-cyan-700 text-white',
-          notes: 'Field work concluded; requested autonomous drone aerial verification scan',
+          notes: 'Field work concluded; requested follow-up inspection',
         };
       case 'RE_INSPECTION':
         return {
-          label: 'Confirm Resolution & Close',
+          label: 'Mark as Resolved',
           nextStatus: 'CLOSED' as IncidentStatus,
           icon: CheckCircle2,
           btnClass: 'bg-emerald-600 hover:bg-emerald-700 text-white',
-          notes: 'Autonomous re-inspection confirmed zero surface water / smooth road patch',
+          notes: 'Follow-up inspection confirmed issue resolved',
         };
       default:
         return null;
@@ -64,7 +64,7 @@ export const IncidentStepper: React.FC<IncidentStepperProps> = ({
     <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-xs space-y-5">
       <div className="flex items-center justify-between">
         <h4 className="text-sm xl:text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
-          Lifecycle Workflow Progression
+          Issue Resolution Progress
         </h4>
         <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
           Step {currentStepIndex >= 0 ? currentStepIndex + 1 : '-'}/6

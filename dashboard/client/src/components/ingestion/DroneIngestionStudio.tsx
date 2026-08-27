@@ -304,13 +304,13 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
           <div className="space-y-2 max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs xl:text-sm font-semibold">
               <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
-              <span>YOLOv8 + MiDaS Pipeline • Real ML Ingestion Studio</span>
+              <span>Aerial Video Analysis Studio</span>
             </div>
             <h1 className="text-2xl sm:text-3xl xl:text-4xl 2xl:text-5xl font-black tracking-tight text-white">
-              Drone Vision AI Ingestion & Inference Studio
+              Upload & Analyze Drone Video
             </h1>
             <p className="text-sm xl:text-base text-slate-300 leading-relaxed">
-              Feed raw aerial drone video clips and optional DJI SRT flight telemetry into our PyTorch backend ML pipeline. The engine processes frames with YOLOv8 & MiDaS depth estimation, normalizes hazard severity, and ingests detected incidents directly into PostgreSQL/PostGIS.
+              Upload drone video clips and optional flight information to automatically detect waterlogging, potholes, damaged footpaths, and drainage issues across the corridor.
             </p>
           </div>
 
@@ -319,9 +319,9 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
               <Cpu className="w-6 h-6" />
             </div>
             <div>
-              <div className="text-xs font-semibold text-slate-300">FastAPI Pipeline</div>
-              <div className="text-lg xl:text-xl font-black text-white">YOLOv8 + MiDaS</div>
-              <div className="text-xs text-emerald-300 font-bold">PostgreSQL / PostGIS Auto-Ingest</div>
+              <div className="text-xs font-semibold text-slate-300">Analysis Engine</div>
+              <div className="text-lg xl:text-xl font-black text-white">CivicPulse AI</div>
+              <div className="text-xs text-emerald-300 font-bold">Auto-Report & Ingest</div>
             </div>
           </div>
         </div>
@@ -551,12 +551,12 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                 {isRealProcessing ? (
                   <>
                     <RefreshCw className="w-5 h-5 mr-2 animate-spin text-white" />
-                    <span>Real ML Pipeline Running (YOLOv8 + PostGIS)...</span>
+                    <span>Analyzing Video...</span>
                   </>
                 ) : (
                   <>
                     <Cpu className="w-5 h-5 mr-2 text-white" />
-                    <span>START REAL ML PROCESSING (FastAPI Backend)</span>
+                    <span>ANALYZE VIDEO</span>
                   </>
                 )}
               </Button>

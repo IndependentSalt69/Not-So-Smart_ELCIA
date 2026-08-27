@@ -23,8 +23,8 @@ export interface StatusMetadata {
 
 export const STATUS_METADATA: Record<IncidentStatus, StatusMetadata> = {
   DETECTED: {
-    label: 'Detected',
-    description: 'AI detected issue from drone sensor stream, awaiting human verification.',
+    label: 'New',
+    description: 'Newly detected civic issue from drone video analysis, awaiting review.',
     colorClass: 'text-rose-600 dark:text-rose-400',
     badgeBg: 'bg-rose-50 dark:bg-rose-950/40',
     badgeBorder: 'border-rose-200 dark:border-rose-800/60',
@@ -34,7 +34,7 @@ export const STATUS_METADATA: Record<IncidentStatus, StatusMetadata> = {
   },
   VERIFIED: {
     label: 'Verified',
-    description: 'Confirmed genuine incident by drone operator, awaiting team assignment.',
+    description: 'Confirmed genuine issue by operator, ready for team assignment.',
     colorClass: 'text-teal-600 dark:text-teal-400',
     badgeBg: 'bg-teal-50 dark:bg-teal-950/40',
     badgeBorder: 'border-teal-200 dark:border-teal-800/60',
@@ -44,7 +44,7 @@ export const STATUS_METADATA: Record<IncidentStatus, StatusMetadata> = {
   },
   ASSIGNED: {
     label: 'Assigned',
-    description: 'Assigned to field operations crew with recommended mitigation procedure.',
+    description: 'Assigned to field repair team with recommended action.',
     colorClass: 'text-amber-600 dark:text-amber-400',
     badgeBg: 'bg-amber-50 dark:bg-amber-950/40',
     badgeBorder: 'border-amber-200 dark:border-amber-800/60',
@@ -53,8 +53,8 @@ export const STATUS_METADATA: Record<IncidentStatus, StatusMetadata> = {
     stepNumber: 3,
   },
   IN_PROGRESS: {
-    label: 'In Progress',
-    description: 'Field mitigation crew is actively deployed on-site resolving the issue.',
+    label: 'Work in Progress',
+    description: 'Field repair team is actively working on site.',
     colorClass: 'text-emerald-600 dark:text-emerald-400',
     badgeBg: 'bg-emerald-50 dark:bg-emerald-950/40',
     badgeBorder: 'border-emerald-200 dark:border-emerald-800/60',
@@ -63,8 +63,8 @@ export const STATUS_METADATA: Record<IncidentStatus, StatusMetadata> = {
     stepNumber: 4,
   },
   RE_INSPECTION: {
-    label: 'Re-inspection',
-    description: 'Field work completed; scheduled for automated drone verification flyover.',
+    label: 'Needs Follow-up',
+    description: 'Field work completed; scheduled for follow-up inspection.',
     colorClass: 'text-cyan-600 dark:text-cyan-400',
     badgeBg: 'bg-cyan-50 dark:bg-cyan-950/40',
     badgeBorder: 'border-cyan-200 dark:border-cyan-800/60',
@@ -73,8 +73,8 @@ export const STATUS_METADATA: Record<IncidentStatus, StatusMetadata> = {
     stepNumber: 5,
   },
   CLOSED: {
-    label: 'Closed & Resolved',
-    description: 'Re-inspection confirmed clear road surface and restored traffic flow.',
+    label: 'Resolved',
+    description: 'Follow-up inspection confirmed area is clear and issue resolved.',
     colorClass: 'text-zinc-600 dark:text-zinc-400',
     badgeBg: 'bg-zinc-100 dark:bg-zinc-800/60',
     badgeBorder: 'border-zinc-300 dark:border-zinc-700',
@@ -83,8 +83,8 @@ export const STATUS_METADATA: Record<IncidentStatus, StatusMetadata> = {
     stepNumber: 6,
   },
   REJECTED: {
-    label: 'Rejected (False Positive)',
-    description: 'Marked as false positive or non-actionable reflection/shadow artifact.',
+    label: 'Rejected',
+    description: 'Marked as false positive or non-actionable issue.',
     colorClass: 'text-slate-500 dark:text-slate-400',
     badgeBg: 'bg-slate-100 dark:bg-slate-800/50',
     badgeBorder: 'border-slate-300 dark:border-slate-700',

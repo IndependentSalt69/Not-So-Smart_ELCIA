@@ -55,22 +55,22 @@ export const IncidentQueueView: React.FC<IncidentQueueViewProps> = ({
     { title: string; subtitle: string; emptyTitle: string; emptyDesc: string }
   > = {
     active: {
-      title: 'Active Incidents Queue',
-      subtitle: 'Surveillance triage feed with human-in-the-loop verification protocol.',
-      emptyTitle: 'No active incidents in queue',
-      emptyDesc: 'All active surveillance hazards have been addressed or no incidents match your filter.',
+      title: 'Active Issues Queue',
+      subtitle: 'Reported civic issues requiring review, team assignment, or field work.',
+      emptyTitle: 'No active issues found',
+      emptyDesc: 'All reported issues have been addressed or no issues match your filter.',
     },
     completed: {
-      title: 'Completed Incidents Archive',
-      subtitle: 'Historical verified resolutions, remediation actions, and field inspections audit trail.',
-      emptyTitle: 'No completed incidents found',
-      emptyDesc: 'Closed and verified municipal hazard resolutions will be preserved and archived here.',
+      title: 'Resolved Issues Archive',
+      subtitle: 'Historical record of resolved issues and completed field inspections.',
+      emptyTitle: 'No resolved issues found',
+      emptyDesc: 'Resolved civic issues will be archived here.',
     },
     rejected: {
-      title: 'Rejected Incidents Log',
-      subtitle: 'Audited false-positive detections, dismissed alerts, and historical logs.',
-      emptyTitle: 'No rejected incidents found',
-      emptyDesc: 'Dismissed false-positive detections and invalid alerts will be logged here.',
+      title: 'Rejected Issues Log',
+      subtitle: 'Audited false-positive detections and dismissed alerts.',
+      emptyTitle: 'No rejected issues found',
+      emptyDesc: 'Dismissed false-positive detections will be logged here.',
     },
   };
 

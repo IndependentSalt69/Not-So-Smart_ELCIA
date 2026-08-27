@@ -174,9 +174,9 @@ export const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     return (
       <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-700/60 space-y-2.5">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs xl:text-sm font-bold text-zinc-900 dark:text-zinc-100">
-            <Wrench className="w-4 h-4 text-emerald-500" />
-            <span>Assigned Mitigation Unit</span>
+          <div className="flex items-center gap-2 font-bold text-sm text-zinc-900 dark:text-white">
+            <Users className="w-4 h-4 text-emerald-500" />
+            <span>Assign to Team</span>
           </div>
           {latestAssignment && (
             <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">

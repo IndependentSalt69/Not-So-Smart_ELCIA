@@ -1,4 +1,4 @@
-import { PriorityLevel, IncidentStatus } from './incident';
+import { PriorityLevel, IncidentStatus, IncidentType } from './incident';
 
 export interface KpiMetrics {
   totalActiveIncidents: number;
@@ -43,12 +43,20 @@ export interface PriorityDistribution {
   color?: string;
 }
 
+export interface TypeDistribution {
+  type: IncidentType;
+  name: string;
+  count: number;
+  color: string;
+}
+
 export interface AnalyticsSummary {
   kpis: KpiMetrics;
   trend: TrendDataPoint[];
   zoneMetrics: ZoneMetric[];
   statusDistribution: StatusDistribution[];
   priorityDistribution: PriorityDistribution[];
+  typeDistribution: TypeDistribution[];
 }
 
 // Backend Response Schemas (snake_case)

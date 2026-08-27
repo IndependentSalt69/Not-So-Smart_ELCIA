@@ -11,19 +11,19 @@ interface PriorityBadgeProps {
 export const PriorityBadge: React.FC<PriorityBadgeProps> = ({ priority, className, showIcon = true }) => {
   const configs = {
     P1: {
-      label: 'P1 Critical',
+      label: 'High Urgency',
       badgeClass:
         'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800/60',
       dotClass: 'bg-red-500 animate-radar-pulse',
     },
     P2: {
-      label: 'P2 High',
+      label: 'Medium Urgency',
       badgeClass:
         'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/50 dark:text-orange-300 dark:border-orange-800/60',
       dotClass: 'bg-orange-500 animate-amber-pulse',
     },
     P3: {
-      label: 'P3 Routine',
+      label: 'Low Urgency',
       badgeClass:
         'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/60',
       dotClass: 'bg-amber-500',

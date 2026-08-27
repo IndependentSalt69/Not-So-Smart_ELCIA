@@ -115,3 +115,23 @@ PostgreSQL/PostGIS is the single authoritative source of truth for incidents, ev
 3. Build production frontend bundle (`npm run build`).
 4. Set `APP_ENV=production` and `DEBUG=False` in backend `.env`.
 5. Launch Uvicorn backend server & Cloudflare Tunnel daemon.
+
+---
+
+## 15. User-Facing Terminology & Municipal UX
+
+### User-facing terminology
+Production dashboard wording is intentionally simplified for municipal operators and non-technical decision-makers. Standard operational terminology is used across navigation, queues, statuses, and callouts:
+- **`AI Ingest Studio`** $\rightarrow$ **`Upload & Analyze`**
+- **`ML Processing`** $\rightarrow$ **`Analyzing Video`**
+- **`Processing Job`** $\rightarrow$ **`Analysis Task`**
+- **`Detection` / `Hazard`** $\rightarrow$ **`Civic Issue` / `Issue`**
+- **`Evidence`** $\rightarrow$ **`Photos & Evidence`**
+- **`Telemetry`** $\rightarrow$ **`Flight Information`**
+- **`Sensor Video Stream`** $\rightarrow$ **`Inspection Video`**
+- **`AI Overlay`** $\rightarrow$ **`Show Detected Issues`**
+- **`Severity Score` / `P1/P2/P3`** $\rightarrow$ **`Severity` / `High, Medium, Low Urgency`**
+- **`DETECTED` / `IN_PROGRESS` / `CLOSED`** $\rightarrow$ **`New` / `Work in Progress` / `Resolved`**
+
+Technical details (such as detection confidence percentages, raw model class names, frame numbers, exact tracking UUIDs, depth estimates, and raw coordinate decimal degrees) are preserved under expandable **"Technical Details"** sub-sections for engineering review and technical auditing.
+

@@ -67,81 +67,84 @@ export const VerificationBar: React.FC<VerificationBarProps> = ({
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
           <span className="text-xs font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wide">
-            Human-in-the-Loop Triage Required
+            Verification Required
           </span>
         </div>
         <span className="text-[11px] font-medium text-amber-700 dark:text-amber-400">
-          Verify AI detection before field team dispatch
+          Verify issue before assigning to repair team
         </span>
       </div>
 
       {showRejectForm ? (
         <div className="space-y-3 pt-2">
           <div className="text-xs xl:text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-            Select rejection rationale:
+            Specify reason for rejecting issue:
           </div>
-          <select
-            value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
-            className="w-full h-10 rounded-xl text-xs xl:text-sm bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 px-3.5 font-medium text-zinc-800 dark:text-zinc-200"
-          >
-            <option value="Optical reflection / Specular glare on wet road">
-              Optical reflection / Specular glare on wet road
-            </option>
-            <option value="Transient shadow / Tree canopy optical distortion">
-              Transient shadow / Tree canopy optical distortion
-            </option>
-            <option value="Water depth below operational threshold (<5cm)">
-              Water depth below operational threshold (&lt;5cm)
-            </option>
-            <option value="Surface discoloration / Construction gravel texture">
-              Surface discoloration / Construction gravel texture
-            </option>
-            <option value="Duplicate scan of adjacent corridor marker">
-              Duplicate scan of adjacent corridor marker
-            </option>
-          </select>
-          <div className="flex items-center justify-end gap-2">
+
+          <div className="space-y-2">
+            {[
+              'Optical reflection / Specular glare on wet road',
+              'Shadow artifact / Camera noise',
+              'Normal wet surface — non-hazardous ponding',
+              'Non-actionable / Insignificant depth',
+            ].map((reason) => (
+              <label
+                key={reason}
+                className="flex items-center gap-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 cursor-pointer"
+              >
+                <input
+                  type="radio"
+                  name="rejectReason"
+                  checked={rejectReason === reason}
+                  onChange={() => setRejectReason(reason)}
+                  className="accent-rose-600"
+                />
+                <span>{reason}</span>
+              </label>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowRejectForm(false)}
-              className="h-9 text-xs xl:text-sm font-bold cursor-pointer"
+              className="text-xs font-semibold h-8 rounded-lg"
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
               size="sm"
-              onClick={handleReject}
               disabled={loading}
-              className="h-9 text-xs xl:text-sm font-bold rounded-xl cursor-pointer"
+              onClick={handleReject}
+              className="text-xs font-semibold h-8 rounded-lg bg-rose-600 hover:bg-rose-700"
             >
+              <XCircle className="w-3.5 h-3.5 mr-1" />
               Confirm Rejection
             </Button>
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-3 pt-1">
-          <Button
-            onClick={handleVerify}
-            disabled={loading}
-            size="sm"
-            className="flex-1 h-10 rounded-xl text-xs xl:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
-          >
-            <CheckCircle2 className="w-4 h-4 mr-1.5" />
-            <span>Verify Incident</span>
-          </Button>
-
+        <div className="flex items-center justify-end gap-2.5 pt-1">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowRejectForm(true)}
-            disabled={loading}
-            className="h-10 rounded-xl text-xs xl:text-sm font-bold border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+            className="text-xs font-bold h-9 rounded-xl border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 hover:bg-amber-100/50 dark:hover:bg-amber-900/40"
           >
-            <XCircle className="w-4 h-4 mr-1.5" />
-            <span>Reject (False Positive)</span>
+            <XCircle className="w-3.5 h-3.5 mr-1 text-rose-500" />
+            Reject Issue
+          </Button>
+
+          <Button
+            size="sm"
+            disabled={loading}
+            onClick={handleVerify}
+            className="text-xs font-bold h-9 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 text-white shadow-xs"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+            Verify Issue
           </Button>
         </div>
       )}

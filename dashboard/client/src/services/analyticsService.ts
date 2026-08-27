@@ -14,16 +14,20 @@ import {
 const STATUS_COLOR_MAP: Record<string, string> = {
   DETECTED: '#E11D48',
   Detected: '#E11D48',
+  New: '#E11D48',
   VERIFIED: '#2563EB',
   Verified: '#2563EB',
   ASSIGNED: '#D97706',
   Assigned: '#D97706',
   IN_PROGRESS: '#059669',
   'In Progress': '#059669',
+  'Work in Progress': '#059669',
   RE_INSPECTION: '#0891B2',
   'Re-inspection': '#0891B2',
+  'Needs Follow-up': '#0891B2',
   CLOSED: '#64748B',
   Closed: '#64748B',
+  Resolved: '#64748B',
   REJECTED: '#EF4444',
   Rejected: '#EF4444',
 };
@@ -31,17 +35,17 @@ const STATUS_COLOR_MAP: Record<string, string> = {
 const formatStatusLabel = (rawStatus: string): string => {
   switch (rawStatus.toUpperCase()) {
     case 'DETECTED':
-      return 'Detected';
+      return 'New';
     case 'VERIFIED':
       return 'Verified';
     case 'ASSIGNED':
       return 'Assigned';
     case 'IN_PROGRESS':
-      return 'In Progress';
+      return 'Work in Progress';
     case 'RE_INSPECTION':
-      return 'Re-inspection';
+      return 'Needs Follow-up';
     case 'CLOSED':
-      return 'Closed';
+      return 'Resolved';
     case 'REJECTED':
       return 'Rejected';
     default:
@@ -106,12 +110,25 @@ export const analyticsService = {
       p3Count: item.p3_count,
     }));
 
+    const waterloggingCount = (trendsRes || []).reduce((acc, curr) => acc + (curr.waterlogging || 0), 0);
+    const potholesCount = (trendsRes || []).reduce((acc, curr) => acc + (curr.potholes || 0), 0);
+    const damagedFootpathCount = (trendsRes || []).reduce((acc, curr) => acc + (curr.damaged_footpath || 0), 0);
+    const drainageOverflowCount = (trendsRes || []).reduce((acc, curr) => acc + (curr.drainage_overflow || 0), 0);
+
+    const typeDistribution = [
+      { type: 'waterlogging' as const, name: 'Waterlogging', count: waterloggingCount, color: '#0d9488' },
+      { type: 'pothole' as const, name: 'Potholes', count: potholesCount, color: '#f59e0b' },
+      { type: 'damaged_footpath' as const, name: 'Damaged Footpath', count: damagedFootpathCount, color: '#f97316' },
+      { type: 'drainage_overflow' as const, name: 'Drainage Overflow', count: drainageOverflowCount, color: '#06b6d4' },
+    ];
+
     return {
       kpis,
       trend,
       zoneMetrics,
       statusDistribution,
       priorityDistribution,
+      typeDistribution,
     };
   },
 

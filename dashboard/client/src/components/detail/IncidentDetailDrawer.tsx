@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import { Incident, IncidentStatus, getIncidentTypeLabel } from '@/types/incident';
 import { AlertTriangle, Droplets, Footprints, History, MapPin, Waves, X } from 'lucide-react';
-import React from 'react';
+import React, { useState } from 'react';
 import { AssignmentSection } from './AssignmentSection';
 import { EvidenceViewer } from './EvidenceViewer';
 import { IncidentStepper } from './IncidentStepper';
@@ -34,6 +34,8 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
   onAssign,
   onUpdateStatus,
 }) => {
+  const [showTechDetails, setShowTechDetails] = useState<boolean>(false);
+
   if (!incident) return null;
 
   return (
@@ -92,9 +94,7 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
             </div>
 
             <div className="flex items-center gap-3 text-xs xl:text-sm font-mono font-semibold text-zinc-600 dark:text-zinc-300 shrink-0 bg-zinc-50 dark:bg-zinc-800/60 px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700">
-              <span>LAT: {incident.coordinates.lat.toFixed(4)}°N</span>
-              <span>•</span>
-              <span>LNG: {incident.coordinates.lng.toFixed(4)}°E</span>
+              <span>Location: {incident.coordinates.lat.toFixed(4)}°N, {incident.coordinates.lng.toFixed(4)}°E</span>
             </div>
           </div>
 
@@ -126,12 +126,49 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
           {/* Severity & AI Explainability Breakdown */}
           <SeverityExplainer incident={incident} />
 
+          {/* Technical Details (Expandable) */}
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 overflow-hidden shadow-xs">
+            <button
+              onClick={() => setShowTechDetails(!showTechDetails)}
+              className="w-full px-5 py-4 flex items-center justify-between text-left font-bold text-sm text-zinc-900 dark:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span>Technical Details</span>
+              </div>
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                {showTechDetails ? 'Hide' : 'Show Details'}
+              </span>
+            </button>
+
+            {showTechDetails && (
+              <div className="p-5 pt-0 border-t border-zinc-100 dark:border-zinc-800/60 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
+                <div>
+                  <span className="text-zinc-500 block uppercase font-bold text-[10px]">Detection Confidence</span>
+                  <span className="font-bold text-zinc-900 dark:text-zinc-100">{(incident.confidence * 100).toFixed(1)}%</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block uppercase font-bold text-[10px]">Model Class</span>
+                  <span className="font-bold text-zinc-900 dark:text-zinc-100">{incident.type.toUpperCase()}</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block uppercase font-bold text-[10px]">Incident ID</span>
+                  <span className="font-bold text-zinc-900 dark:text-zinc-100 truncate block">{incident.id}</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block uppercase font-bold text-[10px]">Coordinates</span>
+                  <span className="font-bold text-zinc-900 dark:text-zinc-100">{incident.coordinates.lat.toFixed(6)}, {incident.coordinates.lng.toFixed(6)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Audit History Timeline */}
           {incident.history && incident.history.length > 0 && (
             <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-xs space-y-3">
               <div className="flex items-center gap-2 text-sm font-bold text-zinc-900 dark:text-white">
                 <History className="w-4 h-4 text-emerald-500" />
-                <span>Verification & Operations Audit Trail</span>
+                <span>Operations Audit Trail</span>
               </div>
 
               <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60 pl-2">
@@ -152,7 +189,7 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
                         </span>
                       </div>
                       <div className="text-zinc-600 dark:text-zinc-400 font-medium">
-                        Status changed to{' '}
+                        Status updated to{' '}
                         <span className="font-semibold text-zinc-900 dark:text-zinc-100">
                           {entry.status}
                         </span>
