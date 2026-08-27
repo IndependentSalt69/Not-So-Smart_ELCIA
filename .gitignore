@@ -44,4 +44,9 @@ data/samples/*
 !data/samples/.gitkeep
 !data/samples/*.txt
 
+
+# Generated ML/test job artifacts
+scratch/jobs/
+outputs/*
+!outputs/.gitkeep
 .env
