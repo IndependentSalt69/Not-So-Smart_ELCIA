@@ -28,6 +28,9 @@ ipd-pothole-detection-*/
 *.mov
 *.mp4
 
+# Runtime uploaded media
+uploads/
+
 # Training Runs & Checkpoints
 runs/
 *.pt

@@ -61,40 +61,97 @@ class HazardVideoPipeline:
 
     def _encode_h264(self, temp_input_path: str, final_output_path: str) -> None:
         """
-        Transcodes raw OpenCV video into browser-compatible H.264/AVC (yuv420p) format using FFmpeg.
-        Falls back safely to raw video file if FFmpeg is unavailable or fails.
+        Transcodes raw OpenCV video into browser-compatible H.264/AVC (yuv420p) format with +faststart using FFmpeg.
+        Verifies codec output via ffprobe. Fails explicitly if transcoding or codec verification fails.
         """
-        temp_p = Path(temp_input_path)
+        temp_raw_p = Path(temp_input_path)
         final_p = Path(final_output_path)
+        temp_h264_p = final_p.with_name(f"_h264_{final_p.name}")
 
-        if not temp_p.exists():
-            print(f"[WARNING] Temp raw video not found at '{temp_input_path}'.")
-            return
+        if not temp_raw_p.exists() or temp_raw_p.stat().st_size == 0:
+            raise RuntimeError(f"Raw OpenCV output video not found or empty at '{temp_input_path}'.")
 
         ffmpeg_cmd = shutil.which("ffmpeg") or "ffmpeg"
+        ffprobe_cmd = shutil.which("ffprobe") or "ffprobe"
+
         cmd = [
             ffmpeg_cmd,
             "-y",
-            "-i", str(temp_p),
+            "-i", str(temp_raw_p),
             "-c:v", "libx264",
             "-preset", "fast",
             "-crf", "22",
             "-pix_fmt", "yuv420p",
-            str(final_p)
+            "-movflags", "+faststart",
+            str(temp_h264_p)
         ]
 
-        print(f"[AI Engine] Transcoding annotated output video to H.264 / AVC (yuv420p) for browser playback...")
+        print(f"[AI Engine] Transcoding annotated video to H.264 / AVC (yuv420p, +faststart) for browser playback...")
+        
         try:
-            res = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            print(f"[AI Engine] H.264 encoding complete: {final_output_path}")
-            if temp_p.exists():
-                temp_p.unlink()
-        except Exception as e:
-            print(f"[WARNING] FFmpeg H.264 transcoding failed ({e}). Falling back to raw file.")
-            if temp_p.exists():
-                if final_p.exists():
-                    final_p.unlink()
-                temp_p.rename(final_p)
+            res = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        except subprocess.CalledProcessError as err:
+            log_msg = (
+                f"FFmpeg H.264 transcoding failed with returncode {err.returncode}.\n"
+                f"Command: {' '.join(cmd)}\n"
+                f"Input file: {temp_input_path}\n"
+                f"Output file: {temp_h264_p}\n"
+                f"Stdout: {err.stdout}\n"
+                f"Stderr: {err.stderr}"
+            )
+            print(f"[ERROR] {log_msg}")
+            if temp_h264_p.exists():
+                temp_h264_p.unlink()
+            raise RuntimeError(log_msg) from err
+        except Exception as err:
+            log_msg = f"Failed to execute FFmpeg command '{' '.join(cmd)}': {err}"
+            print(f"[ERROR] {log_msg}")
+            if temp_h264_p.exists():
+                temp_h264_p.unlink()
+            raise RuntimeError(log_msg) from err
+
+        if not temp_h264_p.exists() or temp_h264_p.stat().st_size == 0:
+            log_msg = f"FFmpeg output file missing or 0 bytes after encoding: {temp_h264_p}"
+            print(f"[ERROR] {log_msg}")
+            raise RuntimeError(log_msg)
+
+        # Verify codec output using ffprobe
+        probe_cmd = [
+            ffprobe_cmd,
+            "-v", "error",
+            "-select_streams", "v:0",
+            "-show_entries", "stream=codec_name",
+            "-of", "default=noprint_wrappers=1:nokey=1",
+            str(temp_h264_p)
+        ]
+        try:
+            probe_res = subprocess.run(probe_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            detected_codec = probe_res.stdout.strip().lower()
+            if detected_codec != "h264":
+                log_msg = f"Codec verification failed for '{temp_h264_p}': expected 'h264', got '{detected_codec}'."
+                print(f"[ERROR] {log_msg}")
+                if temp_h264_p.exists():
+                    temp_h264_p.unlink()
+                raise RuntimeError(log_msg)
+            print(f"[AI Engine] Verified output codec: {detected_codec} (H.264 / AVC)")
+        except Exception as err:
+            log_msg = f"ffprobe codec verification failed: {err}"
+            print(f"[ERROR] {log_msg}")
+            if temp_h264_p.exists():
+                temp_h264_p.unlink()
+            raise RuntimeError(log_msg) from err
+
+        # Promote H.264 file to final output path
+        if final_p.exists():
+            final_p.unlink()
+        temp_h264_p.rename(final_p)
+
+        # Unlink raw temp file ONLY after verification & promotion succeeds
+        if temp_raw_p.exists():
+            temp_raw_p.unlink()
+
+        print(f"[AI Engine] H.264 encoding complete & verified: {final_output_path}")
+
 
     def process_video(self, video_path: str, output_video_path: str = "outputs/demo_tracked_output.mp4"):
         cap = cv2.VideoCapture(video_path)
