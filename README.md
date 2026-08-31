@@ -47,24 +47,24 @@ The platform addresses severe urban challenges—specifically **waterlogging inu
 
 ## Key System Accomplishments & Verification Status
 
-- ✅ **Full-Stack End-to-End Operational System**: Connected React 18 TypeScript dashboard with Python FastAPI backend and PostgreSQL/PostGIS database.
-- ✅ **AI Processing Pipeline**: Dashboard-triggered asynchronous computer vision execution using **YOLOv8 segmentation**, **ByteTrack multi-object tracking**, and **MiDaS monocular depth estimation**.
-- ✅ **4 Canonical Civic Hazard Classes**:
+- **Full-Stack End-to-End Operational System**: Connected React 18 TypeScript dashboard with Python FastAPI backend and PostgreSQL/PostGIS database.
+- **AI Processing Pipeline**: Dashboard-triggered asynchronous computer vision execution using **YOLOv8 segmentation**, **ByteTrack multi-object tracking**, and **MiDaS monocular depth estimation**.
+- **4 Canonical Civic Hazard Classes**:
   1. **Waterlogging** (Surface inundation)
   2. **Potholes** (Road surface degradation & craters)
   3. **Damaged Footpath** (Pedestrian pathway erosion & structural breaks)
   4. **Drainage Overflow** (Clogged culverts & storm drain backflow)
-- ✅ **Browser-Compatible H.264 Video Encoding**: Automated FFmpeg post-processing to produce progressive H.264 / AVC MP4 output videos playable across all standard web browsers.
-- ✅ **PostgreSQL + PostGIS Database**: Fully normalized relational spatial schema with Alembic migration lifecycle management.
-- ✅ **Backend Authoritative Production Mode**: Configured `VITE_USE_MOCK_DATA=false` as the default production mode, ensuring PostgreSQL is the single source of truth for all incidents, evidence, inspections, and analytics.
-- ✅ **Telemetry-Aware Processing**: Parses SRT flight information and attaches latitude, longitude, altitude, and timestamp metadata to detected issues. The public demo uses synthetic Vadodara telemetry for demonstration.
-- ✅ **Municipal UX & Language Simplification**: Plain operational language across all UI views while keeping expandable **"Technical Details"** sub-sections for technical auditing.
-- ✅ **Analytics Suite ("4 Operational Questions")**:
+- **Browser-Compatible H.264 Video Encoding**: Automated FFmpeg post-processing to produce progressive H.264 / AVC MP4 output videos playable across all standard web browsers.
+- **PostgreSQL + PostGIS Database**: Fully normalized relational spatial schema with Alembic migration lifecycle management.
+- **Backend Authoritative Production Mode**: Configured `VITE_USE_MOCK_DATA=false` as the default production mode, ensuring PostgreSQL is the single source of truth for all incidents, evidence, inspections, and analytics.
+- **Telemetry-Aware Processing**: Parses SRT flight information and attaches latitude, longitude, altitude, and timestamp metadata to detected issues. The public demo uses synthetic Vadodara telemetry for demonstration.
+- **Municipal UX & Language Simplification**: Plain operational language across all UI views while keeping expandable **"Technical Details"** sub-sections for technical auditing.
+- **Analytics Suite ("4 Operational Questions")**:
   - **WHAT?** $\rightarrow$ **Issues by Type** (Interactive Horizontal Bar Chart)
   - **WHERE?** $\rightarrow$ **Issue Map & Locations** (Google Maps spatial viewer)
   - **WHEN?** $\rightarrow$ **Issues Over Time** (7-day trend chart)
   - **HOW SERIOUS?** $\rightarrow$ **Issues by Urgency** (High, Medium, Low urgency counts)
-- ✅ **100% Test Suite Verification**:
+- **100% Test Suite Verification**:
   - **64 / 64 Backend Pytest Tests Passed**
   - **31 / 31 Frontend Vitest Tests Passed**
   - **0 TypeScript Compilation Errors** (`npm run check`)
