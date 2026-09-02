@@ -2,6 +2,8 @@
 # To retrain with different classes, edit ONLY this file.
 #
 # Rules: ids must be 0,1,2,... in the same order as the model's data.yaml.
+#        This order is ALPHABETICAL to match Roboflow's export order, so the
+#        downloaded data.yaml drops in without remapping label indices.
 #        Append new classes at the end. Never rename or reorder existing ones.
 #
 # Optional per-class fields (defaults in brackets):
@@ -15,28 +17,28 @@ filters:
 
 classes:
   0:
-    name: "waterlogging"
-    conf: 0.52
-    color: [235, 150, 50]
-    min_hits: 5
-    requires_smooth_surface: true
-  1:
-    name: "pothole"
-    conf: 0.20
-    color: [40, 50, 230]
-    needs_depth: true
-    severity_multiplier: 1.1
-  2:
-    name: "drainage_overflow"
-    conf: 0.45
-    color: [0, 255, 255]
-  3:
     name: "damaged_footpath"
     conf: 0.20
     color: [0, 255, 0]
-  4:
+  1:
+    name: "drainage_overflow"
+    conf: 0.45
+    color: [0, 255, 255]
+  2:
     name: "open_manhole"
     conf: 0.35
     color: [200, 0, 200]
     min_hits: 3
     severity_multiplier: 1.3
+  3:
+    name: "pothole"
+    conf: 0.20
+    color: [40, 50, 230]
+    needs_depth: true
+    severity_multiplier: 1.1
+  4:
+    name: "waterlogging"
+    conf: 0.52
+    color: [235, 150, 50]
+    min_hits: 5
+    requires_smooth_surface: true
