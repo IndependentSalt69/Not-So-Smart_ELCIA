@@ -9,7 +9,7 @@ from ultralytics import YOLO
 from typing import List, Dict, Any, Optional
 import torch
 
-from src.core.config import APP_CONFIG
+from src.core import classes as hazard_classes
 
 
 class YOLOSegmentor:
@@ -29,32 +29,12 @@ class YOLOSegmentor:
         self.imgsz = imgsz
         self.tracker_config = tracker_config
 
-        # 1. Load classes dynamically from APP_CONFIG (configs/config.yaml)
-        yaml_classes = APP_CONFIG.get("classes", {})
-        if target_classes is not None:
-            self.target_classes = target_classes
-        elif yaml_classes:
-            self.target_classes = {int(k): v["name"] for k, v in yaml_classes.items()}
-        else:
-            self.target_classes = {
-                0: "waterlogging",
-                1: "pothole",
-                2: "drainage_overflow",
-                3: "damaged_footpath"
-            }
-
-        # 2. Load class confidence thresholds dynamically from APP_CONFIG
-        if yaml_classes:
-            self.class_conf_thresholds = {
-                v["name"]: float(v["conf"]) for v in yaml_classes.values()
-            }
-        else:
-            self.class_conf_thresholds = {
-                "waterlogging": 0.52,
-                "drainage_overflow": 0.45,
-                "pothole": 0.20,
-                "damaged_footpath": 0.20
-            }
+        # Class names from configs/config.yaml. target_classes stays
+        # overridable for tests and one-off runs.
+        self.target_classes = (
+            target_classes if target_classes is not None else hazard_classes.names()
+        )
+        self.class_conf_thresholds = hazard_classes.conf_thresholds()
 
         # Device Selection: CUDA (NVIDIA) -> MPS (Apple Silicon) -> CPU
         if device is not None:
@@ -152,20 +132,7 @@ class YOLOSegmentor:
     def draw_detections(self, frame: np.ndarray, detections: List[Dict[str, Any]]) -> np.ndarray:
         annotated = frame.copy()
         
-        # Load bounding/mask colors dynamically from config
-        yaml_classes = APP_CONFIG.get("classes", {})
-        if yaml_classes:
-            color_palette = {
-                v["name"]: tuple(v["color"]) for v in yaml_classes.values()
-            }
-        else:
-            color_palette = {
-                "waterlogging": (235, 150, 50),
-                "pothole": (40, 50, 230),
-                "drainage_overflow": (0, 255, 255),
-                "damaged_footpath": (0, 255, 0),
-                "waterlogged_pothole": (255, 0, 0)
-            }
+        color_palette = hazard_classes.colors()
         default_color = (0, 255, 0)
 
         for det in detections:

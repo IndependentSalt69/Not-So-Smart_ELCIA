@@ -5,6 +5,7 @@ based on mask geometry, coverage, and road criticality.
 """
 
 from typing import Dict, Any, List
+from src.core import classes as hazard_classes
 
 
 class SeverityEngine:
@@ -31,7 +32,8 @@ class SeverityEngine:
         """
         coverage_ratio = detection.get("coverage_ratio", 0.0)
         confidence = detection.get("confidence", 0.5)
-        cls_name = detection.get("class_name", "waterlogging").lower()
+        cls_name = str(detection.get("class_name") or "").lower()
+        hazard = hazard_classes.get(cls_name) or hazard_classes.get(detection.get("class_id"))
 
         # 1. Normalize coverage impact (even 5-10% road coverage is huge in civic context)
         normalized_coverage = min(1.0, coverage_ratio * 10.0)
@@ -43,9 +45,8 @@ class SeverityEngine:
             (self.w_crit * road_criticality)
         ) * 10.0
 
-        # Class multiplier: deep potholes have direct vehicle damage risk
-        if "pothole" in cls_name:
-            raw_score *= 1.1
+        # Per-class severity weighting, declared in configs/config.yaml.
+        raw_score *= hazard["severity_multiplier"] if hazard else 1.0
 
         severity_score = round(min(10.0, max(1.0, raw_score)), 1)
 

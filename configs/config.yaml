@@ -1,3 +1,15 @@
+# Single source of truth for hazard classes.
+# To retrain with different classes, edit ONLY this file.
+#
+# Rules: ids must be 0,1,2,... in the same order as the model's data.yaml.
+#        Append new classes at the end. Never rename or reorder existing ones.
+#
+# Optional per-class fields (defaults in brackets):
+#   min_hits [2]                     frames a track must persist before logging
+#   needs_depth [false]              run depth estimation on this class
+#   requires_smooth_surface [false]  apply the texture check
+#   severity_multiplier [1.0]        multiplies the severity score
+
 filters:
   min_area_pixels: 50.0 #350
 
@@ -6,10 +18,14 @@ classes:
     name: "waterlogging"
     conf: 0.52
     color: [235, 150, 50]
-  1: 
+    min_hits: 5
+    requires_smooth_surface: true
+  1:
     name: "pothole"
     conf: 0.20
     color: [40, 50, 230]
+    needs_depth: true
+    severity_multiplier: 1.1
   2:
     name: "drainage_overflow"
     conf: 0.45
@@ -18,3 +34,9 @@ classes:
     name: "damaged_footpath"
     conf: 0.20
     color: [0, 255, 0]
+  4:
+    name: "open_manhole"
+    conf: 0.35
+    color: [200, 0, 200]
+    min_hits: 3
+    severity_multiplier: 1.3

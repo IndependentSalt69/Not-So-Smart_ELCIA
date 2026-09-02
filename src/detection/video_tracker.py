@@ -18,6 +18,7 @@ from scripts.gps_parser import parse_dji_srt
 
 import torch
 from src.core.config import APP_CONFIG
+from src.core import classes as hazard_classes
 
 
 class HazardVideoPipeline:
@@ -207,14 +208,18 @@ class HazardVideoPipeline:
                 self.track_hit_counter[track_id] = self.track_hit_counter.get(track_id, 0) + 1
                 hits = self.track_hit_counter[track_id]
 
-                # --- VALIDATION GATES ---
-                # 1. Temporal Persistence: Potholes & road damage log fast (2 hits); waterlogging requires 5 hits
-                min_required_hits = 5 if cls_name == "waterlogging" else 2
-                if hits < min_required_hits:
+                hazard = hazard_classes.get(cls_id) or hazard_classes.get(cls_name)
+                if hazard is None:
+                    print(f"[AI Engine] WARNING: class id={cls_id} '{cls_name}' not in configs/config.yaml - skipping")
                     continue
 
-                # 2. Surface Texture Check for Waterlogging
-                if cls_name == "waterlogging" and not self._is_surface_smooth(frame, det["bbox"]):
+                # --- VALIDATION GATES ---
+                # 1. Temporal persistence: how many frames before we trust the track.
+                if hits < hazard["min_hits"]:
+                    continue
+
+                # 2. Surface texture check (rejects wet tarmac read as standing water).
+                if hazard["requires_smooth_surface"] and not self._is_surface_smooth(frame, det["bbox"]):
                     continue
 
                 # --- INCIDENT INGESTION ---
@@ -223,9 +228,9 @@ class HazardVideoPipeline:
             
                     depth_map = None
             
-                    # Monocular depth estimation dedicated strictly to Potholes (Class ID 1)
-                    if cls_id == 1:
-                        print(f"[AI Engine] Pothole confirmed (ID: {track_id}). Running depth estimation...")
+                    # Depth estimation, for classes that opt in via config.
+                    if hazard["needs_depth"]:
+                        print(f"[AI Engine] {hazard['name']} confirmed (ID: {track_id}). Running depth estimation...")
                         depth_map = self.depth_estimator.estimate_depth(frame)
             
                     # Severity evaluation
