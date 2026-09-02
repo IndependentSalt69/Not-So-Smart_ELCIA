@@ -24,7 +24,7 @@ from src.core import classes as hazard_classes
 class HazardVideoPipeline:
     def __init__(
         self, 
-        weights_path: str = "models/production/civicpulse_best.pt", 
+        weights_path: str = "models/production/best.pt", 
         output_dir: str = "outputs", 
         srt_path: Optional[str] = None, 
         device: Optional[str] = None
