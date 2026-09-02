@@ -15,7 +15,7 @@ from src.severity.scoring_engine import SeverityEngine
 
 def main():
     print("[INFO] Initializing Real-Time Video Tracking & Render Pipeline...")
-    segmentor = YOLOSegmentor(model_path="models/checkpoints/civicpulse_best.pt", conf_threshold=0.10)
+    segmentor = YOLOSegmentor(model_path="models/production/best.pt", conf_threshold=0.10)
     severity_engine = SeverityEngine()
 
     video_path = "data/samples/test_video.mov"

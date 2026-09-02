@@ -11,7 +11,7 @@ from pathlib import Path
 
 from src.detection.video_tracker import HazardVideoPipeline
 
-DEFAULT_WEIGHTS_PATH = "runs/segment/civicpulse_4class_max-2/weights/best.pt"
+DEFAULT_WEIGHTS_PATH = "models/production/best.pt"
 
 
 def parse_args() -> argparse.Namespace:

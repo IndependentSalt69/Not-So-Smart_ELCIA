@@ -17,7 +17,7 @@ def main():
     
     # 1. Initialize Perception & Severity Engines
     # Using 0.05 threshold temporarily to catch all detections for testing
-    segmentor = YOLOSegmentor(model_path="models/checkpoints/civicpulse_best.pt", conf_threshold=0.05)
+    segmentor = YOLOSegmentor(model_path="models/production/best.pt", conf_threshold=0.05)
     severity_engine = SeverityEngine()
     
     # 2. Load Test Image
