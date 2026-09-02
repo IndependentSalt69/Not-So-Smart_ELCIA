@@ -48,4 +48,4 @@ def generate_simulated_flight(duration_seconds: int, output_srt: str):
 
 if __name__ == "__main__":
     # Let's say your demo internet video is x seconds long
-    generate_simulated_flight(duration_seconds=139, output_srt="data/samples/drone_demo.srt")
+    generate_simulated_flight(duration_seconds=93, output_srt="data/samples/video_1.srt")

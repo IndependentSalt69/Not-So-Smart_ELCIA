@@ -17,6 +17,7 @@ from src.detection.severity_analyzer import SeverityAnalyzer
 from scripts.gps_parser import parse_dji_srt
 
 import torch
+from src.core.config import APP_CONFIG
 
 
 class HazardVideoPipeline:
@@ -52,7 +53,9 @@ class HazardVideoPipeline:
         self.logged_hazard_ids = set()
         self.track_hit_counter = {}  # {track_id: hit_count}
         self.telemetry_log = []
-        self.min_area_pixels = 350.0
+        
+        # Dynamically load from YAML, fallback to your original 50.0
+        self.min_area_pixels = APP_CONFIG.get("filters", {}).get("min_area_pixels", 50.0)
 
         # DJI Telemetry Parser
         self.gps_data = []

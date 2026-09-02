@@ -7,7 +7,8 @@ from typing import List, Union
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
-
+import yaml
+from pathlib import Path
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -42,7 +43,6 @@ class Settings(BaseSettings):
             return [i.strip() for i in v.split(",") if i.strip()]
         elif isinstance(v, str) and v.startswith("["):
             import json
-
             return json.loads(v)
         return v
 
@@ -69,5 +69,16 @@ class Settings(BaseSettings):
     EVIDENCE_DIR: str = "outputs/evidence"
     PREDICTIONS_DIR: str = "outputs/predictions"
 
-
 settings = Settings()
+
+# --- NEW: AI/ML Dynamic Configuration Loader ---
+CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "configs" / "config.yaml"
+
+def load_app_config():
+    # If the file doesn't exist yet, return an empty dict to prevent crashes
+    if not CONFIG_PATH.exists():
+        return {"classes": {}, "filters": {}}
+    with open(CONFIG_PATH, "r") as f:
+        return yaml.safe_load(f)
+
+APP_CONFIG = load_app_config()

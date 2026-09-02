@@ -9,8 +9,8 @@ from src.detection.video_tracker import HazardVideoPipeline
 
 def main():
     # 1. Video & Telemetry Paths
-    video_path = "data/samples/drone_demo.mp4"
-    srt_path = "data/samples/drone_demo.srt"  # Change or set to None if you don't have an SRT
+    video_path = "data/samples/video_1.mp4"
+    srt_path = "data/samples/video_1.srt"  # Change or set to None if you don't have an SRT
 
     # 2. Hardware Acceleration (MPS for Mac, CUDA for NVIDIA, fallback to CPU)
     if torch.cuda.is_available():
@@ -33,7 +33,7 @@ def main():
     # 4. Process Video
     pipeline.process_video(
         video_path=video_path,
-        output_video_path="outputs/drone_demo_tracked_output.mp4"
+        output_video_path="outputs/video_1_output.mp4"
     )
 
 if __name__ == "__main__":

@@ -1,0 +1,20 @@
+filters:
+  min_area_pixels: 50.0 #350
+
+classes:
+  0:
+    name: "waterlogging"
+    conf: 0.52
+    color: [235, 150, 50]
+  1: 
+    name: "pothole"
+    conf: 0.20
+    color: [40, 50, 230]
+  2:
+    name: "drainage_overflow"
+    conf: 0.45
+    color: [0, 255, 255]
+  3:
+    name: "damaged_footpath"
+    conf: 0.20
+    color: [0, 255, 0]

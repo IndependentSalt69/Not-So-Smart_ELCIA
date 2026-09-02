@@ -1,13 +1,15 @@
 """
 src/detection/yolo_segmentation.py
 Handles YOLOv8-seg model inference, custom ByteTrack tracking,
-and smooth visualization overlays with Mac M-series (MPS) & dynamic threshold support.
+and smooth visualization overlays with Mac M-series (MPS) & dynamic YAML config support.
 """
 import cv2
 import numpy as np
 from ultralytics import YOLO
 from typing import List, Dict, Any, Optional
 import torch
+
+from src.core.config import APP_CONFIG
 
 
 class YOLOSegmentor:
@@ -26,22 +28,33 @@ class YOLOSegmentor:
         self.iou_threshold = iou_threshold
         self.imgsz = imgsz
         self.tracker_config = tracker_config
-        self.target_classes = target_classes or {
-            0: "waterlogging",
-            1: "pothole",
-            2: "drainage_overflow",
-            3: "damaged_footpath"
-        }
 
-        # Class-specific confidence thresholds to suppress false positives
-        # TUNED HACKATHON THRESHOLDS
-        # BALANCED HACKATHON THRESHOLDS
-        self.class_conf_thresholds = {
-            "waterlogging": 0.52,       # Balanced: catches genuine pools without relying purely on high YOLO certainty
-            "drainage_overflow": 0.45,  # Balanced
-            "pothole": 0.20,            # Sensitive: preserves early/distant pothole detection
-            "damaged_footpath": 0.25    # Sensitive: captures broken road edges & walkway cracks
-        }
+        # 1. Load classes dynamically from APP_CONFIG (configs/config.yaml)
+        yaml_classes = APP_CONFIG.get("classes", {})
+        if target_classes is not None:
+            self.target_classes = target_classes
+        elif yaml_classes:
+            self.target_classes = {int(k): v["name"] for k, v in yaml_classes.items()}
+        else:
+            self.target_classes = {
+                0: "waterlogging",
+                1: "pothole",
+                2: "drainage_overflow",
+                3: "damaged_footpath"
+            }
+
+        # 2. Load class confidence thresholds dynamically from APP_CONFIG
+        if yaml_classes:
+            self.class_conf_thresholds = {
+                v["name"]: float(v["conf"]) for v in yaml_classes.values()
+            }
+        else:
+            self.class_conf_thresholds = {
+                "waterlogging": 0.52,
+                "drainage_overflow": 0.45,
+                "pothole": 0.20,
+                "damaged_footpath": 0.20
+            }
 
         # Device Selection: CUDA (NVIDIA) -> MPS (Apple Silicon) -> CPU
         if device is not None:
@@ -122,7 +135,7 @@ class YOLOSegmentor:
         return detections
 
     def track_frame(self, frame: np.ndarray, persist: bool = True) -> List[Dict[str, Any]]:
-        """Continuous tracking with the custom ByteTrack config."""
+        """Continuous tracking with custom ByteTrack config."""
         h, w = frame.shape[:2]
         results = self.model.track(
             source=frame,
@@ -138,12 +151,21 @@ class YOLOSegmentor:
 
     def draw_detections(self, frame: np.ndarray, detections: List[Dict[str, Any]]) -> np.ndarray:
         annotated = frame.copy()
-        color_palette = {
-            "waterlogging": (235, 150, 50),     # Blue/Orange
-            "pothole": (40, 50, 230),           # Red
-            "drainage_overflow": (0, 255, 255), # Yellow
-            "damaged_footpath": (0, 255, 0)     # Green
-        }
+        
+        # Load bounding/mask colors dynamically from config
+        yaml_classes = APP_CONFIG.get("classes", {})
+        if yaml_classes:
+            color_palette = {
+                v["name"]: tuple(v["color"]) for v in yaml_classes.values()
+            }
+        else:
+            color_palette = {
+                "waterlogging": (235, 150, 50),
+                "pothole": (40, 50, 230),
+                "drainage_overflow": (0, 255, 255),
+                "damaged_footpath": (0, 255, 0),
+                "waterlogged_pothole": (255, 0, 0)
+            }
         default_color = (0, 255, 0)
 
         for det in detections:
