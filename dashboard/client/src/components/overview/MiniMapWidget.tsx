@@ -72,7 +72,7 @@ export const MiniMapWidget: React.FC<MiniMapWidgetProps> = ({
     import.meta.env.VITE_FRONTEND_FORGE_API_KEY ||
     '';
   const [apiKey] = useState<string>(() => {
-    return localStorage.getItem('civicpulse_gmaps_key') || envKey;
+    return envKey;
   });
 
   const validIncidents = incidents.filter(
