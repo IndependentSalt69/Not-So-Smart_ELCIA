@@ -13,7 +13,6 @@ from src.detection.video_tracker import HazardVideoPipeline
 
 DEFAULT_WEIGHTS_PATH = "models/production/best.pt"
 
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="CivicPulse ML Pipeline Job Runner (Phase 11A)"
