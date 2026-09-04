@@ -3,17 +3,18 @@ src/api/routes/zones.py
 Zone management REST API endpoints.
 """
 
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from src.api.dependencies import get_db
-from src.schemas.zone import ZoneCreate, ZoneResponse
-from src.repositories import (
+from src.schemas.zone import ZoneCreate, ZoneResponse, ZoneDetectionResponse
+from src.repositories.zones import (
     create_zone,
     get_zone as repo_get_zone,
     list_zones as repo_list_zones,
+    resolve_zone_from_telemetry,
 )
 
 router = APIRouter(prefix="/zones", tags=["zones"])
@@ -44,6 +45,31 @@ def create_new_zone(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Zone with code '{payload.code}' already exists.",
         )
+
+
+@router.post(
+    "/detect",
+    summary="Detect Surveillance Zone from SRT Telemetry",
+    status_code=status.HTTP_200_OK,
+    response_model=ZoneDetectionResponse,
+)
+async def detect_zone_from_srt(
+    file: Optional[UploadFile] = File(None, description="Optional DJI SRT subtitle file"),
+    srt_text: Optional[str] = Form(None, description="Optional raw SRT text content"),
+    db: Session = Depends(get_db),
+) -> ZoneDetectionResponse:
+    """
+    Parses DJI SRT flight telemetry and resolves the containing surveillance zone.
+    Returns matched zone or multi-zone distribution.
+    """
+    content = None
+    if file and file.filename:
+        content = await file.read()
+    elif srt_text:
+        content = srt_text
+
+    result = resolve_zone_from_telemetry(db=db, srt_content=content)
+    return ZoneDetectionResponse(**result)
 
 
 @router.get(

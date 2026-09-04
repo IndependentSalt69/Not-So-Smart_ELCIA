@@ -59,6 +59,18 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
   const [realJobError, setRealJobError] = useState<string | null>(null);
   const [videoLoadError, setVideoLoadError] = useState<boolean>(false);
 
+  // SRT Automatic Zone Detection State (Section 11)
+  const [zoneDetection, setZoneDetection] = useState<{
+    status: 'IDLE' | 'AUTO_DETECTED' | 'MULTI_ZONE' | 'NO_MATCH' | 'NO_GPS';
+    message?: string;
+    detectedZoneCode?: string | null;
+    confidence?: number;
+    breakdown?: { zone_id: string; code: string; name: string; count: number; percentage: number }[];
+    isManualOverride: boolean;
+  }>({
+    status: 'IDLE',
+    isManualOverride: false,
+  });
 
   // Telemetry Configuration State
   const [telemetry, setTelemetry] = useState<DroneTelemetry>(SAMPLE_PRESETS[0].defaultTelemetry);
@@ -97,6 +109,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
     setMediaPreviewUrl(preset.mediaUrl);
     setMediaType(preset.mediaType);
     setTelemetry(preset.defaultTelemetry);
+    setZoneDetection({ status: 'IDLE', isManualOverride: false });
     setInferenceResult(null);
     setRealJobStatus(null);
     setRealJobError(null);
@@ -125,8 +138,8 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
     }
   };
 
-  // Handle SRT telemetry file upload
-  const handleSrtUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle SRT telemetry file upload with Auto-Zone Detection
+  const handleSrtUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const ext = file.name.split('.').pop()?.toLowerCase();
@@ -136,6 +149,32 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
       }
       setSrtFile(file);
       toast.success(`Loaded telemetry: ${file.name}`);
+
+      // Auto-detect zone from SRT telemetry
+      try {
+        const res = await processingService.detectZoneFromSrt(file);
+        setZoneDetection({
+          status: res.status,
+          message: res.message,
+          detectedZoneCode: res.detected_zone_code,
+          confidence: res.confidence,
+          breakdown: res.breakdown,
+          isManualOverride: false,
+        });
+
+        if (res.detected_zone_code && ['EC-01', 'EC-02', 'EC-03', 'EC-04'].includes(res.detected_zone_code)) {
+          setTelemetry((prev) => ({ ...prev, zoneId: res.detected_zone_code as ZoneId }));
+          if (res.status === 'AUTO_DETECTED') {
+            toast.success(`Zone ${res.detected_zone_code} auto-detected from SRT!`);
+          } else if (res.status === 'MULTI_ZONE') {
+            toast.info(`Multi-zone flight: Dominant zone ${res.detected_zone_code} auto-selected.`);
+          }
+        } else if (res.status === 'NO_MATCH') {
+          toast.warning('No configured surveillance zone matched flight path. Please select zone manually.');
+        }
+      } catch (err: any) {
+        console.warn('Zone detection error:', err);
+      }
     }
   };
 
@@ -485,12 +524,35 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
 
             <div className="space-y-3.5">
               <div>
-                <label className="text-xs xl:text-sm font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
-                  Surveillance Zone:
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs xl:text-sm font-bold text-zinc-800 dark:text-zinc-200 block">
+                    Surveillance Zone:
+                  </label>
+                  {zoneDetection.status === 'AUTO_DETECTED' && !zoneDetection.isManualOverride && (
+                    <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-800">
+                      Auto-Detected
+                    </span>
+                  )}
+                  {zoneDetection.status === 'MULTI_ZONE' && !zoneDetection.isManualOverride && (
+                    <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-800">
+                      Multi-Zone
+                    </span>
+                  )}
+                  {zoneDetection.isManualOverride && (
+                    <span className="text-[11px] font-bold text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full border border-zinc-300 dark:border-zinc-700">
+                      Manual
+                    </span>
+                  )}
+                </div>
                 <Select
                   value={telemetry.zoneId}
-                  onValueChange={(val: ZoneId) => setTelemetry({ ...telemetry, zoneId: val })}
+                  onValueChange={(val: ZoneId) => {
+                    setTelemetry({ ...telemetry, zoneId: val });
+                    setZoneDetection((prev) => ({
+                      ...prev,
+                      isManualOverride: true,
+                    }));
+                  }}
                 >
                   <SelectTrigger className="h-10 rounded-xl text-xs xl:text-sm bg-zinc-50 dark:bg-zinc-800/50 border-zinc-300 dark:border-zinc-700">
                     <SelectValue placeholder="Select Zone" />
@@ -502,6 +564,44 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                     <SelectItem value="EC-04" className="text-xs xl:text-sm">EC-04: Main Junction Corridor & Flyover</SelectItem>
                   </SelectContent>
                 </Select>
+
+                {/* Zone Detection Status Banner */}
+                {zoneDetection.isManualOverride ? (
+                  <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1.5 px-2.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60">
+                    <span>✎ Manually selected by operator</span>
+                  </div>
+                ) : zoneDetection.status === 'AUTO_DETECTED' ? (
+                  <div className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300 font-medium mt-1.5 p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>
+                      ✓ Zone automatically detected from SRT telemetry ({Math.round((zoneDetection.confidence || 1) * 100)}% match)
+                    </span>
+                  </div>
+                ) : zoneDetection.status === 'MULTI_ZONE' ? (
+                  <div className="text-xs text-amber-700 dark:text-amber-300 font-medium mt-1.5 p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span className="font-semibold">
+                        ⚠ Multi-Zone Flight Detected (Dominant: {zoneDetection.detectedZoneCode})
+                      </span>
+                    </div>
+                    {zoneDetection.breakdown && zoneDetection.breakdown.length > 0 && (
+                      <div className="text-[11px] text-amber-800 dark:text-amber-400 pl-5">
+                        Distribution: {zoneDetection.breakdown.map((b) => `${b.code} (${b.percentage}%)`).join(' • ')}
+                      </div>
+                    )}
+                  </div>
+                ) : zoneDetection.status === 'NO_MATCH' ? (
+                  <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300 font-medium mt-1.5 p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800">
+                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                    <span>⚠ No configured surveillance zone matched the flight path. Manual selection required.</span>
+                  </div>
+                ) : zoneDetection.status === 'NO_GPS' ? (
+                  <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1.5 px-2.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60">
+                    <span className="w-2 h-2 rounded-full bg-zinc-400" />
+                    <span>GPS telemetry unavailable in SRT — select zone manually</span>
+                  </div>
+                ) : null}
               </div>
 
               <div>

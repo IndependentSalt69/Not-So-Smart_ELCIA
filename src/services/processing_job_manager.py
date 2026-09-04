@@ -300,11 +300,22 @@ class ProcessingJobManager:
                     
                     db = SessionLocal()
                     try:
+                        effective_zone_id = job.zone_id
+                        if not effective_zone_id and job.uploaded_srt and Path(job.uploaded_srt).exists():
+                            try:
+                                from src.repositories.zones import resolve_zone_from_telemetry
+                                with open(job.uploaded_srt, "r", encoding="utf-8", errors="replace") as srt_f:
+                                    detection_res = resolve_zone_from_telemetry(db=db, srt_content=srt_f.read())
+                                    if detection_res.get("detected_zone_id"):
+                                        effective_zone_id = detection_res["detected_zone_id"]
+                            except Exception as z_err:
+                                print(f"[JOB:{job.job_id}] Auto zone resolution fallback error: {z_err}")
+
                         ingestion_summary = ingest_job_results(
                             db=db,
                             job_id=job.job_id,
                             output_dir=job.output_dir,
-                            zone_id=job.zone_id,
+                            zone_id=effective_zone_id,
                         )
                         if job.results and isinstance(job.results.get("summary"), dict):
                             job.results["summary"]["incidents_created"] = ingestion_summary["incidents_created"]

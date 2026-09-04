@@ -41,3 +41,24 @@ class ZoneResponse(ZoneBase):
         if v is not None and not isinstance(v, (dict, GeoJSONPolygon)):
             return geoalchemy_to_geojson(v)
         return v
+
+
+class ZoneMatchItem(BaseModel):
+    zone_id: str
+    zone_code: str
+    zone_name: str
+    point_count: int
+    percentage: float
+
+
+class ZoneDetectionResponse(BaseModel):
+    status: str
+    detected_zone_id: Optional[str] = None
+    detected_zone_code: Optional[str] = None
+    detected_zone_name: Optional[str] = None
+    confidence: Optional[float] = None
+    total_points: int = 0
+    matched_points: int = 0
+    breakdown: list[ZoneMatchItem] = []
+    message: str
+

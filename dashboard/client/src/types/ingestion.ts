@@ -104,3 +104,25 @@ export interface ProcessJobStatusResponse {
   results: ProcessJobResults | null;
 }
 
+export type ZoneDetectionStatus = 'AUTO_DETECTED' | 'MULTI_ZONE' | 'NO_MATCH' | 'NO_GPS' | 'MANUAL';
+
+export interface ZoneMatchItem {
+  zone_id: string;
+  code: string;
+  name: string;
+  count: number;
+  percentage: number;
+}
+
+export interface ZoneDetectionResponse {
+  status: 'AUTO_DETECTED' | 'MULTI_ZONE' | 'NO_MATCH' | 'NO_GPS';
+  detected_zone_id: string | null;
+  detected_zone_code: string | null;
+  detected_zone_name: string | null;
+  confidence: number;
+  total_points: number;
+  matched_points: number;
+  breakdown: ZoneMatchItem[];
+  message: string;
+}
+

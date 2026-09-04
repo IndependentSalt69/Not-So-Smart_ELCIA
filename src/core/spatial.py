@@ -170,3 +170,63 @@ def geoalchemy_to_geojson(val: Any) -> Optional[dict]:
             pass
 
     return None
+
+
+def parse_srt_gps_points(srt_content: Union[str, bytes, None]) -> List[Tuple[float, float]]:
+    """
+    Parses DJI drone SRT telemetry text/bytes and extracts valid GPS coordinates.
+    Returns a list of [longitude, latitude] coordinate pairs (SRID 4326).
+    """
+    import re
+
+    if not srt_content:
+        return []
+
+    if isinstance(srt_content, (bytes, bytearray)):
+        text = srt_content.decode("utf-8", errors="replace")
+    else:
+        text = str(srt_content)
+
+    pattern_bracket_lat = re.compile(r"\[(?:lat|latitude):\s*([\-\d\.]+)\]", re.IGNORECASE)
+    pattern_bracket_lon = re.compile(r"\[(?:lon|long|longitude):\s*([\-\d\.]+)\]", re.IGNORECASE)
+    pattern_legacy_gps = re.compile(
+        r"GPS\s*\(\s*([\-\d\.]+)\s*,\s*([\-\d\.]+)(?:\s*,\s*[\-\d\.]+)?\s*\)",
+        re.IGNORECASE,
+    )
+
+    points: List[Tuple[float, float]] = []
+
+    blocks = text.strip().split("\n\n")
+    for block in blocks:
+        lines = [line.strip() for line in block.split("\n") if line.strip()]
+        if not lines:
+            continue
+
+        block_text = " ".join(lines)
+
+        lat: Optional[float] = None
+        lon: Optional[float] = None
+
+        match_lat = pattern_bracket_lat.search(block_text)
+        match_lon = pattern_bracket_lon.search(block_text)
+        if match_lat and match_lon:
+            try:
+                lat = float(match_lat.group(1))
+                lon = float(match_lon.group(1))
+            except ValueError:
+                pass
+        else:
+            match_legacy = pattern_legacy_gps.search(block_text)
+            if match_legacy:
+                try:
+                    lat = float(match_legacy.group(1))
+                    lon = float(match_legacy.group(2))
+                except ValueError:
+                    pass
+
+        if lat is not None and lon is not None:
+            if -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0:
+                points.append((lon, lat))
+
+    return points
+
