@@ -135,18 +135,25 @@ def main():
 
     output_video_path = str(output_dir / "annotated_output.mp4")
 
-    # 4. Validate CUDA availability for GPU processing
+    # 4. Select the best available compute device.
+    # Previously this hard-required CUDA and exited 1 otherwise, which meant the
+    # dashboard upload path could not run at all on a Mac. video_tracker.py and
+    # yolo_segmentation.py already fall back cuda -> mps -> cpu, so this now
+    # matches them. A demo that runs slowly beats a demo that refuses to start.
     import torch
     if torch.cuda.is_available():
         device = "cuda"
-        gpu_name = torch.cuda.get_device_name(0)
         print(f"[JOB:{job_id}] DEVICE={device}")
-        print(f"[JOB:{job_id}] GPU={gpu_name}")
+        print(f"[JOB:{job_id}] GPU={torch.cuda.get_device_name(0)}")
+    elif getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available():
+        device = "mps"
+        print(f"[JOB:{job_id}] DEVICE={device}")
+        print(f"[JOB:{job_id}] GPU=Apple Silicon (MPS)")
+        print(f"[JOB:{job_id}] WARN=MPS is slower than CUDA; expect longer processing time.")
     else:
-        msg = "CUDA unavailable for real GPU processing."
-        print(f"[JOB:{job_id}] ERROR={msg}")
-        print(f"[JOB:{job_id}] EXIT=1")
-        sys.exit(1)
+        device = "cpu"
+        print(f"[JOB:{job_id}] DEVICE={device}")
+        print(f"[JOB:{job_id}] WARN=No GPU found. CPU inference is very slow on long videos.")
 
     # 5. Execute HazardVideoPipeline
     print(f"[JOB:{job_id}] PIPELINE_START")
