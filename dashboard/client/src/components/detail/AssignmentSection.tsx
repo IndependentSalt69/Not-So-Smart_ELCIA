@@ -14,8 +14,16 @@ export const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   onAssign,
 }) => {
   const isWater = incident.type === 'waterlogging';
+  const isManhole = incident.type === 'open_manhole';
 
-  const defaultTeams = isWater
+  const defaultTeams = isManhole
+    ? [
+        'Sewer & Underground Infrastructure Team',
+        'ELCIA Rapid Chamber Barricading Crew',
+        'Emergency Sewer Maintenance Unit 1',
+        'Municipal Underground Utilities Team',
+      ]
+    : isWater
     ? [
         'Drainage Operations Team A',
         'Emergency Pump Unit 2 (Phase 1)',
@@ -29,7 +37,14 @@ export const AssignmentSection: React.FC<AssignmentSectionProps> = ({
         'ELCIA Civil Works Crew 3',
       ];
 
-  const defaultActions = isWater
+  const defaultActions = isManhole
+    ? [
+        'Install immediate high-visibility barricade and dispatch sewer maintenance crew to replace manhole lid.',
+        'Deploy emergency safety cone perimeter and secure reinforced chamber cover',
+        'Dispatch hydro-vac and sewer inspection crew to survey displaced lid frame',
+        'Install temporary steel road plate with high-visibility reflective warning signs',
+      ]
+    : isWater
     ? [
         'Deploy high-capacity mobile de-watering sump pumps & unblock storm drain grates',
         'Desilt stormwater culvert mouth and clear outflow channel',

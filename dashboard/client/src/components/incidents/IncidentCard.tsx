@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { incidentService } from '@/services/incidentService';
 import { getIncidentTypeLabel, Incident, IncidentType } from '@/types/incident';
-import { AlertTriangle, ArrowRight, Clock, Droplets, Eye, Footprints, Gauge, MapPin, Sparkles, Timer, Waves } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CircleDot, Clock, Droplets, Eye, Footprints, Gauge, MapPin, Sparkles, Timer, Waves } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 interface IncidentCardProps {
@@ -22,6 +22,8 @@ export function renderIncidentTypeIcon(type: IncidentType, className = 'w-3.5 h-
       return <Waves className={cn(className, 'text-cyan-300')} />;
     case 'damaged_footpath':
       return <Footprints className={cn(className, 'text-orange-300')} />;
+    case 'open_manhole':
+      return <CircleDot className={cn(className, 'text-purple-300')} />;
     case 'pothole':
     default:
       return <AlertTriangle className={cn(className, 'text-amber-300')} />;

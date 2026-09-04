@@ -7,7 +7,7 @@ describe('Incident Filtering Logic', () => {
     process.env.VITE_USE_MOCK_DATA = 'true';
     incidentService.resetToMockData();
   });
-  it('correctly filters by Type (waterlogging vs pothole)', async () => {
+  it('correctly filters by Type (waterlogging, pothole, open_manhole)', async () => {
     const water = await incidentService.getIncidents({ type: 'waterlogging' });
     expect(water.length).toBeGreaterThan(0);
     expect(water.every((i) => i.type === 'waterlogging')).toBe(true);
@@ -15,6 +15,11 @@ describe('Incident Filtering Logic', () => {
     const potholes = await incidentService.getIncidents({ type: 'pothole' });
     expect(potholes.length).toBeGreaterThan(0);
     expect(potholes.every((i) => i.type === 'pothole')).toBe(true);
+
+    const manholes = await incidentService.getIncidents({ type: 'open_manhole' });
+    expect(manholes.length).toBeGreaterThan(0);
+    expect(manholes.every((i) => i.type === 'open_manhole')).toBe(true);
+    expect(manholes.some((i) => i.id === 'EC-0185')).toBe(true);
   });
 
   it('correctly filters by Priority (P1, P2, P3)', async () => {

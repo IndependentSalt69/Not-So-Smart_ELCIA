@@ -2,7 +2,7 @@ import { PriorityBadge } from '@/components/common/PriorityBadge';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Incident } from '@/types/incident';
-import { AlertTriangle, ArrowRight, Clock, Droplets, Eye, Footprints, ShieldAlert, Waves } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CircleDot, Clock, Droplets, Eye, Footprints, ShieldAlert, Waves } from 'lucide-react';
 import React from 'react';
 
 interface RecentAlertsFeedProps {
@@ -50,6 +50,12 @@ export const RecentAlertsFeed: React.FC<RecentAlertsFeedProps> = ({
         return (
           <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-xs mt-0.5 bg-orange-50 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-900/50">
             <Footprints className="w-4.5 h-4.5" />
+          </div>
+        );
+      case 'open_manhole':
+        return (
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-xs mt-0.5 bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900/50">
+            <CircleDot className="w-4.5 h-4.5" />
           </div>
         );
       case 'pothole':

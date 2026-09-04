@@ -9,6 +9,7 @@ import {
   Camera,
   ChevronLeft,
   ChevronRight,
+  CircleDot,
   Cpu,
   Droplets,
   FileCode2,
@@ -402,6 +403,11 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
             <span className="flex items-center gap-1.5 text-orange-400">
               <Footprints className="w-3.5 h-3.5" />
               <span>Pedestrian Impact: Mod</span>
+            </span>
+          ) : incident.type === 'open_manhole' ? (
+            <span className="flex items-center gap-1.5 text-purple-400">
+              <CircleDot className="w-3.5 h-3.5" />
+              <span>Chamber Exposure: Severe</span>
             </span>
           ) : (
             <span className="flex items-center gap-1.5 text-amber-400">

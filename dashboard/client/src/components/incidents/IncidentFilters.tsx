@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { IncidentFilters as FilterType, IncidentStatus, IncidentType, PriorityLevel, ZoneId } from '@/types/incident';
-import { AlertTriangle, Droplets, Filter, Footprints, RotateCcw, Search, Waves, X } from 'lucide-react';
+import { AlertTriangle, CircleDot, Droplets, Filter, Footprints, RotateCcw, Search, Waves, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 interface IncidentFiltersProps {
@@ -150,6 +150,7 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
     { id: 'pothole', label: 'Potholes', icon: <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> },
     { id: 'drainage_overflow', label: 'Drainage Overflow', icon: <Waves className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" /> },
     { id: 'damaged_footpath', label: 'Damaged Footpath', icon: <Footprints className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" /> },
+    { id: 'open_manhole', label: 'Open Manhole', icon: <CircleDot className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" /> },
   ];
 
   const priorityItems: { id: PriorityLevel | 'all'; label: string; color?: string }[] = [

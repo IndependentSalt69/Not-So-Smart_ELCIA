@@ -6,7 +6,7 @@ import {
   DialogContent,
 } from '@/components/ui/dialog';
 import { Incident, IncidentStatus, getIncidentTypeLabel } from '@/types/incident';
-import { AlertTriangle, Droplets, Footprints, History, MapPin, Waves, X } from 'lucide-react';
+import { AlertTriangle, CircleDot, Droplets, Footprints, History, MapPin, Waves, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { AssignmentSection } from './AssignmentSection';
 import { EvidenceViewer } from './EvidenceViewer';
@@ -55,6 +55,8 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
                   <Waves className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                 ) : incident.type === 'damaged_footpath' ? (
                   <Footprints className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
+                ) : incident.type === 'open_manhole' ? (
+                  <CircleDot className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                 ) : (
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 )}

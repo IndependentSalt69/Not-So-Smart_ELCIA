@@ -31,6 +31,11 @@ export const generateSvgFrame = (
     overlayColor = 'rgba(249, 115, 22, 0.45)';
     label = 'AI SEGMENTATION: DAMAGED FOOTPATH (91% CONFIDENCE)';
     shapeSvg = `<polygon points="120,440 280,260 340,260 220,440" fill="${isOverlay ? overlayColor : '#7c2d12'}" stroke="${isOverlay ? strokeColor : '#ea580c'}" stroke-width="${isOverlay ? '3' : '1'}"/>${isOverlay ? '<line x1="180" y1="360" x2="260" y2="340" stroke="#f97316" stroke-width="2.5" stroke-dasharray="4,3"/>' : ''}`;
+  } else if (type === 'open_manhole') {
+    strokeColor = '#8b5cf6';
+    overlayColor = 'rgba(139, 92, 246, 0.45)';
+    label = 'AI BOUNDING BOX: OPEN MANHOLE (96% CONFIDENCE)';
+    shapeSvg = `<circle cx="410" cy="340" r="48" fill="${isOverlay ? overlayColor : '#0f172a'}" stroke="${isOverlay ? strokeColor : '#6d28d9'}" stroke-width="${isOverlay ? '3.5' : '1.5'}"/>${isOverlay ? '<rect x="335" y="270" width="150" height="140" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="6,4"/>' : ''}`;
   } else if (type === 'pothole') {
     strokeColor = '#ef4444';
     overlayColor = 'rgba(239, 68, 68, 0.45)';
@@ -655,6 +660,46 @@ export const INITIAL_MOCK_INCIDENTS: Incident[] = [
         timestamp: '2026-08-19T19:40:00.000Z',
         actor: 'System Autonomous Supervisor',
         notes: 'Post-repair flyover scan verified smooth asphalt patch.',
+      },
+    ],
+  },
+  {
+    id: 'EC-0185',
+    type: 'open_manhole',
+    confidence: 0.96,
+    severity: 9.4,
+    priority: 'P1',
+    timestamp: '2026-08-20T01:15:00.000Z',
+    zone: 'Phase 1 - West IT Corridor',
+    zoneId: 'EC-01',
+    locationDescription: 'Phase 1 Ring Road opposite Tech Park Gate 2',
+    coordinates: { lat: 12.8422, lng: 77.6655 },
+    durationSeconds: 260,
+    evidenceFrame: generateSvgFrame('12.8422N, 77.6655E', 'EC-0185 Original Frame', false, 'open_manhole'),
+    evidenceOverlay: generateSvgFrame('12.8422N, 77.6655E', 'EC-0185 Overlay', true, 'open_manhole'),
+    evidenceClip: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    severityFactors: {
+      waterExtent: 0,
+      persistenceSeconds: 260,
+      roadObstruction: 9.6,
+      roadObstructionLabel: 'Critical open chamber hazard in live transit corridor',
+      roadCriticality: 9.2,
+      roadCriticalityLabel: 'Primary arterial transit corridor opposite Tech Park Gate 2',
+      explanation: [
+        'Uncovered sewer manhole chamber detected directly in active traffic lane.',
+        'Immediate critical danger for high-speed two-wheelers, buses, and nighttime commuters.',
+        'Continuous temporal persistence confirmed over multiple drone scan passes (>240s).',
+      ],
+    },
+    recommendedAction: 'Install immediate high-visibility barricade and dispatch sewer maintenance crew to replace manhole lid.',
+    owner: 'Sewer & Underground Infrastructure Team',
+    status: 'DETECTED',
+    history: [
+      {
+        status: 'DETECTED',
+        timestamp: '2026-08-20T01:15:00.000Z',
+        actor: 'Drone Swarm AI Gamma',
+        notes: 'Critical hazard: Displaced sewer chamber lid detected in arterial lane.',
       },
     ],
   },

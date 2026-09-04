@@ -12,6 +12,7 @@ import {
 } from '@vis.gl/react-google-maps';
 import {
   AlertTriangle,
+  CircleDot,
   Compass,
   Crosshair,
   Droplets,
@@ -423,6 +424,8 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
                         <Waves className="w-4 h-4 text-white" />
                       ) : incident.type === 'damaged_footpath' ? (
                         <Footprints className="w-4 h-4 text-white" />
+                      ) : incident.type === 'open_manhole' ? (
+                        <CircleDot className="w-4 h-4 text-white" />
                       ) : (
                         <AlertTriangle className="w-4 h-4 text-white" />
                       )}

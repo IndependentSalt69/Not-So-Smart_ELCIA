@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Camera,
   CheckCircle2,
+  CircleDot,
   Compass,
   Cpu,
   Download,
@@ -310,7 +311,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
               Upload & Analyze Drone Video
             </h1>
             <p className="text-sm xl:text-base text-slate-300 leading-relaxed">
-              Upload drone video clips and optional flight information to automatically detect waterlogging, potholes, damaged footpaths, and drainage issues across the corridor.
+              Upload drone video clips and optional flight information to automatically detect waterlogging, potholes, open manholes, damaged footpaths, and drainage issues across the corridor.
             </p>
           </div>
 
@@ -359,6 +360,8 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                       ? 'bg-cyan-100 dark:bg-cyan-900/60 text-cyan-600'
                       : preset.type === 'damaged_footpath'
                       ? 'bg-orange-100 dark:bg-orange-900/60 text-orange-600'
+                      : preset.type === 'open_manhole'
+                      ? 'bg-purple-100 dark:bg-purple-900/60 text-purple-600'
                       : preset.type === 'pothole'
                       ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-600'
                       : 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600'
@@ -370,6 +373,8 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                     <Waves className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                   ) : preset.type === 'damaged_footpath' ? (
                     <Footprints className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                  ) : preset.type === 'open_manhole' ? (
+                    <CircleDot className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   ) : preset.type === 'pothole' ? (
                     <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                   ) : (
@@ -740,7 +745,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                   </div>
 
                   {/* Hazard Class Counts Breakdown Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
                     <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
                       <span className="text-xs text-teal-400 font-bold block">Waterlogging</span>
                       <span className="text-lg font-black font-mono text-white">
@@ -763,6 +768,12 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                       <span className="text-xs text-orange-400 font-bold block">Footpath Damage</span>
                       <span className="text-lg font-black font-mono text-white">
                         {realJobStatus.results.summary.class_counts?.damaged_footpath ?? 0}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
+                      <span className="text-xs text-purple-400 font-bold block">Open Manhole</span>
+                      <span className="text-lg font-black font-mono text-white">
+                        {realJobStatus.results.summary.class_counts?.open_manhole ?? 0}
                       </span>
                     </div>
                   </div>
@@ -875,6 +886,8 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                         ? 'bg-cyan-50 dark:bg-cyan-950 text-cyan-600'
                         : inferenceResult.type === 'damaged_footpath'
                         ? 'bg-orange-50 dark:bg-orange-950 text-orange-600'
+                        : inferenceResult.type === 'open_manhole'
+                        ? 'bg-purple-50 dark:bg-purple-950 text-purple-600'
                         : inferenceResult.type === 'pothole'
                         ? 'bg-red-50 dark:bg-red-950 text-red-600'
                         : 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600'
@@ -886,6 +899,8 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                       <Waves className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
                     ) : inferenceResult.type === 'damaged_footpath' ? (
                       <Footprints className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                    ) : inferenceResult.type === 'open_manhole' ? (
+                      <CircleDot className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                     ) : inferenceResult.type === 'pothole' ? (
                       <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
                     ) : (
@@ -901,6 +916,8 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                           ? 'Drainage Overflow Detected'
                           : inferenceResult.type === 'damaged_footpath'
                           ? 'Damaged Footpath Detected'
+                          : inferenceResult.type === 'open_manhole'
+                          ? 'Open Manhole Hazard Detected'
                           : inferenceResult.type === 'pothole'
                           ? 'Structural Pothole Detected'
                           : 'Clear Road Surface Verified'}

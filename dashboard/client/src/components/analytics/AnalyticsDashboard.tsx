@@ -229,7 +229,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
               Issues Over Time
             </h3>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
-              Daily issue counts across all 4 civic hazard types over the past 7 days.
+              Daily issue counts across all 5 civic hazard types over the past 7 days.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3.5 text-xs xl:text-sm font-bold">
@@ -244,6 +244,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
             </span>
             <span className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400">
               <span className="w-3 h-3 rounded-full bg-orange-500" /> Damaged Footpath
+            </span>
+            <span className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
+              <span className="w-3 h-3 rounded-full bg-purple-500" /> Open Manhole
             </span>
           </div>
         </div>
@@ -268,6 +271,10 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
                   <stop offset="5%" stopColor="#f97316" stopOpacity={0.4} />
                   <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
                 </linearGradient>
+                <linearGradient id="manholeColor" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
               <XAxis dataKey="date" tick={{ fontSize: 13, fontWeight: 600, fill: '#64748b' }} stroke="#94a3b8" dy={4} />
@@ -277,6 +284,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
               <Area type="monotone" name="Potholes" dataKey="potholes" stroke="#f59e0b" strokeWidth={2.5} fillOpacity={1} fill="url(#potholeColor)" />
               <Area type="monotone" name="Drainage Overflow" dataKey="drainage_overflow" stroke="#06b6d4" strokeWidth={2.5} fillOpacity={1} fill="url(#drainageColor)" />
               <Area type="monotone" name="Damaged Footpath" dataKey="damaged_footpath" stroke="#f97316" strokeWidth={2.5} fillOpacity={1} fill="url(#footpathColor)" />
+              <Area type="monotone" name="Open Manhole" dataKey="open_manhole" stroke="#8b5cf6" strokeWidth={2.5} fillOpacity={1} fill="url(#manholeColor)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
