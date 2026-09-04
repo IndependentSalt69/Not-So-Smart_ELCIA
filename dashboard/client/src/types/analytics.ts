@@ -17,6 +17,7 @@ export interface TrendDataPoint {
   potholes: number;
   drainage_overflow: number;
   damaged_footpath: number;
+  open_manhole: number;
   rainfallMm: number | null;
 }
 
@@ -93,6 +94,7 @@ export interface BackendAnalyticsTrendItem {
   potholes: number;
   drainage_overflow: number;
   damaged_footpath: number;
+  open_manhole: number;
   rainfall_mm: number | null;
 }
 

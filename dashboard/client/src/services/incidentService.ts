@@ -252,7 +252,9 @@ export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Inciden
           ? 'Dispatch high-pressure drain jetting team & clear storm culvert obstruction'
           : type === 'damaged_footpath'
             ? 'Dispatch civil masonry repair crew & install temporary pedestrian safety barriers'
-            : 'Deploy Cold-Mix Bitumen Patching & Place High-Visibility Hazard Barricades'),
+            : type === 'open_manhole'
+              ? 'Install immediate high-visibility barricade and dispatch sewer maintenance crew to replace manhole lid.'
+              : 'Deploy Cold-Mix Bitumen Patching & Place High-Visibility Hazard Barricades'),
     status: item.status as IncidentStatus,
     history: [
       {

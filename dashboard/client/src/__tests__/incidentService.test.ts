@@ -1,10 +1,55 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { incidentService } from '../services/incidentService';
+import { incidentService, mapBackendIncidentToFrontend, BackendIncidentItem } from '../services/incidentService';
+import {
+  mapBackendTypeToFrontend,
+  mapFrontendTypeToBackend,
+  getIncidentTypeLabel,
+  IncidentType,
+  BackendIncidentType,
+} from '../types/incident';
 
 describe('Incident Service', () => {
   beforeEach(() => {
     process.env.VITE_USE_MOCK_DATA = 'true';
     incidentService.resetToMockData();
+  });
+
+  it('correctly maps 5 hazard types between frontend and backend contracts', () => {
+    const pairs: [IncidentType, BackendIncidentType][] = [
+      ['waterlogging', 'WATERLOGGING'],
+      ['pothole', 'POTHOLE'],
+      ['drainage_overflow', 'DRAINAGE_OVERFLOW'],
+      ['damaged_footpath', 'DAMAGED_FOOTPATH'],
+      ['open_manhole', 'OPEN_MANHOLE'],
+    ];
+
+    for (const [fe, be] of pairs) {
+      expect(mapBackendTypeToFrontend(be)).toBe(fe);
+      expect(mapFrontendTypeToBackend(fe)).toBe(be);
+    }
+
+    expect(getIncidentTypeLabel('open_manhole')).toBe('Open Manhole');
+  });
+
+  it('maps backend open_manhole item with correct recommended action fallback', () => {
+    const mockItem: BackendIncidentItem = {
+      id: 'test-manhole-uuid',
+      incident_code: 'INC-MANHOLE-01',
+      incident_type: 'OPEN_MANHOLE',
+      confidence: 0.97,
+      severity_score: 9.5,
+      priority: 'P1',
+      zone_id: 'EC-01',
+      status: 'DETECTED',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const frontendIncident = mapBackendIncidentToFrontend(mockItem);
+    expect(frontendIncident.type).toBe('open_manhole');
+    expect(frontendIncident.recommendedAction).toBe(
+      'Install immediate high-visibility barricade and dispatch sewer maintenance crew to replace manhole lid.'
+    );
   });
 
   it('fetches all initial mock incidents', async () => {

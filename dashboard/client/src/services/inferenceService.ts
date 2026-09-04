@@ -12,6 +12,7 @@ const generateInferenceOverlaySvg = (
   const isPothole = type === 'pothole';
   const isDrainage = type === 'drainage_overflow';
   const isFootpath = type === 'damaged_footpath';
+  const isManhole = type === 'open_manhole';
 
   let strokeColor = '#10b981';
   let fillColor = 'none';
@@ -33,6 +34,10 @@ const generateInferenceOverlaySvg = (
     strokeColor = '#ef4444';
     fillColor = 'rgba(239, 68, 68, 0.45)';
     label = `YOLOv8: DEEP CRATER POTHOLE (${Math.round(confidence * 100)}% CONFIDENCE)`;
+  } else if (isManhole) {
+    strokeColor = '#dc2626';
+    fillColor = 'rgba(220, 38, 38, 0.45)';
+    label = `YOLOv8: OPEN MANHOLE (${Math.round(confidence * 100)}% CONFIDENCE)`;
   }
 
   const rawSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">
@@ -57,6 +62,10 @@ const generateInferenceOverlaySvg = (
         ? `<!-- Pothole Bounding Box & Crater -->
            <ellipse cx="430" cy="340" rx="95" ry="48" fill="${fillColor}" stroke="${strokeColor}" stroke-width="3.5"/>
            <rect x="310" y="280" width="240" height="120" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-dasharray="6,4"/>`
+      : isManhole
+        ? `<!-- Open Manhole Bounding Box & Chamber -->
+           <circle cx="400" cy="330" r="50" fill="${fillColor}" stroke="${strokeColor}" stroke-width="3.5"/>
+           <rect x="330" y="260" width="140" height="140" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-dasharray="6,4"/>`
         : `<!-- Clear Green Scan Grid -->
            <line x1="80" y1="300" x2="720" y2="300" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.6"/>
            <line x1="120" y1="380" x2="680" y2="380" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.6"/>`
@@ -225,6 +234,43 @@ export const SAMPLE_PRESETS: SampleFootagePreset[] = [
     },
   },
   {
+    id: 'preset-manhole-1',
+    title: 'Electronic City Phase 1 Ring Road (Uncovered Sewer Chamber)',
+    type: 'open_manhole',
+    description: 'Autonomous drone vision scan detecting uncovered manhole chamber directly in active traffic lane.',
+    thumbnailUrl: generateInferenceOverlaySvg('open_manhole', 0.97, {
+      droneId: 'DRONE-SWARM-GAMMA-3',
+      cameraModel: 'Sony Alpha 4K Aerial',
+      altitudeMeters: 25,
+      speedMps: 6,
+      zoneId: 'EC-01',
+      locationDescription: 'Phase 1 Ring Road opposite Tech Park Gate 2',
+      coordinates: { lat: 12.8422, lng: 77.6655 },
+      timestamp: new Date().toISOString(),
+    }),
+    mediaUrl: generateInferenceOverlaySvg('open_manhole', 0.97, {
+      droneId: 'DRONE-SWARM-GAMMA-3',
+      cameraModel: 'Sony Alpha 4K Aerial',
+      altitudeMeters: 25,
+      speedMps: 6,
+      zoneId: 'EC-01',
+      locationDescription: 'Phase 1 Ring Road opposite Tech Park Gate 2',
+      coordinates: { lat: 12.8422, lng: 77.6655 },
+      timestamp: new Date().toISOString(),
+    }),
+    mediaType: 'image',
+    defaultTelemetry: {
+      droneId: 'DRONE-SWARM-GAMMA-3',
+      cameraModel: 'Sony Alpha 4K Aerial',
+      altitudeMeters: 25,
+      speedMps: 6,
+      zoneId: 'EC-01',
+      locationDescription: 'Phase 1 Ring Road opposite Tech Park Gate 2',
+      coordinates: { lat: 12.8422, lng: 77.6655 },
+      timestamp: new Date().toISOString(),
+    },
+  },
+  {
     id: 'preset-clear-1',
     title: 'Phase 1 Neeladri Road (Clear Surface Baseline)',
     type: 'clear',
@@ -305,10 +351,11 @@ export const inferenceService = {
     const isPothole = presetType === 'pothole';
     const isDrainage = presetType === 'drainage_overflow';
     const isFootpath = presetType === 'damaged_footpath';
+    const isManhole = presetType === 'open_manhole';
 
-    const confidence = isWater ? 0.95 : isPothole ? 0.93 : isDrainage ? 0.91 : isFootpath ? 0.89 : 0.98;
-    const severity = isWater ? 8.8 : isPothole ? 8.4 : isDrainage ? 7.6 : isFootpath ? 6.2 : 1.2;
-    const priority: PriorityLevel = isWater || isPothole ? 'P1' : isDrainage ? 'P2' : isFootpath ? 'P2' : 'P3';
+    const confidence = isWater ? 0.95 : isPothole ? 0.93 : isDrainage ? 0.91 : isFootpath ? 0.89 : isManhole ? 0.97 : 0.98;
+    const severity = isWater ? 8.8 : isPothole ? 8.4 : isDrainage ? 7.6 : isFootpath ? 6.2 : isManhole ? 9.5 : 1.2;
+    const priority: PriorityLevel = isWater || isPothole || isManhole ? 'P1' : isDrainage ? 'P2' : isFootpath ? 'P2' : 'P3';
 
     const overlaySvg = generateInferenceOverlaySvg(presetType, confidence, telemetry);
 
@@ -345,9 +392,11 @@ export const inferenceService = {
             ? 'Drainage backflow covering sidewalk and curb (~160 m²)'
             : isPothole
               ? 'Submerged crater'
-              : 'Dry clear asphalt',
-        persistenceSeconds: isWater ? 180 : isDrainage ? 210 : isPothole ? 240 : 10,
-        roadObstruction: isWater ? 9.0 : isDrainage ? 7.5 : isPothole ? 8.8 : isFootpath ? 6.8 : 0.5,
+              : isManhole
+                ? 'Exposed chamber aperture'
+                : 'Dry clear asphalt',
+        persistenceSeconds: isWater ? 180 : isDrainage ? 210 : isPothole ? 240 : isManhole ? 300 : 10,
+        roadObstruction: isWater ? 9.0 : isDrainage ? 7.5 : isPothole ? 8.8 : isFootpath ? 6.8 : isManhole ? 9.6 : 0.5,
         roadObstructionLabel: isWater
           ? 'Dual lane vehicular blockage'
           : isDrainage
@@ -356,7 +405,9 @@ export const inferenceService = {
               ? 'Severe pothole forcing vehicle swerving'
               : isFootpath
                 ? 'Pedestrian sidewalk impassable'
-                : 'Zero traffic obstruction',
+                : isManhole
+                  ? 'Critical open chamber hazard in live transit corridor'
+                  : 'Zero traffic obstruction',
         roadCriticality: telemetry.zoneId === 'EC-01' ? 9.2 : 8.5,
         roadCriticalityLabel: `${telemetry.zoneId} — ${telemetry.locationDescription}`,
         explanation: isWater
@@ -382,7 +433,13 @@ export const inferenceService = {
                     'Immediate hazard for high-speed two-wheelers and shuttle buses.',
                     'Cold-mix bitumen patch dispatch required.',
                   ]
-                : ['No structural or flooding hazards detected across scanned frame.'],
+                : isManhole
+                  ? [
+                      'Open manhole / uncovered sewer chamber detected in active traffic lane.',
+                      'Extreme safety risk for motorists, cyclists, and pedestrians.',
+                      'Immediate physical barricading and cover replacement required.',
+                    ]
+                  : ['No structural or flooding hazards detected across scanned frame.'],
       },
       recommendedAction: isWater
         ? 'Deploy high-capacity mobile de-watering sump pumps & unblock storm drain grates'
@@ -392,7 +449,9 @@ export const inferenceService = {
             ? 'Dispatch civil masonry repair crew & install temporary pedestrian safety barriers'
             : isPothole
               ? 'Deploy Cold-Mix Bitumen Patching & Place High-Visibility Hazard Barricades'
-              : 'No mitigation required — Baseline verified clear',
+              : isManhole
+                ? 'Install immediate high-visibility barricade and dispatch sewer maintenance crew to replace manhole lid.'
+                : 'No mitigation required — Baseline verified clear',
       analysisDurationMs: Date.now() - startTime,
     };
 

@@ -2,19 +2,22 @@ export type IncidentType =
   | 'waterlogging'
   | 'pothole'
   | 'drainage_overflow'
-  | 'damaged_footpath';
+  | 'damaged_footpath'
+  | 'open_manhole';
 
 export type BackendIncidentType =
   | 'WATERLOGGING'
   | 'POTHOLE'
   | 'DRAINAGE_OVERFLOW'
-  | 'DAMAGED_FOOTPATH';
+  | 'DAMAGED_FOOTPATH'
+  | 'OPEN_MANHOLE';
 
 export const INCIDENT_TYPE_LABELS: Record<IncidentType, string> = {
   waterlogging: 'Waterlogging',
   pothole: 'Pothole',
   drainage_overflow: 'Drainage Overflow',
   damaged_footpath: 'Damaged Footpath',
+  open_manhole: 'Open Manhole',
 };
 
 export function mapBackendTypeToFrontend(backendType?: string | null): IncidentType {
@@ -27,6 +30,8 @@ export function mapBackendTypeToFrontend(backendType?: string | null): IncidentT
       return 'drainage_overflow';
     case 'DAMAGED_FOOTPATH':
       return 'damaged_footpath';
+    case 'OPEN_MANHOLE':
+      return 'open_manhole';
     default:
       return 'pothole';
   }
@@ -42,6 +47,8 @@ export function mapFrontendTypeToBackend(frontendType?: string | null): BackendI
       return 'DRAINAGE_OVERFLOW';
     case 'damaged_footpath':
       return 'DAMAGED_FOOTPATH';
+    case 'open_manhole':
+      return 'OPEN_MANHOLE';
     default:
       return 'POTHOLE';
   }

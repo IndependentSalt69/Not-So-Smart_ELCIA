@@ -96,6 +96,7 @@ export const analyticsService = {
       potholes: item.potholes,
       drainage_overflow: item.drainage_overflow,
       damaged_footpath: item.damaged_footpath,
+      open_manhole: item.open_manhole,
       rainfallMm: item.rainfall_mm,
     }));
 
@@ -114,12 +115,14 @@ export const analyticsService = {
     const potholesCount = (trendsRes || []).reduce((acc, curr) => acc + (curr.potholes || 0), 0);
     const damagedFootpathCount = (trendsRes || []).reduce((acc, curr) => acc + (curr.damaged_footpath || 0), 0);
     const drainageOverflowCount = (trendsRes || []).reduce((acc, curr) => acc + (curr.drainage_overflow || 0), 0);
+    const openManholeCount = (trendsRes || []).reduce((acc, curr) => acc + (curr.open_manhole || 0), 0);
 
     const typeDistribution = [
       { type: 'waterlogging' as const, name: 'Waterlogging', count: waterloggingCount, color: '#0d9488' },
       { type: 'pothole' as const, name: 'Potholes', count: potholesCount, color: '#f59e0b' },
       { type: 'damaged_footpath' as const, name: 'Damaged Footpath', count: damagedFootpathCount, color: '#f97316' },
       { type: 'drainage_overflow' as const, name: 'Drainage Overflow', count: drainageOverflowCount, color: '#06b6d4' },
+      { type: 'open_manhole' as const, name: 'Open Manhole', count: openManholeCount, color: '#dc2626' },
     ];
 
     return {
@@ -143,6 +146,7 @@ export const analyticsService = {
       potholes: item.potholes,
       drainage_overflow: item.drainage_overflow,
       damaged_footpath: item.damaged_footpath,
+      open_manhole: item.open_manhole,
       rainfallMm: item.rainfall_mm,
     }));
   },

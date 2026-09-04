@@ -41,6 +41,7 @@ describe('Analytics Service', () => {
             potholes: 8,
             drainage_overflow: 4,
             damaged_footpath: 2,
+            open_manhole: 6,
             rainfall_mm: 25,
           },
           {
@@ -49,6 +50,7 @@ describe('Analytics Service', () => {
             potholes: 5,
             drainage_overflow: 3,
             damaged_footpath: 3,
+            open_manhole: 4,
             rainfall_mm: 15,
           },
         ];
@@ -76,8 +78,8 @@ describe('Analytics Service', () => {
     expect(summary.statusDistribution.find((s) => s.status === 'New')?.count).toBe(2);
     expect(summary.statusDistribution.find((s) => s.status === 'Work in Progress')?.count).toBe(1);
 
-    // Verify typeDistribution mapping for 4 canonical hazard types
-    expect(summary.typeDistribution).toHaveLength(4);
+    // Verify typeDistribution mapping for 5 canonical hazard types
+    expect(summary.typeDistribution).toHaveLength(5);
     const waterlogging = summary.typeDistribution.find((t) => t.type === 'waterlogging');
     expect(waterlogging?.count).toBe(22); // 12 + 10
 
@@ -89,6 +91,9 @@ describe('Analytics Service', () => {
 
     const footpath = summary.typeDistribution.find((t) => t.type === 'damaged_footpath');
     expect(footpath?.count).toBe(5); // 2 + 3
+
+    const manhole = summary.typeDistribution.find((t) => t.type === 'open_manhole');
+    expect(manhole?.count).toBe(10); // 6 + 4
 
     vi.restoreAllMocks();
   });
