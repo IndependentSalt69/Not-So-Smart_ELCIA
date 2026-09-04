@@ -237,14 +237,14 @@ def test_incidents_and_subresources_api_flow(client: TestClient):
     assert client.get(f"/api/v1/incidents/{fake_id}/history").status_code == 404
 
 
-def test_all_four_incident_types_api_flow(client: TestClient):
-    """Test full API support for all 4 canonical hazard classes: WATERLOGGING, POTHOLE, DRAINAGE_OVERFLOW, DAMAGED_FOOTPATH."""
+def test_all_five_incident_types_api_flow(client: TestClient):
+    """Test full API support for all 5 canonical hazard classes: WATERLOGGING, POTHOLE, DRAINAGE_OVERFLOW, DAMAGED_FOOTPATH, OPEN_MANHOLE."""
     # 1. Setup Zone
     z_resp = client.post("/api/v1/zones/", json={"code": "TYPE-Z-01", "name": "Multi-Type Test Zone"})
     assert z_resp.status_code == 201
     zone_id = z_resp.json()["id"]
 
-    types = ["WATERLOGGING", "POTHOLE", "DRAINAGE_OVERFLOW", "DAMAGED_FOOTPATH"]
+    types = ["WATERLOGGING", "POTHOLE", "DRAINAGE_OVERFLOW", "DAMAGED_FOOTPATH", "OPEN_MANHOLE"]
     created_ids = {}
 
     # 2. Create an incident for each canonical type
@@ -253,7 +253,7 @@ def test_all_four_incident_types_api_flow(client: TestClient):
             "incident_code": f"INC-TYPE-{idx:03d}",
             "incident_type": inc_type,
             "confidence": 0.88 + (idx * 0.02),
-            "severity_score": 6.5 + (idx * 0.5),
+            "severity_score": min(10.0, 6.5 + (idx * 0.5)),
             "priority": "P2" if idx % 2 == 0 else "P1",
             "zone_id": zone_id,
             "status": "DETECTED",

@@ -61,9 +61,9 @@ def test_incident_code_formatting():
     assert code == "INC-69F15EE8-18"
 
 
-def test_four_class_ingestion_and_spatial_coordinates(db_session, tmp_path):
-    """Test ingestion of all 4 hazard classes, GeoJSON [lon, lat] order, and sub-resource creation."""
-    job_id = f"{uuid.uuid4().hex[:8]}-fourclass"
+def test_five_class_ingestion_and_spatial_coordinates(db_session, tmp_path):
+    """Test ingestion of all 5 hazard classes, GeoJSON [lon, lat] order, and sub-resource creation."""
+    job_id = f"{uuid.uuid4().hex[:8]}-fiveclass"
     job_dir = tmp_path / job_id
     evidence_dir = job_dir / "evidence"
     evidence_dir.mkdir(parents=True)
@@ -73,6 +73,7 @@ def test_four_class_ingestion_and_spatial_coordinates(db_session, tmp_path):
     (evidence_dir / "hazard_2_HIGH.jpg").write_bytes(b"jpgbytes2")
     (evidence_dir / "hazard_3_MEDIUM.jpg").write_bytes(b"jpgbytes3")
     (evidence_dir / "hazard_4_LOW.jpg").write_bytes(b"jpgbytes4")
+    (evidence_dir / "hazard_5_CRITICAL.jpg").write_bytes(b"jpgbytes5")
 
     telemetry = [
         {
@@ -119,6 +120,17 @@ def test_four_class_ingestion_and_spatial_coordinates(db_session, tmp_path):
             "severity_score": 25,
             "evidence_file": "hazard_4_LOW.jpg",
         },
+        {
+            "hazard_id": 5,
+            "frame_logged": 500,
+            "timestamp_sec": 50.0,
+            "latitude": 12.8470,
+            "longitude": 77.6650,
+            "class_name": "open_manhole",
+            "risk_level": "CRITICAL",
+            "severity_score": 95,
+            "evidence_file": "hazard_5_CRITICAL.jpg",
+        },
     ]
 
     telemetry_path = job_dir / "hazard_telemetry.json"
@@ -127,10 +139,10 @@ def test_four_class_ingestion_and_spatial_coordinates(db_session, tmp_path):
     # Run ingestion
     summary = ingest_job_results(db_session, job_id, job_dir, zone_id="EC-01")
 
-    assert summary["total_hazards"] == 4
-    assert summary["incidents_created"] == 4
-    assert summary["detections_created"] == 4
-    assert summary["evidence_created"] == 4
+    assert summary["total_hazards"] == 5
+    assert summary["incidents_created"] == 5
+    assert summary["detections_created"] == 5
+    assert summary["evidence_created"] == 5
     assert summary["skipped"] == 0
     assert summary["failed"] == 0
 
@@ -154,6 +166,13 @@ def test_four_class_ingestion_and_spatial_coordinates(db_session, tmp_path):
     inc4 = get_incident(db_session, f"{prefix}-4")
     assert inc4 is not None
     assert inc4.incident_type == IncidentType.DAMAGED_FOOTPATH
+
+    inc5 = get_incident(db_session, f"{prefix}-5")
+    assert inc5 is not None
+    assert inc5.incident_type == IncidentType.OPEN_MANHOLE
+    assert inc5.severity_score == 9.5
+    assert inc5.priority == PriorityLevel.P1
+    assert inc5.recommended_action == "Install immediate high-visibility barricade and dispatch sewer maintenance crew to replace manhole lid."
 
 
 def test_idempotent_duplicate_ingestion(db_session, tmp_path):

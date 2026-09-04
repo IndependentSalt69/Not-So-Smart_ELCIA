@@ -405,15 +405,16 @@ def test_status_history_repository(db_session: Session):
     assert history_list[1].new_status == IncidentStatus.ASSIGNED
 
 
-def test_all_four_incident_types_repository_crud(db_session: Session):
-    """Test repository create, get, and list filtering for all 4 canonical incident types."""
-    zone = create_zone(db_session, code="EC-4TYPE-Z", name="4-Type Zone")
+def test_all_five_incident_types_repository_crud(db_session: Session):
+    """Test repository create, get, and list filtering for all 5 canonical incident types."""
+    zone = create_zone(db_session, code="EC-5TYPE-Z", name="5-Type Zone")
 
     type_map = {
         IncidentType.WATERLOGGING: "INC-WTR-01",
         IncidentType.POTHOLE: "INC-POT-01",
         IncidentType.DRAINAGE_OVERFLOW: "INC-DRN-01",
         IncidentType.DAMAGED_FOOTPATH: "INC-FTP-01",
+        IncidentType.OPEN_MANHOLE: "INC-MNH-01",
     }
 
     created = {}

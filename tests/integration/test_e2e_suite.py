@@ -600,3 +600,135 @@ def test_duplicate_unique_keys_rejected(client: TestClient):
     dup_inc = client.post("/api/v1/incidents/", json=inc_payload)
     assert dup_inc.status_code == 400
     assert "already exists" in dup_inc.json()["detail"].lower()
+
+
+# ==============================================================================
+# 6. OPEN_MANHOLE 5-CLASS E2E VERIFICATION TEST
+# ==============================================================================
+
+def test_open_manhole_incident_e2e_lifecycle(client: TestClient):
+    """
+    Verifies full lifecycle of OPEN_MANHOLE hazard class:
+    - Creation with IncidentType.OPEN_MANHOLE
+    - Filtering by incident_type=OPEN_MANHOLE
+    - Sub-resources: Detection (open_manhole), Evidence, Assignment, Inspection
+    - Status transitions: DETECTED -> VERIFIED -> ASSIGNED -> IN_PROGRESS -> CLOSED
+    - History audit log validation
+    """
+    # 1. Create Zone & Users
+    z_res = client.post("/api/v1/zones/", json={
+        "code": "MNH-Z-01",
+        "name": "Manhole Sector Beta",
+    })
+    assert z_res.status_code == 201
+    zone_id = z_res.json()["id"]
+
+    u_op = client.post("/api/v1/users/", json={
+        "name": "Sewer Dispatcher",
+        "email": "sewer.disp@elcia.in",
+        "role": "OPERATOR",
+    })
+    assert u_op.status_code == 201
+    op_id = u_op.json()["id"]
+
+    u_insp = client.post("/api/v1/users/", json={
+        "name": "Sewer Inspector",
+        "email": "sewer.insp@elcia.in",
+        "role": "INSPECTOR",
+    })
+    assert u_insp.status_code == 201
+    insp_id = u_insp.json()["id"]
+
+    # 2. Create Incident with OPEN_MANHOLE
+    inc_payload = {
+        "incident_code": "INC-MNH-E2E-001",
+        "incident_type": "OPEN_MANHOLE",
+        "confidence": 0.98,
+        "severity_score": 9.5,
+        "priority": "P1",
+        "zone_id": zone_id,
+        "status": "DETECTED",
+        "recommended_action": "Install immediate high-visibility barricade and dispatch sewer maintenance crew to replace manhole lid.",
+        "location": {
+            "type": "Point",
+            "coordinates": [77.6680, 12.8460]
+        }
+    }
+    inc_res = client.post("/api/v1/incidents/", json=inc_payload)
+    assert inc_res.status_code == 201, inc_res.text
+    inc_data = inc_res.json()
+    inc_id = inc_data["id"]
+    assert inc_data["incident_type"] == "OPEN_MANHOLE"
+    assert inc_data["priority"] == "P1"
+
+    # 3. Retrieve & Filter
+    filter_res = client.get(f"/api/v1/incidents/?incident_type=OPEN_MANHOLE&zone_id={zone_id}")
+    assert filter_res.status_code == 200
+    assert filter_res.json()["total"] == 1
+    assert filter_res.json()["items"][0]["id"] == inc_id
+
+    # 4. Detection Sub-resource
+    det_res = client.post(f"/api/v1/incidents/{inc_id}/detections", json={
+        "detection_type": "open_manhole",
+        "confidence": 0.98,
+        "frame_number": 250,
+        "location": {
+            "type": "Point",
+            "coordinates": [77.6680, 12.8460]
+        },
+        "detection_metadata": {"relative_depth_drop": 0.85, "risk_level": "CRITICAL"},
+    })
+    assert det_res.status_code == 201
+    assert det_res.json()["detection_type"] == "open_manhole"
+
+    # 5. Evidence Sub-resource
+    ev_res = client.post(f"/api/v1/incidents/{inc_id}/evidence", json={
+        "evidence_type": "IMAGE",
+        "file_path": "outputs/evidence/mnh_frame_250.jpg",
+        "description": "High-risk missing manhole cover on roadway",
+        "is_primary": True,
+    })
+    assert ev_res.status_code == 201
+
+    # 6. Status Transitions: DETECTED -> VERIFIED -> ASSIGNED -> IN_PROGRESS -> CLOSED
+    v_res = client.patch(f"/api/v1/incidents/{inc_id}/status", json={
+        "status": "VERIFIED",
+        "changed_by": insp_id,
+        "comment": "Missing lid confirmed.",
+    })
+    assert v_res.status_code == 200
+
+    as_res = client.post(f"/api/v1/incidents/{inc_id}/assignments", json={
+        "assigned_to": op_id,
+        "assigned_team": "Sewer Utility Rapid Team",
+        "notes": "Replace cast iron manhole cover immediately",
+    })
+    assert as_res.status_code == 201
+
+    a_res = client.patch(f"/api/v1/incidents/{inc_id}/status", json={
+        "status": "ASSIGNED",
+        "changed_by": op_id,
+        "comment": "Assigned to Sewer Utility Rapid Team.",
+    })
+    assert a_res.status_code == 200
+
+    p_res = client.patch(f"/api/v1/incidents/{inc_id}/status", json={
+        "status": "IN_PROGRESS",
+        "changed_by": op_id,
+        "comment": "Barricade placed and replacement lid being installed.",
+    })
+    assert p_res.status_code == 200
+
+    c_res = client.patch(f"/api/v1/incidents/{inc_id}/status", json={
+        "status": "CLOSED",
+        "changed_by": insp_id,
+        "comment": "Heavy duty lid installed and tested.",
+    })
+    assert c_res.status_code == 200
+    assert c_res.json()["status"] == "CLOSED"
+
+    # 7. Audit History
+    hist_res = client.get(f"/api/v1/incidents/{inc_id}/history")
+    assert hist_res.status_code == 200
+    assert len(hist_res.json()) == 4
+
