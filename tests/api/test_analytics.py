@@ -227,9 +227,101 @@ def test_repository_direct_functions(db_session: Session):
 
         trends = get_analytics_trends(db_session, days=7)
         assert len(trends) == 7
+        for t in trends:
+            assert hasattr(t, "open_manhole")
 
         zones = get_analytics_zones(db_session)
         assert any(item.zone_id == z.id for item in zones)
     finally:
         db_session.delete(z)
         db_session.commit()
+
+
+def test_analytics_trends_five_class_aggregation(client: TestClient, db_session: Session):
+    """Test trends endpoint accurately aggregates all 5 hazard classes including OPEN_MANHOLE."""
+    zone = Zone(
+        id=uuid.uuid4(),
+        code=f"TRN-Z-{uuid.uuid4().hex[:6]}",
+        name="Trend Test Zone",
+    )
+    db_session.add(zone)
+    db_session.commit()
+
+    now = datetime.now(timezone.utc)
+    incidents = [
+        Incident(
+            incident_code=f"TRN-INC-{uuid.uuid4().hex[:6]}",
+            incident_type=IncidentType.WATERLOGGING,
+            confidence=0.9,
+            severity_score=8.0,
+            priority=PriorityLevel.P1,
+            status=IncidentStatus.DETECTED,
+            zone_id=zone.id,
+            created_at=now,
+            started_at=now,
+        ),
+        Incident(
+            incident_code=f"TRN-INC-{uuid.uuid4().hex[:6]}",
+            incident_type=IncidentType.POTHOLE,
+            confidence=0.85,
+            severity_score=6.0,
+            priority=PriorityLevel.P2,
+            status=IncidentStatus.DETECTED,
+            zone_id=zone.id,
+            created_at=now,
+            started_at=now,
+        ),
+        Incident(
+            incident_code=f"TRN-INC-{uuid.uuid4().hex[:6]}",
+            incident_type=IncidentType.DRAINAGE_OVERFLOW,
+            confidence=0.88,
+            severity_score=7.0,
+            priority=PriorityLevel.P2,
+            status=IncidentStatus.DETECTED,
+            zone_id=zone.id,
+            created_at=now,
+            started_at=now,
+        ),
+        Incident(
+            incident_code=f"TRN-INC-{uuid.uuid4().hex[:6]}",
+            incident_type=IncidentType.DAMAGED_FOOTPATH,
+            confidence=0.80,
+            severity_score=5.0,
+            priority=PriorityLevel.P3,
+            status=IncidentStatus.DETECTED,
+            zone_id=zone.id,
+            created_at=now,
+            started_at=now,
+        ),
+        Incident(
+            incident_code=f"TRN-INC-{uuid.uuid4().hex[:6]}",
+            incident_type=IncidentType.OPEN_MANHOLE,
+            confidence=0.95,
+            severity_score=9.0,
+            priority=PriorityLevel.P1,
+            status=IncidentStatus.DETECTED,
+            zone_id=zone.id,
+            created_at=now,
+            started_at=now,
+        ),
+    ]
+    db_session.add_all(incidents)
+    db_session.commit()
+
+    try:
+        resp = client.get("/api/v1/analytics/trends?days=1")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        today_data = data[0]
+        assert today_data["waterlogging"] >= 1
+        assert today_data["potholes"] >= 1
+        assert today_data["drainage_overflow"] >= 1
+        assert today_data["damaged_footpath"] >= 1
+        assert today_data["open_manhole"] >= 1
+    finally:
+        for inc in incidents:
+            db_session.delete(inc)
+        db_session.delete(zone)
+        db_session.commit()
+

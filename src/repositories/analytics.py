@@ -98,6 +98,7 @@ def get_analytics_trends(db: Session, days: int = 7) -> List[AnalyticsTrendItem]
             func.count(case((Incident.incident_type == IncidentType.POTHOLE, 1))).label("potholes"),
             func.count(case((Incident.incident_type == IncidentType.DRAINAGE_OVERFLOW, 1))).label("drainage_overflow"),
             func.count(case((Incident.incident_type == IncidentType.DAMAGED_FOOTPATH, 1))).label("damaged_footpath"),
+            func.count(case((Incident.incident_type == IncidentType.OPEN_MANHOLE, 1))).label("open_manhole"),
         )
         .where(Incident.created_at >= start_date)
         .group_by(date_col)
@@ -114,6 +115,7 @@ def get_analytics_trends(db: Session, days: int = 7) -> List[AnalyticsTrendItem]
                 "potholes": r.potholes or 0,
                 "drainage_overflow": r.drainage_overflow or 0,
                 "damaged_footpath": r.damaged_footpath or 0,
+                "open_manhole": r.open_manhole or 0,
             }
 
     trend_items = []
@@ -126,6 +128,7 @@ def get_analytics_trends(db: Session, days: int = 7) -> List[AnalyticsTrendItem]
                 "potholes": 0,
                 "drainage_overflow": 0,
                 "damaged_footpath": 0,
+                "open_manhole": 0,
             },
         )
         trend_items.append(
@@ -135,6 +138,7 @@ def get_analytics_trends(db: Session, days: int = 7) -> List[AnalyticsTrendItem]
                 potholes=counts["potholes"],
                 drainage_overflow=counts["drainage_overflow"],
                 damaged_footpath=counts["damaged_footpath"],
+                open_manhole=counts["open_manhole"],
                 rainfall_mm=None,
             )
         )

@@ -60,6 +60,7 @@ class AnalyticsTrendItem(BaseModel):
     potholes: int = Field(default=0, ge=0, description="Count of pothole incidents created on date")
     drainage_overflow: int = Field(default=0, ge=0, description="Count of drainage overflow incidents created on date")
     damaged_footpath: int = Field(default=0, ge=0, description="Count of damaged footpath incidents created on date")
+    open_manhole: int = Field(default=0, ge=0, description="Count of open manhole incidents created on date")
     rainfall_mm: Optional[float] = Field(
         None,
         description="Observed rainfall in mm. Currently null as weather data is not stored in backend schema.",

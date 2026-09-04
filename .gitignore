@@ -54,3 +54,7 @@ scratch/jobs/
 outputs/*
 !outputs/.gitkeep
 .env
+
+
+
+docs/

@@ -28,6 +28,7 @@ CLASS_MAPPING: Dict[str, IncidentType] = {
     "pothole": IncidentType.POTHOLE,
     "drainage_overflow": IncidentType.DRAINAGE_OVERFLOW,
     "damaged_footpath": IncidentType.DAMAGED_FOOTPATH,
+    "open_manhole": IncidentType.OPEN_MANHOLE,
 }
 
 # Recommended Action Templates per Hazard Class
@@ -36,6 +37,7 @@ RECOMMENDED_ACTIONS: Dict[IncidentType, str] = {
     IncidentType.POTHOLE: "Apply cold mix asphalt patch and set up warning cones.",
     IncidentType.DRAINAGE_OVERFLOW: "Deploy excavator to clear culvert silt and trash blockage.",
     IncidentType.DAMAGED_FOOTPATH: "Inspect footpath slab damage and install barrier tape.",
+    IncidentType.OPEN_MANHOLE: "Install immediate high-visibility barricade and dispatch sewer maintenance crew to replace manhole lid.",
 }
 
 

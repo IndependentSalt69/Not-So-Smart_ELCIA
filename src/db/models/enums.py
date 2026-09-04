@@ -13,10 +13,11 @@ class UserRole(str, enum.Enum):
 
 
 class IncidentType(str, enum.Enum):
-    WATERLOGGING = "WATERLOGGING"
-    POTHOLE = "POTHOLE"
-    DRAINAGE_OVERFLOW = "DRAINAGE_OVERFLOW"
     DAMAGED_FOOTPATH = "DAMAGED_FOOTPATH"
+    DRAINAGE_OVERFLOW = "DRAINAGE_OVERFLOW"
+    OPEN_MANHOLE = "OPEN_MANHOLE"
+    POTHOLE = "POTHOLE"
+    WATERLOGGING = "WATERLOGGING"
 
 
 class PriorityLevel(str, enum.Enum):
