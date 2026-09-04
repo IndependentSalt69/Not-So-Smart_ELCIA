@@ -1,3 +1,4 @@
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -23,6 +24,7 @@ interface NavbarProps {
   onViewChange: (view: DashboardView) => void;
   pendingCount?: number;
   criticalCount?: number;
+  onSelectIncidentId?: (incidentId: string) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -30,6 +32,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onViewChange,
   pendingCount = 0,
   criticalCount = 0,
+  onSelectIncidentId,
 }) => {
   const [timeStr, setTimeStr] = useState<string>('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
@@ -238,8 +241,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               })}
             </nav>
 
-            {/* Telemetry & Live Clock */}
-            <div className="flex items-center gap-2 sm:gap-3.5">
+            {/* Telemetry, Live Clock & Notification Center */}
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/50 border border-emerald-200/90 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-xs xl:text-sm font-bold shadow-2xs">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
                 <span className="hidden sm:inline tracking-tight">Drone Swarm Active (4/4)</span>
@@ -250,6 +253,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>{timeStr || '00:00:00 IST'}</span>
               </div>
+
+              <NotificationCenter onSelectIncidentId={onSelectIncidentId} />
             </div>
           </div>
         </div>

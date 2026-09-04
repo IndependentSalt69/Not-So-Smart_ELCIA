@@ -78,6 +78,20 @@ export default function CivicPulseDashboard() {
     }
   };
 
+  const handleSelectIncidentById = async (incidentId: string) => {
+    try {
+      const found =
+        incidents.find((i) => i.id === incidentId || i.code === incidentId) ||
+        (await getIncidentById(incidentId));
+      if (found) {
+        setSelectedIncident(found);
+        setIsDrawerOpen(true);
+      }
+    } catch (err) {
+      console.warn('Failed to open incident from notification:', incidentId, err);
+    }
+  };
+
   // Operations Lifecycle Handlers
   const handleVerify = async (id: string, notes?: string) => {
     try {
@@ -135,6 +149,7 @@ export default function CivicPulseDashboard() {
         onViewChange={setActiveView}
         pendingCount={pendingCount}
         criticalCount={criticalCount}
+        onSelectIncidentId={handleSelectIncidentById}
       />
 
       {/* Main Content View Container */}

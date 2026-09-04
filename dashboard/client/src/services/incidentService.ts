@@ -1,6 +1,7 @@
 import { generateSvgFrame, INITIAL_MOCK_INCIDENTS } from '@/data/mockIncidents';
 import { canTransition } from '@/lib/stateMachine';
 import { api, ApiError, getMediaBaseUrl, isMockDataEnabled } from '@/services/api';
+import { notificationService } from '@/services/notificationService';
 
 /**
  * Convert backend relative evidence path to browser-accessible static media URL
@@ -988,6 +989,7 @@ export const incidentService = {
         );
       }
 
+      const prevStatus = incident.status;
       const updated: Incident = {
         ...incident,
         status: nextStatus,
@@ -1004,8 +1006,16 @@ export const incidentService = {
 
       incidentsState[incidentIndex] = updated;
       persist();
+
+      if (prevStatus === 'DETECTED' && nextStatus === 'VERIFIED') {
+        notificationService.addVerifiedNotification(updated, actor, notes);
+      }
+
       return updated;
     }
+
+    const prevIncident = incidentsState.find((inc) => inc.id === id || inc.code === id);
+    const prevStatus = prevIncident?.status;
 
     const payload = {
       status: nextStatus,
@@ -1018,6 +1028,11 @@ export const incidentService = {
     if (responseItem && (responseItem.id || responseItem.incident_code)) {
       const updated = mapBackendIncidentToFrontend(responseItem);
       upsertSingleIncidentState(updated);
+
+      if ((!prevStatus || prevStatus === 'DETECTED') && nextStatus === 'VERIFIED') {
+        notificationService.addVerifiedNotification(updated, actor, notes);
+      }
+
       return updated;
     }
 
