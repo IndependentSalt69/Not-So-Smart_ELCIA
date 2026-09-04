@@ -32,9 +32,10 @@ ipd-pothole-detection-*/
 uploads/
 
 # Training Runs & Checkpoints
-runs/
 *.pt
-!models/checkpoints/.gitkeep
+models/checkpoints/*.pt
+models/checkpoints/
+models/production/*.pt
 
 # Ignore all generated outputs
 outputs/*

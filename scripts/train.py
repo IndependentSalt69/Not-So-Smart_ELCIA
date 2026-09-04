@@ -1,8 +1,59 @@
+from pathlib import Path
+from ultralytics import YOLO
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+MODEL = "yolov8s-seg.pt"
+
+DATA = str(
+    Path.home()
+    / "Downloads"
+    / "civicpulse_yolo-20260903T172512Z-1-001"
+    / "civicpulse_yolo"
+    / "data.yaml"
+)
+
+PROJECT = str(ROOT / "models" / "checkpoints")
+
+
+if __name__ == "__main__":
+    print("[AI Engine] Starting CivicPulse YOLOv8-Seg training...")
+
+    model = YOLO(MODEL)
+
+    model.train(
+        data=DATA,
+
+        epochs=200,
+        imgsz=1024,
+        batch=4,
+        device=0,
+        workers=4,
+        patience=30,
+
+        project=PROJECT,
+        name="civicpulse_v1_5class",
+        exist_ok=False,
+
+        pretrained=True,
+        amp=True,
+        plots=True,
+        save=True,
+    )
+
+    print("\n[SUCCESS] Training complete!")
+    print(
+        f"Training output: "
+        f"{PROJECT}\\civicpulse_v1_5class"
+    )
+
+"""
 from ultralytics import YOLO
 
 
 MODEL = "yolov8s-seg.pt"
-DATA = "D:/Users/manthan/Downloads/civicpulse_yolo/data.yaml"
+DATA = "C:/Users/MANAV/Downloads/civicpulse_yolo-20260903T172512Z-1-001/civicpulse_yolo/data.yaml"
 
 
 if __name__ == "__main__":
@@ -13,7 +64,7 @@ if __name__ == "__main__":
     results = model.train(
         data=DATA,
 
-        epochs=200,
+        epochs=2,
         imgsz=1024,
         batch=4,
         device=0,
@@ -35,6 +86,7 @@ if __name__ == "__main__":
         "Best model: "
         "models/checkpoints/civicpulse_v1_5class/weights/best.pt"
     )
+    """
 
 # from ultralytics import YOLO
 
