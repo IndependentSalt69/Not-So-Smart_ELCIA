@@ -5,6 +5,7 @@ import {
   BackendIncidentItem,
   getEvidenceMediaUrl,
   getIncidentVideoUrlFromEvidencePath,
+  formatPersistenceDuration,
 } from '../services/incidentService';
 import {
   mapBackendTypeToFrontend,
@@ -59,6 +60,63 @@ describe('Incident Service', () => {
     }
 
     expect(getIncidentTypeLabel('open_manhole')).toBe('Open Manhole');
+  });
+
+  it('formats persistence duration accurately with human-readable units and N/A for missing', () => {
+    expect(formatPersistenceDuration(14.5)).toBe('14.5s');
+    expect(formatPersistenceDuration(14.0)).toBe('14s');
+    expect(formatPersistenceDuration(1.0)).toBe('1s');
+    expect(formatPersistenceDuration(0.5)).toBe('0.5s');
+    expect(formatPersistenceDuration(84)).toBe('1m 24s');
+    expect(formatPersistenceDuration(123)).toBe('2m 03s');
+    expect(formatPersistenceDuration(null)).toBe('N/A');
+    expect(formatPersistenceDuration(undefined)).toBe('N/A');
+    expect(formatPersistenceDuration(NaN)).toBe('N/A');
+  });
+
+  it('propagates real backend duration_seconds without silent 180s fallback', () => {
+    const realItem: BackendIncidentItem = {
+      id: 'test-real-duration-uuid',
+      incident_code: 'INC-DUR-01',
+      incident_type: 'POTHOLE',
+      confidence: 0.94,
+      severity_score: 7.5,
+      priority: 'P1',
+      zone_id: 'EC-01',
+      status: 'DETECTED',
+      duration_seconds: 14.5,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const frontendIncident = mapBackendIncidentToFrontend(realItem);
+    expect(frontendIncident.durationSeconds).toBe(14.5);
+    expect(frontendIncident.severityFactors.persistenceSeconds).toBe(14.5);
+    expect(frontendIncident.severityFactors.explanation[1]).toContain('(14.5s)');
+  });
+
+  it('sets durationSeconds to null and does NOT fallback to 180s when backend duration is missing', () => {
+    const missingItem: BackendIncidentItem = {
+      id: 'test-missing-duration-uuid',
+      incident_code: 'INC-DUR-02',
+      incident_type: 'WATERLOGGING',
+      confidence: 0.88,
+      severity_score: 8.0,
+      priority: 'P1',
+      zone_id: 'EC-01',
+      status: 'DETECTED',
+      duration_seconds: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const frontendIncident = mapBackendIncidentToFrontend(missingItem);
+    expect(frontendIncident.durationSeconds).toBeNull();
+    expect(frontendIncident.severityFactors.persistenceSeconds).toBeNull();
+    expect(frontendIncident.durationSeconds).not.toBe(180);
+    expect(frontendIncident.severityFactors.explanation[1]).toBe(
+      'Temporal persistence unrecorded during initial aerial pass.'
+    );
   });
 
   it('maps backend open_manhole item with correct recommended action fallback', () => {

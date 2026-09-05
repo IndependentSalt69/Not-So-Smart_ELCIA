@@ -164,6 +164,23 @@ def ingest_job_results(
             summary["failed"] += 1
             raise ValueError(f"Invalid confidence for hazard '{hazard_id}': {conf_err}")
 
+        # 6b. Duration / Persistence Extraction
+        raw_duration = item.get("duration_seconds")
+        if raw_duration is not None:
+            try:
+                duration_seconds = round(float(raw_duration), 2)
+                if duration_seconds < 0:
+                    duration_seconds = 0.0
+            except (ValueError, TypeError):
+                duration_seconds = None
+        elif item.get("last_seen_sec") is not None and item.get("first_seen_sec") is not None:
+            try:
+                duration_seconds = round(max(0.0, float(item["last_seen_sec"]) - float(item["first_seen_sec"])), 2)
+            except (ValueError, TypeError):
+                duration_seconds = None
+        else:
+            duration_seconds = None
+
         # 7. Severity Normalization & Priority
         raw_score = item.get("severity_score", 0)
         backend_severity = normalize_severity_score(raw_score)
@@ -196,6 +213,7 @@ def ingest_job_results(
                 zone_id=zone.id,
                 status=IncidentStatus.DETECTED,
                 started_at=datetime.now(timezone.utc),
+                duration_seconds=duration_seconds,
                 recommended_action=rec_action,
                 location=location_elem,
             )
@@ -214,6 +232,9 @@ def ingest_job_results(
                     "job_id": job_id,
                     "hazard_id": hazard_id,
                     "timestamp_sec": item.get("timestamp_sec"),
+                    "first_seen_sec": item.get("first_seen_sec"),
+                    "last_seen_sec": item.get("last_seen_sec"),
+                    "duration_seconds": duration_seconds,
                     "mask_pixels": item.get("mask_pixels"),
                     "area_coverage_pct": item.get("area_coverage_pct"),
                     "relative_depth_drop": item.get("relative_depth_drop"),

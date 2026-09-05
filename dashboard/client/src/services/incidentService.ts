@@ -188,6 +188,22 @@ export interface BackendInspectionItem {
   created_at: string;
 }
 
+/**
+ * Format persistence duration (in seconds) to human-readable string (e.g. "14.5s", "14s", "1m 24s", or "N/A" if unavailable).
+ */
+export function formatPersistenceDuration(seconds?: number | null): string {
+  if (seconds === null || seconds === undefined || isNaN(seconds)) {
+    return 'N/A';
+  }
+  if (seconds < 60) {
+    const formatted = Number.isInteger(seconds) ? `${seconds}` : `${parseFloat(seconds.toFixed(1))}`;
+    return `${formatted}s`;
+  }
+  const mins = Math.floor(seconds / 60);
+  const remainingSecs = Math.round(seconds % 60);
+  return `${mins}m ${remainingSecs.toString().padStart(2, '0')}s`;
+}
+
 export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Incident {
   const type: IncidentType = mapBackendTypeToFrontend(item.incident_type);
 
@@ -195,7 +211,11 @@ export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Inciden
   const lat = item.location?.coordinates?.[1] ?? 12.8452;
 
   const severity = item.severity_score;
-  const durationSeconds = item.duration_seconds ?? 180;
+  const rawDuration = item.duration_seconds;
+  const durationSeconds: number | null =
+    rawDuration !== null && rawDuration !== undefined && !isNaN(Number(rawDuration))
+      ? Number(rawDuration)
+      : null;
 
   const displayCode = item.incident_code || item.id;
   const evidenceFrame = generateSvgFrame(
@@ -241,7 +261,9 @@ export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Inciden
       roadCriticalityLabel: 'Primary arterial corridor connecting Phase 1 & Hosur Highway',
       explanation: [
         `${getIncidentTypeLabel(type)} detected by aerial drone vision sensor.`,
-        `Temporal persistence verified over scan duration (${durationSeconds}s).`,
+        durationSeconds !== null
+          ? `Temporal persistence verified over scan duration (${formatPersistenceDuration(durationSeconds)}).`
+          : `Temporal persistence unrecorded during initial aerial pass.`,
         `Directly impacts vehicle movement across Electronics City key transit corridor.`,
       ],
     },

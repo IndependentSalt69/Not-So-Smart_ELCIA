@@ -76,7 +76,7 @@ export type ZoneId = 'EC-01' | 'EC-02' | 'EC-03' | 'EC-04';
 export interface SeverityFactors {
   waterExtent: number; // 0.0 - 10.0 or percentage (e.g. 78%)
   waterExtentLabel?: string;
-  persistenceSeconds: number; // Duration in seconds (e.g. 42s)
+  persistenceSeconds: number | null; // Duration in seconds (e.g. 42s, or null if unrecorded)
   roadObstruction: number; // 0.0 - 10.0 score
   roadObstructionLabel?: string; // e.g. "Dual-lane blockage"
   roadCriticality: number; // 0.0 - 10.0 score
@@ -192,7 +192,7 @@ export interface Incident {
     lat: number;
     lng: number;
   };
-  durationSeconds: number;
+  durationSeconds: number | null;
   evidenceFrame: string; // image URL / path
   evidenceOverlay?: string; // segmentation mask / bounding box image URL
   evidenceClip?: string; // sample video clip URL

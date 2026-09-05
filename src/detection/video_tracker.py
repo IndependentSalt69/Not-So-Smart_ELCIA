@@ -23,16 +23,16 @@ from src.core import classes as hazard_classes
 
 class HazardVideoPipeline:
     def __init__(
-        self, 
-        weights_path: str = "models/production/best.pt", 
-        output_dir: str = "outputs", 
-        srt_path: Optional[str] = None, 
+        self,
+        weights_path: str = "models/production/best.pt",
+        output_dir: str = "outputs",
+        srt_path: Optional[str] = None,
         device: Optional[str] = None
     ):
         self.output_dir = Path(output_dir)
         self.evidence_dir = self.output_dir / "evidence"
         self.evidence_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Hardware target resolution (MPS -> CUDA -> CPU)
         if device is not None:
             self.device = device
@@ -53,8 +53,10 @@ class HazardVideoPipeline:
         # State tracking
         self.logged_hazard_ids = set()
         self.track_hit_counter = {}  # {track_id: hit_count}
+        self.track_first_seen = {}   # {track_id: first_timestamp_sec}
+        self.track_last_seen = {}    # {track_id: last_timestamp_sec}
         self.telemetry_log = []
-        
+
         # Dynamically load from YAML, fallback to your original 50.0
         self.min_area_pixels = APP_CONFIG.get("filters", {}).get("min_area_pixels", 50.0)
 
@@ -68,32 +70,32 @@ class HazardVideoPipeline:
         """Matches video frame timestamp to closest SRT GPS coordinate."""
         if not self.gps_data:
             return {"lat": None, "lon": None}
-            
+
         target_time = str(datetime.timedelta(seconds=int(seconds)))
         if len(target_time) < 8:
             target_time = "0" + target_time
-            
+
         for point in self.gps_data:
             if point["time"].startswith(target_time):
                 return {"lat": point["lat"], "lon": point["lon"]}
-                
+
         return {"lat": self.gps_data[-1]["lat"], "lon": self.gps_data[-1]["lon"]}
 
     def _is_surface_smooth(self, frame, bbox) -> bool:
         """
-        Validates whether a region of interest (ROI) exhibits the optical smoothness 
+        Validates whether a region of interest (ROI) exhibits the optical smoothness
         characteristic of standing water vs. the grain/texture of dry asphalt.
         """
         x1, y1, x2, y2 = [int(v) for v in bbox]
         h, w = frame.shape[:2]
         roi = frame[max(0, y1):min(h, y2), max(0, x1):min(w, x2)]
-        
+
         if roi.size == 0:
             return False
 
         gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
         laplacian_var = cv2.Laplacian(gray_roi, cv2.CV_64F).var()
-        
+
         # Dry textured asphalt typically scores > 600; true standing water is smoother (< 550)
         return laplacian_var < 550.0
 
@@ -122,7 +124,7 @@ class HazardVideoPipeline:
         ]
 
         print(f"[AI Engine] Transcoding annotated video to H.264 / AVC (yuv420p, +faststart)...")
-        
+
         try:
             subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         except Exception as err:
@@ -167,7 +169,7 @@ class HazardVideoPipeline:
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = int(cap.get(cv2.CAP_PROP_FPS)) or 30
-        
+
         output_path_obj = Path(output_video_path)
         temp_raw_path = str(output_path_obj.with_name(f"_raw_{output_path_obj.name}"))
 
@@ -177,6 +179,8 @@ class HazardVideoPipeline:
         # Reset run state
         self.logged_hazard_ids.clear()
         self.track_hit_counter.clear()
+        self.track_first_seen.clear()
+        self.track_last_seen.clear()
         self.telemetry_log.clear()
 
         frame_idx = 0
@@ -186,10 +190,10 @@ class HazardVideoPipeline:
             ret, frame = cap.read()
             if not ret:
                 break
-            
+
             frame_idx += 1
             current_time_sec = frame_idx / fps
-            
+
             # Run segmentation and tracking
             detections = self.segmentor.track_frame(frame, persist=True)
             annotated_frame = self.segmentor.draw_detections(frame, detections)
@@ -222,20 +226,25 @@ class HazardVideoPipeline:
                 if hazard["requires_smooth_surface"] and not self._is_surface_smooth(frame, det["bbox"]):
                     continue
 
+                # Record confirmed observation timestamps
+                if track_id not in self.track_first_seen:
+                    self.track_first_seen[track_id] = current_time_sec
+                self.track_last_seen[track_id] = current_time_sec
+
                 # --- INCIDENT INGESTION ---
                 if track_id not in self.logged_hazard_ids:
                     self.logged_hazard_ids.add(track_id)
-            
+
                     depth_map = None
-            
+
                     # Depth estimation, for classes that opt in via config.
                     if hazard["needs_depth"]:
                         print(f"[AI Engine] {hazard['name']} confirmed (ID: {track_id}). Running depth estimation...")
                         depth_map = self.depth_estimator.estimate_depth(frame)
-            
+
                     # Severity evaluation
                     metrics = self.severity_analyzer.calculate_hazard_severity(poly, depth_map, frame.shape)
-                    
+
                     # Save Evidence Snapshot
                     evidence_filename = f"hazard_{track_id}_{metrics['risk_level']}.jpg"
                     evidence_filepath = self.evidence_dir / evidence_filename
@@ -245,6 +254,7 @@ class HazardVideoPipeline:
                     gps_loc = self._get_gps_for_time(current_time_sec)
 
                     # Append to Telemetry Record
+                    first_time = round(self.track_first_seen.get(track_id, current_time_sec), 2)
                     log_entry = {
                         "hazard_id": track_id,
                         "frame_logged": frame_idx,
@@ -258,7 +268,10 @@ class HazardVideoPipeline:
                         "relative_depth_drop": metrics["relative_depth"],
                         "area_coverage_pct": metrics["area_percentage"],
                         "mask_pixels": area,
-                        "evidence_file": evidence_filename
+                        "evidence_file": evidence_filename,
+                        "first_seen_sec": first_time,
+                        "last_seen_sec": round(current_time_sec, 2),
+                        "duration_seconds": 0.0,
                     }
                     self.telemetry_log.append(log_entry)
                     print(f"[DRONE CAPTURE] {det['class_name'].upper()} (ID: {track_id}) @ Lat: {gps_loc['lat']}, Lon: {gps_loc['lon']}")
@@ -267,12 +280,12 @@ class HazardVideoPipeline:
                 if track_id in self.logged_hazard_ids:
                     x, y = int(det["bbox"][0]), int(det["bbox"][1])
                     cv2.putText(
-                        annotated_frame, 
-                        "Logged", 
-                        (x, max(35, y + 15)), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 
-                        0.5, 
-                        (0, 0, 255), 
+                        annotated_frame,
+                        "Logged",
+                        (x, max(35, y + 15)),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        (0, 0, 255),
                         2
                     )
 
@@ -280,7 +293,17 @@ class HazardVideoPipeline:
 
         cap.release()
         out.release()
-        
+
+        # Finalize persistence duration for all logged hazards
+        for entry in self.telemetry_log:
+            tid = entry["hazard_id"]
+            first_ts = self.track_first_seen.get(tid, entry["timestamp_sec"])
+            last_ts = self.track_last_seen.get(tid, entry["timestamp_sec"])
+            duration = round(max(0.0, last_ts - first_ts), 2)
+            entry["first_seen_sec"] = round(first_ts, 2)
+            entry["last_seen_sec"] = round(last_ts, 2)
+            entry["duration_seconds"] = duration
+
         # Save Final Telemetry JSON
         json_path = self.output_dir / "hazard_telemetry.json"
         with open(json_path, "w") as f:

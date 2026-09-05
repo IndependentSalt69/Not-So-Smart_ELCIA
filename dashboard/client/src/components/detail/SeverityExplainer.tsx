@@ -1,5 +1,6 @@
 import { PriorityBadge } from '@/components/common/PriorityBadge';
 import { cn } from '@/lib/utils';
+import { formatPersistenceDuration } from '@/services/incidentService';
 import { Incident } from '@/types/incident';
 import { AlertCircle, CheckCircle2, Clock, Droplets, Info, Route, ShieldAlert, Sparkles } from 'lucide-react';
 import React from 'react';
@@ -25,8 +26,14 @@ export const SeverityExplainer: React.FC<SeverityExplainerProps> = ({ incident }
     {
       id: 'persistence',
       name: 'Temporal Persistence & Duration',
-      score: Math.min(10, (severityFactors.persistenceSeconds / 300) * 10),
-      label: `${severityFactors.persistenceSeconds} seconds continuous verification`,
+      score:
+        severityFactors.persistenceSeconds !== null && severityFactors.persistenceSeconds !== undefined
+          ? Math.min(10, (severityFactors.persistenceSeconds / 300) * 10)
+          : 0,
+      label:
+        severityFactors.persistenceSeconds !== null && severityFactors.persistenceSeconds !== undefined
+          ? `${formatPersistenceDuration(severityFactors.persistenceSeconds)} continuous verification`
+          : 'Continuous verification: N/A',
       icon: Clock,
       color: 'bg-amber-500',
       textColor: 'text-amber-600 dark:text-amber-400',

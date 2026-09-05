@@ -2,7 +2,7 @@ import { PriorityBadge } from '@/components/common/PriorityBadge';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { incidentService } from '@/services/incidentService';
+import { formatPersistenceDuration, incidentService } from '@/services/incidentService';
 import { getIncidentTypeLabel, Incident, IncidentType } from '@/types/incident';
 import { AlertTriangle, ArrowRight, CircleDot, Clock, Droplets, Eye, Footprints, Gauge, MapPin, Sparkles, Timer, Waves } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
@@ -261,7 +261,7 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
           <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 font-mono font-medium">
             <span className="flex items-center gap-1.5">
               <Timer className="w-3.5 h-3.5 text-zinc-400" />
-              Persistence: {incident.durationSeconds}s
+              Persistence: {formatPersistenceDuration(incident.durationSeconds)}
             </span>
             <span>{incident.zone}</span>
           </div>

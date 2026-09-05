@@ -9,11 +9,11 @@ import pytest
 from pathlib import Path
 
 
-from src.db.session import SessionLocal
 from src.db.models.enums import IncidentType, PriorityLevel
 from src.db.models.incident import Incident
 from src.db.models.detection import Detection
 from src.db.models.evidence import Evidence
+from src.db.models.zone import Zone
 from src.repositories.incidents import get_incident, list_incidents
 from src.services.ml_ingestion_service import (
     ingest_job_results,
@@ -23,14 +23,20 @@ from src.services.ml_ingestion_service import (
 )
 
 
-@pytest.fixture
-def db_session():
-    """Provides a transactional database session for tests."""
-    session = SessionLocal()
-    try:
-        yield session
-    finally:
-        session.close()
+@pytest.fixture(autouse=True)
+def ensure_default_zone(db_session):
+    """Ensure EC-01 zone exists in SQLite test database."""
+    zone = db_session.query(Zone).filter(Zone.code == "EC-01").first()
+    if not zone:
+        zone = Zone(
+            id=uuid.uuid4(),
+            code="EC-01",
+            name="Electronics City Phase 1",
+            description="Phase 1 test zone",
+        )
+        db_session.add(zone)
+        db_session.commit()
+    return zone
 
 
 def test_severity_normalization():
@@ -410,4 +416,136 @@ def test_confidence_end_to_end_propagation(db_session, tmp_path):
     assert dets[0].confidence == expected_conf
 
 
+def test_real_duration_propagation_from_timestamps(db_session, tmp_path):
+    """Test real hazard persistence duration derived from first_seen_sec and last_seen_sec."""
+    job_id = f"{uuid.uuid4().hex[:8]}-realdur"
+    job_dir = tmp_path / job_id
+    job_dir.mkdir(parents=True)
 
+    telemetry = [
+        {
+            "hazard_id": 81,
+            "frame_logged": 100,
+            "timestamp_sec": 10.0,
+            "first_seen_sec": 10.0,
+            "last_seen_sec": 24.5,
+            "duration_seconds": 14.5,
+            "latitude": 12.8450,
+            "longitude": 77.6630,
+            "class_name": "waterlogging",
+            "confidence": 0.895,
+            "risk_level": "HIGH",
+            "severity_score": 70,
+            "evidence_file": None,
+        }
+    ]
+    (job_dir / "hazard_telemetry.json").write_text(json.dumps(telemetry))
+
+    summary = ingest_job_results(db_session, job_id, job_dir, zone_id="EC-01")
+    assert summary["incidents_created"] == 1
+
+    code = format_incident_code(job_id, 81)
+    inc = get_incident(db_session, code)
+    assert inc is not None
+    assert inc.duration_seconds == 14.5
+    assert inc.duration_seconds != 180.0
+
+
+def test_short_duration_hazard_propagation(db_session, tmp_path):
+    """Test short-duration hazard persistence duration (e.g. 1.0s)."""
+    job_id = f"{uuid.uuid4().hex[:8]}-shortdur"
+    job_dir = tmp_path / job_id
+    job_dir.mkdir(parents=True)
+
+    telemetry = [
+        {
+            "hazard_id": 82,
+            "frame_logged": 50,
+            "timestamp_sec": 10.0,
+            "first_seen_sec": 10.0,
+            "last_seen_sec": 11.0,
+            "duration_seconds": 1.0,
+            "latitude": 12.8450,
+            "longitude": 77.6630,
+            "class_name": "pothole",
+            "confidence": 0.92,
+            "risk_level": "MEDIUM",
+            "severity_score": 50,
+            "evidence_file": None,
+        }
+    ]
+    (job_dir / "hazard_telemetry.json").write_text(json.dumps(telemetry))
+
+    summary = ingest_job_results(db_session, job_id, job_dir, zone_id="EC-01")
+    assert summary["incidents_created"] == 1
+
+    code = format_incident_code(job_id, 82)
+    inc = get_incident(db_session, code)
+    assert inc is not None
+    assert inc.duration_seconds == 1.0
+
+
+def test_missing_duration_does_not_become_180s(db_session, tmp_path):
+    """Test that missing duration in telemetry results in None, never falling back to 180s."""
+    job_id = f"{uuid.uuid4().hex[:8]}-nodur"
+    job_dir = tmp_path / job_id
+    job_dir.mkdir(parents=True)
+
+    telemetry = [
+        {
+            "hazard_id": 83,
+            "frame_logged": 30,
+            "timestamp_sec": 5.0,
+            "latitude": 12.8450,
+            "longitude": 77.6630,
+            "class_name": "drainage_overflow",
+            "confidence": 0.85,
+            "risk_level": "MEDIUM",
+            "severity_score": 45,
+            "evidence_file": None,
+        }
+    ]
+    (job_dir / "hazard_telemetry.json").write_text(json.dumps(telemetry))
+
+    summary = ingest_job_results(db_session, job_id, job_dir, zone_id="EC-01")
+    assert summary["incidents_created"] == 1
+
+    code = format_incident_code(job_id, 83)
+    inc = get_incident(db_session, code)
+    assert inc is not None
+    assert inc.duration_seconds is None
+    assert inc.duration_seconds != 180.0
+
+
+def test_derived_duration_from_first_last_seen(db_session, tmp_path):
+    """Test that if duration_seconds is omitted but first/last_seen_sec exist, duration is derived."""
+    job_id = f"{uuid.uuid4().hex[:8]}-deriveddur"
+    job_dir = tmp_path / job_id
+    job_dir.mkdir(parents=True)
+
+    telemetry = [
+        {
+            "hazard_id": 84,
+            "frame_logged": 30,
+            "timestamp_sec": 12.4,
+            "first_seen_sec": 12.4,
+            "last_seen_sec": 27.8,
+            "latitude": 12.8450,
+            "longitude": 77.6630,
+            "class_name": "open_manhole",
+            "confidence": 0.98,
+            "risk_level": "CRITICAL",
+            "severity_score": 95,
+            "evidence_file": None,
+        }
+    ]
+    (job_dir / "hazard_telemetry.json").write_text(json.dumps(telemetry))
+
+    summary = ingest_job_results(db_session, job_id, job_dir, zone_id="EC-01")
+    assert summary["incidents_created"] == 1
+
+    code = format_incident_code(job_id, 84)
+    inc = get_incident(db_session, code)
+    assert inc is not None
+    assert inc.duration_seconds == 15.4
+    assert inc.duration_seconds != 180.0
