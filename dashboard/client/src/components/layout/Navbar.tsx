@@ -241,15 +241,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               })}
             </nav>
 
-            {/* Telemetry, Live Clock & Notification Center */}
+            {/* Live Clock & Notification Center */}
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/50 border border-emerald-200/90 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-xs xl:text-sm font-bold shadow-2xs">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                <span className="hidden sm:inline tracking-tight">Drone Swarm Active (4/4)</span>
-                <span className="sm:hidden font-mono font-bold">4/4 Swarm</span>
-              </div>
-
-              <div className="hidden lg:flex items-center gap-2 text-xs xl:text-sm font-mono font-bold text-zinc-700 dark:text-zinc-300 bg-zinc-100/90 dark:bg-zinc-900/90 px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs">
+              <div className="hidden sm:flex items-center gap-2 text-xs xl:text-sm font-mono font-bold text-zinc-700 dark:text-zinc-300 bg-zinc-100/90 dark:bg-zinc-900/90 px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs">
                 <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>{timeStr || '00:00:00 IST'}</span>
               </div>
@@ -391,11 +385,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Bottom Footer inside Drawer */}
           <div className="p-4 border-t border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/30 space-y-2.5">
             <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 font-semibold">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                Drone Swarm (4/4 Active)
+              <span className="flex items-center gap-1.5 font-mono text-xs text-zinc-400">
+                <Clock className="w-3.5 h-3.5 text-emerald-500" />
+                Live System Time
               </span>
-              <span className="font-mono text-xs">{timeStr}</span>
+              <span className="font-mono text-xs font-bold text-zinc-700 dark:text-zinc-300">{timeStr}</span>
             </div>
 
             <div className="text-xs text-zinc-400 dark:text-zinc-500 leading-relaxed">

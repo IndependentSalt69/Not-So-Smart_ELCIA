@@ -89,10 +89,11 @@ const CustomTrendTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-// Custom Tooltip for Bar Chart
+// Custom Tooltip for Priority by Zone Bar Chart
 const CustomBarTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     const zoneName = payload[0]?.payload?.zoneName || label;
+    const total = payload.reduce((sum: number, item: any) => sum + (Number(item.value) || 0), 0);
     return (
       <div className="bg-slate-950/95 border border-slate-700/80 px-4 py-3.5 rounded-2xl shadow-2xl backdrop-blur-md text-white text-sm space-y-2.5 z-50 min-w-[220px]">
         <div className="font-bold text-emerald-400 border-b border-slate-800 pb-1.5 font-mono text-sm flex items-center gap-2">
@@ -100,17 +101,24 @@ const CustomBarTooltip = ({ active, payload, label }: any) => {
           <span className="truncate">{zoneName}</span>
         </div>
         <div className="space-y-1.5">
-          {payload.map((item: any, idx: number) => (
-            <div key={idx} className="flex items-center justify-between gap-3 text-xs xl:text-sm">
-              <span className="flex items-center gap-2 text-slate-300 font-semibold">
-                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.fill }} />
-                {item.name}:
-              </span>
-              <span className="font-mono font-bold text-white text-sm">
-                {item.value}
-              </span>
-            </div>
-          ))}
+          {payload.map((item: any, idx: number) => {
+            const labelClean = String(item.name).replace('—', '').replace(/\s+/g, ' ').trim();
+            return (
+              <div key={idx} className="flex items-center justify-between gap-3 text-xs xl:text-sm">
+                <span className="flex items-center gap-2 text-slate-300 font-semibold">
+                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.fill }} />
+                  {labelClean}:
+                </span>
+                <span className="font-mono font-bold text-white text-sm">
+                  {item.value}
+                </span>
+              </div>
+            );
+          })}
+          <div className="border-t border-slate-800 pt-1.5 flex items-center justify-between gap-3 text-xs xl:text-sm">
+            <span className="text-slate-400 font-semibold">Total:</span>
+            <span className="font-mono font-bold text-emerald-400 text-sm">{total}</span>
+          </div>
         </div>
       </div>
     );
@@ -290,7 +298,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
         </div>
       </div>
 
-      {/* Row 2: Issues by Type + Issues by Urgency */}
+      {/* Row 2: Issues by Type + Incident Priority by Zone */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Issues by Type (Horizontal Bar Chart) */}
         <div className="lg:col-span-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 xl:p-8 shadow-xs space-y-4">
@@ -342,28 +350,38 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
           </div>
         </div>
 
-        {/* Issues by Urgency (Bar Chart) */}
+        {/* Incident Priority by Zone (Bar Chart) */}
         <div className="lg:col-span-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 xl:p-8 shadow-xs space-y-4">
           <div>
             <h3 className="text-base xl:text-lg font-bold text-zinc-900 dark:text-white tracking-tight">
-              Issues by Urgency
+              Incident Priority by Zone
             </h3>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
-              Incident count categorized by High, Medium, and Low urgency across operational zones.
+              Incident count by operational priority across zones.
             </p>
           </div>
 
           <div className="h-64 xl:h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={zoneMetrics} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
+              <BarChart data={zoneMetrics} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
-                <XAxis dataKey="zoneCode" tick={{ fontSize: 13, fontWeight: 600, fill: '#64748b' }} stroke="#94a3b8" dy={4} />
-                <YAxis tick={{ fontSize: 13, fontWeight: 600, fill: '#64748b' }} stroke="#94a3b8" />
+                <XAxis
+                  dataKey="zoneCode"
+                  tick={{ fontSize: 13, fontWeight: 600, fill: '#64748b' }}
+                  stroke="#94a3b8"
+                  dy={4}
+                  label={{ value: 'Operational Zone', position: 'insideBottom', offset: -12, fontSize: 11, fill: '#94a3b8', fontWeight: 600 }}
+                />
+                <YAxis
+                  tick={{ fontSize: 13, fontWeight: 600, fill: '#64748b' }}
+                  stroke="#94a3b8"
+                  label={{ value: 'Incident Count', angle: -90, position: 'insideLeft', offset: -2, fontSize: 11, fill: '#94a3b8', fontWeight: 600 }}
+                />
                 <Tooltip content={<CustomBarTooltip />} />
                 <Legend wrapperStyle={{ fontSize: '13px', fontWeight: 600, paddingTop: '10px' }} />
-                <Bar dataKey="p1Count" name="High Urgency" fill="#EF4444" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="p2Count" name="Medium Urgency" fill="#F97316" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="p3Count" name="Low Urgency" fill="#F59E0B" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="p1Count" name="P1 — Critical" fill="#EF4444" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="p2Count" name="P2 — High" fill="#F97316" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="p3Count" name="P3 — Routine" fill="#F59E0B" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
