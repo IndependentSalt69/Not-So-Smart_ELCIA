@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { incidentService, mapBackendIncidentToFrontend, BackendIncidentItem } from '../services/incidentService';
+import {
+  incidentService,
+  mapBackendIncidentToFrontend,
+  BackendIncidentItem,
+  getEvidenceMediaUrl,
+  getIncidentVideoUrlFromEvidencePath,
+} from '../services/incidentService';
 import {
   mapBackendTypeToFrontend,
   mapFrontendTypeToBackend,
@@ -12,6 +18,30 @@ describe('Incident Service', () => {
   beforeEach(() => {
     process.env.VITE_USE_MOCK_DATA = 'true';
     incidentService.resetToMockData();
+  });
+
+  it('correctly transforms job evidence file paths to browser-accessible static media URLs', () => {
+    const jobPath = 'outputs/jobs/49559b26-9c73-4037-9f67-0fd7f711c6f3/evidence/hazard_1_LOW.jpg';
+    const mediaUrl = getEvidenceMediaUrl(jobPath);
+    expect(mediaUrl).toBe('http://127.0.0.1:8000/static/jobs/49559b26-9c73-4037-9f67-0fd7f711c6f3/evidence/hazard_1_LOW.jpg');
+
+    const windowsPath = 'outputs\\jobs\\eb3dc24f-502a-4996-877e-b346bfc11f35\\evidence\\hazard_2_LOW.jpg';
+    const winMediaUrl = getEvidenceMediaUrl(windowsPath);
+    expect(winMediaUrl).toBe('http://127.0.0.1:8000/static/jobs/eb3dc24f-502a-4996-877e-b346bfc11f35/evidence/hazard_2_LOW.jpg');
+
+    const globalEvPath = 'outputs/evidence/sample_global.jpg';
+    expect(getEvidenceMediaUrl(globalEvPath)).toBe('http://127.0.0.1:8000/static/evidence/sample_global.jpg');
+
+    expect(getEvidenceMediaUrl(null)).toBe('');
+    expect(getEvidenceMediaUrl('https://example.com/live.jpg')).toBe('https://example.com/live.jpg');
+  });
+
+  it('correctly derives job annotated video MP4 URLs from evidence paths', () => {
+    const jobPath = 'outputs/jobs/49559b26-9c73-4037-9f67-0fd7f711c6f3/evidence/hazard_1_LOW.jpg';
+    const videoUrl = getIncidentVideoUrlFromEvidencePath(jobPath);
+    expect(videoUrl).toBe('http://127.0.0.1:8000/static/jobs/49559b26-9c73-4037-9f67-0fd7f711c6f3/annotated_output.mp4');
+
+    expect(getIncidentVideoUrlFromEvidencePath(null)).toBeNull();
   });
 
   it('correctly maps 5 hazard types between frontend and backend contracts', () => {

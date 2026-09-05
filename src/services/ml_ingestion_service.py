@@ -150,12 +150,26 @@ def ingest_job_results(
 
         incident_type = CLASS_MAPPING[raw_class]
 
-        # 6. Severity Normalization & Priority
+        # 6. Confidence Extraction & Validation
+        raw_confidence = item.get("confidence")
+        if raw_confidence is None:
+            summary["failed"] += 1
+            raise ValueError(f"Telemetry item for hazard '{hazard_id}' is missing required 'confidence' field.")
+
+        try:
+            confidence = float(raw_confidence)
+            if not (0.0 <= confidence <= 1.0):
+                raise ValueError(f"Confidence value {confidence} is out of bounds [0.0, 1.0].")
+        except (ValueError, TypeError) as conf_err:
+            summary["failed"] += 1
+            raise ValueError(f"Invalid confidence for hazard '{hazard_id}': {conf_err}")
+
+        # 7. Severity Normalization & Priority
         raw_score = item.get("severity_score", 0)
         backend_severity = normalize_severity_score(raw_score)
         priority = map_priority_level(raw_score, item.get("risk_level"))
 
-        # 7. Location GeoJSON ([longitude, latitude])
+        # 8. Location GeoJSON ([longitude, latitude])
         lat = item.get("latitude")
         lon = item.get("longitude")
         location_elem = None
@@ -171,12 +185,12 @@ def ingest_job_results(
 
         rec_action = RECOMMENDED_ACTIONS.get(incident_type, "Inspect site and issue maintenance work order.")
 
-        # 8. Transaction per Hazard
+        # 9. Transaction per Hazard
         try:
             incident = Incident(
                 incident_code=incident_code,
                 incident_type=incident_type,
-                confidence=float(item.get("confidence", 0.95)),
+                confidence=confidence,
                 severity_score=backend_severity,
                 priority=priority,
                 zone_id=zone.id,
@@ -192,7 +206,7 @@ def ingest_job_results(
             detection = Detection(
                 incident_id=incident.id,
                 detection_type=raw_class,
-                confidence=float(item.get("confidence", 0.95)),
+                confidence=confidence,
                 frame_number=item.get("frame_logged"),
                 detected_at=datetime.now(timezone.utc),
                 location=location_elem,

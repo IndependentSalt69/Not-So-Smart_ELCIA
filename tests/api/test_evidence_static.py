@@ -51,3 +51,45 @@ def test_unexposed_directories_are_not_served(client: TestClient):
 
     response2 = client.get("/static/data_raw/demo_video.mov")
     assert response2.status_code == 404
+
+
+def test_valid_job_evidence_static_serving(client: TestClient):
+    """Test that an existing job evidence file is served with HTTP 200 and image/jpeg Content-Type."""
+    test_job_id = "test-job-static-serving"
+    test_job_dir = os.path.join(settings.JOBS_DIR, test_job_id, "evidence")
+    test_filename = "hazard_1_LOW.jpg"
+    test_filepath = os.path.join(test_job_dir, test_filename)
+
+    os.makedirs(test_job_dir, exist_ok=True)
+    with open(test_filepath, "wb") as f:
+        f.write(b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00`\x00`\x00\x00\xff\xdb")
+
+    try:
+        response = client.get(f"/static/jobs/{test_job_id}/evidence/{test_filename}")
+        assert response.status_code == 200
+        assert "image/jpeg" in response.headers.get("content-type", "").lower()
+        assert len(response.content) > 0
+    finally:
+        if os.path.exists(test_filepath):
+            os.remove(test_filepath)
+        if os.path.exists(test_job_dir):
+            os.rmdir(test_job_dir)
+        parent_dir = os.path.join(settings.JOBS_DIR, test_job_id)
+        if os.path.exists(parent_dir):
+            os.rmdir(parent_dir)
+
+
+def test_nonexistent_job_evidence_returns_404(client: TestClient):
+    """Test that requesting a non-existent job evidence file returns HTTP 404."""
+    response = client.get("/static/jobs/non_existent_job_99999/evidence/hazard_1_LOW.jpg")
+    assert response.status_code == 404
+
+
+def test_job_evidence_path_traversal_prevention(client: TestClient):
+    """Test that path traversal attempts (../) outside outputs/jobs are rejected."""
+    response = client.get("/static/jobs/../config.py")
+    assert response.status_code in (404, 400)
+
+    response2 = client.get("/static/jobs/..%2fconfig.py")
+    assert response2.status_code in (404, 400)
+

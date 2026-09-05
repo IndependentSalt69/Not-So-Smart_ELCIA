@@ -252,6 +252,7 @@ class HazardVideoPipeline:
                         "latitude": gps_loc["lat"],
                         "longitude": gps_loc["lon"],
                         "class_name": det["class_name"],
+                        "confidence": round(float(det["confidence"]), 4),
                         "risk_level": metrics["risk_level"],
                         "severity_score": metrics["severity_score"],
                         "relative_depth_drop": metrics["relative_depth"],

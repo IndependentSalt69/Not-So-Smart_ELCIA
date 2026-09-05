@@ -77,7 +77,7 @@ def create_application() -> FastAPI:
 
     # Ensure evidence output and job output directories exist
     os.makedirs(settings.EVIDENCE_DIR, exist_ok=True)
-    os.makedirs("outputs/jobs", exist_ok=True)
+    os.makedirs(settings.JOBS_DIR, exist_ok=True)
 
     # Mount static files for evidence under /static/evidence and /evidence
     app.mount(
@@ -92,7 +92,7 @@ def create_application() -> FastAPI:
     )
     app.mount(
         "/static/jobs",
-        StaticFiles(directory="outputs/jobs"),
+        StaticFiles(directory=settings.JOBS_DIR),
         name="static_jobs",
     )
 

@@ -10,6 +10,8 @@ from sqlalchemy import URL
 import yaml
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -65,14 +67,15 @@ class Settings(BaseSettings):
             database=self.POSTGRES_DB,
         ).render_as_string(hide_password=False)
 
-    # Storage Settings
-    EVIDENCE_DIR: str = "outputs/evidence"
-    PREDICTIONS_DIR: str = "outputs/predictions"
+    # Storage Settings (Canonical absolute paths relative to PROJECT_ROOT)
+    EVIDENCE_DIR: str = str(PROJECT_ROOT / "outputs" / "evidence")
+    JOBS_DIR: str = str(PROJECT_ROOT / "outputs" / "jobs")
+    PREDICTIONS_DIR: str = str(PROJECT_ROOT / "outputs" / "predictions")
 
 settings = Settings()
 
 # --- NEW: AI/ML Dynamic Configuration Loader ---
-CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "configs" / "config.yaml"
+CONFIG_PATH = PROJECT_ROOT / "configs" / "config.yaml"
 
 def load_app_config():
     # If the file doesn't exist yet, return an empty dict to prevent crashes

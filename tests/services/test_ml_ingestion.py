@@ -83,6 +83,7 @@ def test_five_class_ingestion_and_spatial_coordinates(db_session, tmp_path):
             "latitude": 12.8452,
             "longitude": 77.6631,
             "class_name": "waterlogging",
+            "confidence": 0.8742,
             "risk_level": "CRITICAL",
             "severity_score": 90,
             "evidence_file": "hazard_1_CRITICAL.jpg",
@@ -94,6 +95,7 @@ def test_five_class_ingestion_and_spatial_coordinates(db_session, tmp_path):
             "latitude": 12.8455,
             "longitude": 77.6635,
             "class_name": "pothole",
+            "confidence": 0.9234,
             "risk_level": "HIGH",
             "severity_score": 60,
             "evidence_file": "hazard_2_HIGH.jpg",
@@ -105,6 +107,7 @@ def test_five_class_ingestion_and_spatial_coordinates(db_session, tmp_path):
             "latitude": 12.8460,
             "longitude": 77.6640,
             "class_name": "drainage_overflow",
+            "confidence": 0.8123,
             "risk_level": "MEDIUM",
             "severity_score": 45,
             "evidence_file": "hazard_3_MEDIUM.jpg",
@@ -116,6 +119,7 @@ def test_five_class_ingestion_and_spatial_coordinates(db_session, tmp_path):
             "latitude": 12.8465,
             "longitude": 77.6645,
             "class_name": "damaged_footpath",
+            "confidence": 0.7456,
             "risk_level": "LOW",
             "severity_score": 25,
             "evidence_file": "hazard_4_LOW.jpg",
@@ -127,6 +131,7 @@ def test_five_class_ingestion_and_spatial_coordinates(db_session, tmp_path):
             "latitude": 12.8470,
             "longitude": 77.6650,
             "class_name": "open_manhole",
+            "confidence": 0.9678,
             "risk_level": "CRITICAL",
             "severity_score": 95,
             "evidence_file": "hazard_5_CRITICAL.jpg",
@@ -146,30 +151,35 @@ def test_five_class_ingestion_and_spatial_coordinates(db_session, tmp_path):
     assert summary["skipped"] == 0
     assert summary["failed"] == 0
 
-    # Verify created incident types
+    # Verify created incident types and real dynamic confidence scores
     prefix = format_incident_code(job_id, 1).rsplit("-", 1)[0]
     inc1 = get_incident(db_session, f"{prefix}-1")
     assert inc1 is not None
     assert inc1.incident_type == IncidentType.WATERLOGGING
+    assert inc1.confidence == 0.8742
     assert inc1.severity_score == 9.0
     assert inc1.priority == PriorityLevel.P1
 
     inc2 = get_incident(db_session, f"{prefix}-2")
     assert inc2 is not None
     assert inc2.incident_type == IncidentType.POTHOLE
+    assert inc2.confidence == 0.9234
     assert inc2.severity_score == 6.0
 
     inc3 = get_incident(db_session, f"{prefix}-3")
     assert inc3 is not None
     assert inc3.incident_type == IncidentType.DRAINAGE_OVERFLOW
+    assert inc3.confidence == 0.8123
 
     inc4 = get_incident(db_session, f"{prefix}-4")
     assert inc4 is not None
     assert inc4.incident_type == IncidentType.DAMAGED_FOOTPATH
+    assert inc4.confidence == 0.7456
 
     inc5 = get_incident(db_session, f"{prefix}-5")
     assert inc5 is not None
     assert inc5.incident_type == IncidentType.OPEN_MANHOLE
+    assert inc5.confidence == 0.9678
     assert inc5.severity_score == 9.5
     assert inc5.priority == PriorityLevel.P1
     assert inc5.recommended_action == "Install immediate high-visibility barricade and dispatch sewer maintenance crew to replace manhole lid."
@@ -191,6 +201,7 @@ def test_idempotent_duplicate_ingestion(db_session, tmp_path):
             "latitude": 12.8450,
             "longitude": 77.6630,
             "class_name": "pothole",
+            "confidence": 0.8850,
             "risk_level": "CRITICAL",
             "severity_score": 85,
             "evidence_file": "hazard_10_CRITICAL.jpg",
@@ -229,6 +240,7 @@ def test_null_gps_location_handling(db_session, tmp_path):
             "latitude": None,
             "longitude": None,
             "class_name": "waterlogging",
+            "confidence": 0.7654,
             "risk_level": "MEDIUM",
             "severity_score": 40,
             "evidence_file": None,
@@ -244,6 +256,7 @@ def test_null_gps_location_handling(db_session, tmp_path):
     inc = get_incident(db_session, code)
     assert inc is not None
     assert inc.location is None
+    assert inc.confidence == 0.7654
 
 
 def test_missing_telemetry_file(db_session, tmp_path):
@@ -277,6 +290,7 @@ def test_invalid_hazard_class(db_session, tmp_path):
         {
             "hazard_id": 30,
             "class_name": "alien_spacecraft",
+            "confidence": 0.85,
             "severity_score": 50,
         }
     ]
@@ -300,6 +314,7 @@ def test_missing_evidence_file_skips_evidence_record(db_session, tmp_path):
             "latitude": 12.8450,
             "longitude": 77.6630,
             "class_name": "pothole",
+            "confidence": 0.8990,
             "risk_level": "HIGH",
             "severity_score": 60,
             "evidence_file": "non_existent_file_999.jpg",
@@ -311,5 +326,88 @@ def test_missing_evidence_file_skips_evidence_record(db_session, tmp_path):
     assert summary["incidents_created"] == 1
     assert summary["detections_created"] == 1
     assert summary["evidence_created"] == 0
+
+    code = format_incident_code(job_id, 40)
+    inc = get_incident(db_session, code)
+    assert inc is not None
+    assert inc.confidence == 0.8990
+
+
+def test_missing_confidence_raises_error(db_session, tmp_path):
+    """Test that missing confidence in telemetry raises ValueError and does not fallback to fake 0.95."""
+    job_id = f"{uuid.uuid4().hex[:8]}-noconf"
+    job_dir = tmp_path / job_id
+    job_dir.mkdir(parents=True)
+
+    telemetry = [
+        {
+            "hazard_id": 50,
+            "class_name": "waterlogging",
+            "severity_score": 50,
+        }
+    ]
+    (job_dir / "hazard_telemetry.json").write_text(json.dumps(telemetry))
+
+    with pytest.raises(ValueError, match="missing required 'confidence' field"):
+        ingest_job_results(db_session, job_id, job_dir)
+
+
+def test_invalid_confidence_range_raises_error(db_session, tmp_path):
+    """Test that out-of-bounds confidence values raise ValueError."""
+    job_id = f"{uuid.uuid4().hex[:8]}-badconf"
+    job_dir = tmp_path / job_id
+    job_dir.mkdir(parents=True)
+
+    telemetry = [
+        {
+            "hazard_id": 60,
+            "class_name": "waterlogging",
+            "confidence": 1.45,
+            "severity_score": 50,
+        }
+    ]
+    (job_dir / "hazard_telemetry.json").write_text(json.dumps(telemetry))
+
+    with pytest.raises(ValueError, match="out of bounds"):
+        ingest_job_results(db_session, job_id, job_dir)
+
+
+def test_confidence_end_to_end_propagation(db_session, tmp_path):
+    """Test end-to-end propagation proving non-0.95 confidence (e.g. 0.8742) survives to DB and Detection models."""
+    job_id = f"{uuid.uuid4().hex[:8]}-e2econf"
+    job_dir = tmp_path / job_id
+    job_dir.mkdir(parents=True)
+
+    expected_conf = 0.8742
+    telemetry = [
+        {
+            "hazard_id": 77,
+            "frame_logged": 120,
+            "timestamp_sec": 4.0,
+            "latitude": 12.8412,
+            "longitude": 77.6638,
+            "class_name": "waterlogging",
+            "confidence": expected_conf,
+            "risk_level": "HIGH",
+            "severity_score": 75,
+            "evidence_file": None,
+        }
+    ]
+    (job_dir / "hazard_telemetry.json").write_text(json.dumps(telemetry))
+
+    summary = ingest_job_results(db_session, job_id, job_dir, zone_id="EC-01")
+    assert summary["incidents_created"] == 1
+    assert summary["detections_created"] == 1
+
+    code = format_incident_code(job_id, 77)
+    inc = get_incident(db_session, code)
+    assert inc is not None
+    assert inc.confidence == expected_conf
+
+    from src.repositories.detections import list_incident_detections
+    dets = list_incident_detections(db_session, inc.id)
+    assert len(dets) == 1
+    assert dets[0].confidence == expected_conf
+
 
 
