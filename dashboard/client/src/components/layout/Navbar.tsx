@@ -108,7 +108,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     {
       id: 'overview',
       label: 'Overview',
-      description: 'Command center KPIs & live issue alerts feed',
+      description: 'Command center KPIs & issue alerts feed',
       icon: Activity,
     },
     {

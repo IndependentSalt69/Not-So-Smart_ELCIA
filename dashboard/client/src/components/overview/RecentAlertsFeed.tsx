@@ -74,7 +74,7 @@ export const RecentAlertsFeed: React.FC<RecentAlertsFeedProps> = ({
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
           <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
-            Live Detections Feed
+            Recent Detections Feed
           </h3>
         </div>
         <Button

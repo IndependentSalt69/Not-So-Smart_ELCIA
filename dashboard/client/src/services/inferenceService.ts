@@ -16,28 +16,28 @@ const generateInferenceOverlaySvg = (
 
   let strokeColor = '#10b981';
   let fillColor = 'none';
-  let label = 'YOLOv8: ROAD SURFACE CLEAR (0 HAZARDS DETECTED)';
+  let label = 'YOLOv11m: ROAD SURFACE CLEAR (0 HAZARDS DETECTED)';
 
   if (isWater) {
     strokeColor = '#3b82f6';
     fillColor = 'rgba(59, 130, 246, 0.45)';
-    label = `YOLOv8 + SAM: WATERLOGGING (${Math.round(confidence * 100)}% CONFIDENCE)`;
+    label = `YOLOv11m + SAM: WATERLOGGING (${Math.round(confidence * 100)}% CONFIDENCE)`;
   } else if (isDrainage) {
     strokeColor = '#06b6d4';
     fillColor = 'rgba(6, 182, 212, 0.45)';
-    label = `YOLOv8 + SAM: DRAINAGE OVERFLOW (${Math.round(confidence * 100)}% CONFIDENCE)`;
+    label = `YOLOv11m + SAM: DRAINAGE OVERFLOW (${Math.round(confidence * 100)}% CONFIDENCE)`;
   } else if (isFootpath) {
     strokeColor = '#f97316';
     fillColor = 'rgba(249, 115, 22, 0.45)';
-    label = `YOLOv8: DAMAGED FOOTPATH (${Math.round(confidence * 100)}% CONFIDENCE)`;
+    label = `YOLOv11m: DAMAGED FOOTPATH (${Math.round(confidence * 100)}% CONFIDENCE)`;
   } else if (isPothole) {
     strokeColor = '#ef4444';
     fillColor = 'rgba(239, 68, 68, 0.45)';
-    label = `YOLOv8: DEEP CRATER POTHOLE (${Math.round(confidence * 100)}% CONFIDENCE)`;
+    label = `YOLOv11m: DEEP CRATER POTHOLE (${Math.round(confidence * 100)}% CONFIDENCE)`;
   } else if (isManhole) {
     strokeColor = '#dc2626';
     fillColor = 'rgba(220, 38, 38, 0.45)';
-    label = `YOLOv8: OPEN MANHOLE (${Math.round(confidence * 100)}% CONFIDENCE)`;
+    label = `YOLOv11m: OPEN MANHOLE (${Math.round(confidence * 100)}% CONFIDENCE)`;
   }
 
   const rawSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">
@@ -78,7 +78,7 @@ const generateInferenceOverlaySvg = (
     <!-- Telemetry Stamp -->
     <rect x="25" y="395" width="750" height="38" rx="6" fill="rgba(15, 23, 42, 0.85)"/>
     <text x="40" y="419" fill="#94a3b8" font-family="monospace" font-size="12">DRONE: ${telemetry.droneId} | ALT: ${telemetry.altitudeMeters}m | ZONE: ${telemetry.zoneId} | GPS: ${telemetry.coordinates.lat.toFixed(4)}N, ${telemetry.coordinates.lng.toFixed(4)}E</text>
-    <text x="690" y="419" fill="#38bdf8" font-family="monospace" font-size="12">AI v8.4.1</text>
+    <text x="680" y="419" fill="#38bdf8" font-family="monospace" font-size="12">YOLOv11m</text>
   </svg>`;
 
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(rawSvg)}`;
@@ -331,7 +331,7 @@ export const inferenceService = {
 
     const stages = [
       { name: '1. Frame Normalization & Telemetry Stamp', duration: 300, progress: 20 },
-      { name: '2. YOLOv8 Tensor Object Detection', duration: 400, progress: 45 },
+      { name: '2. YOLOv11m Tensor Object Detection', duration: 400, progress: 45 },
       { name: '3. SAM Segment Anything Masking', duration: 450, progress: 70 },
       { name: '4. Temporal Persistence Verification', duration: 350, progress: 85 },
       { name: '5. 4-Vector Severity & Priority Computation', duration: 300, progress: 100 },

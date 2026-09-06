@@ -218,7 +218,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
               You're all caught up.
             </p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-[220px]">
-              Verified incidents requiring response dispatch will appear here in real time.
+              Verified incidents requiring response dispatch will appear here with live updates.
             </p>
           </div>
         ) : (

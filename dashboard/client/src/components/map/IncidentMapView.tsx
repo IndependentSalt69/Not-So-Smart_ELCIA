@@ -389,7 +389,7 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
               </AdvancedMarker>
             )}
 
-            {/* Real-time Incident Advanced Markers */}
+            {/* Incident Advanced Markers */}
             {displayedIncidents.map((incident) => {
               const isP1 = incident.priority === 'P1';
               const isSelected = selectedIncident?.id === incident.id;

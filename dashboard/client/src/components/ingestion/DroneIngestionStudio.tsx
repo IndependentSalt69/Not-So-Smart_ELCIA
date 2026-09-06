@@ -272,7 +272,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
         results: null,
       });
 
-      toast.success(`Job ${initialRes.job_id.slice(0, 8)} queued! Starting real-time status polling...`);
+      toast.success(`Job ${initialRes.job_id.slice(0, 8)} queued! Tracking live processing status...`);
 
       // Start 1000ms Polling Loop
       pollTimerRef.current = setInterval(async () => {
@@ -663,7 +663,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                   <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                     {srtFile
                       ? `${(srtFile.size / 1024).toFixed(1)} KB • Telemetry active`
-                      : 'Extracts real-time per-frame GPS & Altitude'}
+                      : 'Extracts synchronized per-frame GPS & Altitude'}
                   </p>
                 </div>
                 <Button

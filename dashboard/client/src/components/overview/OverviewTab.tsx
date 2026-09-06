@@ -53,7 +53,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             CivicPulse Operations Command Center
           </h1>
           <p className="text-sm xl:text-base 2xl:text-lg text-slate-300 leading-relaxed max-w-3xl">
-            Real-time drone computer-vision monitoring for rapid waterlogging mitigation, pothole triage, and automated civic response across Electronics City Phase 1 & 2 corridors.
+            Automated aerial computer-vision monitoring for rapid waterlogging mitigation, pothole triage, and automated civic response across Electronics City Phase 1 & 2 corridors.
           </p>
         </div>
       </div>

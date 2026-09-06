@@ -127,7 +127,7 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
               {isRealCapture && (
                 <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-700/80 hidden lg:inline-flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Live Frame
+                  ML Frame
                 </span>
               )}
             </div>
@@ -206,7 +206,7 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
             {isRealCapture && (
               <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-950/85 text-emerald-300 border border-emerald-700 backdrop-blur-sm shadow-xs flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Live Capture
+                ML Capture
               </span>
             )}
           </div>
