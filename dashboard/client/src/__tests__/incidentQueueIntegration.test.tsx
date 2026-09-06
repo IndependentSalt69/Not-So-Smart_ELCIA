@@ -156,6 +156,7 @@ describe('Incident Queue & Flight Inspection Integration (Phase 5B)', () => {
         <IncidentQueueView
           incidents={mockIncidents}
           filters={{ queueTab: 'active', flightRunId: '66faba48-1111' }}
+          initialMode="incidents"
           onFilterChange={vi.fn()}
           onResetFilters={vi.fn()}
           onSelectIncident={vi.fn()}
@@ -189,6 +190,7 @@ describe('Incident Queue & Flight Inspection Integration (Phase 5B)', () => {
         <IncidentQueueView
           incidents={potholeIncidents}
           filters={{ queueTab: 'active', flightRunId: '66faba48-1111', type: 'pothole' }}
+          initialMode="incidents"
           onFilterChange={vi.fn()}
           onResetFilters={vi.fn()}
           onSelectIncident={vi.fn()}
@@ -205,6 +207,7 @@ describe('Incident Queue & Flight Inspection Integration (Phase 5B)', () => {
         <IncidentQueueView
           incidents={[]}
           filters={{ queueTab: 'active', flightRunId: '8f2b1c04-0000' }}
+          initialMode="incidents"
           onFilterChange={vi.fn()}
           onResetFilters={vi.fn()}
           onSelectIncident={vi.fn()}

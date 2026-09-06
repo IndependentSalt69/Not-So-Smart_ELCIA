@@ -21,7 +21,22 @@ export const inspectionService = {
     skip?: number;
     limit?: number;
   }): Promise<FlightInspectionRunListResponse> {
-    return api.get<FlightInspectionRunListResponse>('/process/runs', params);
+    const rawRes = await api.get<FlightInspectionRunListResponse>('/process/runs', params);
+    const items = (rawRes.items || []).map((item) => {
+      let videoUrl = item.annotated_video_url;
+      if (videoUrl && !videoUrl.startsWith('http://') && !videoUrl.startsWith('https://')) {
+        const cleanPath = videoUrl.startsWith('/') ? videoUrl : `/${videoUrl}`;
+        videoUrl = `${getMediaBaseUrl()}${cleanPath}`;
+      }
+      return {
+        ...item,
+        annotated_video_url: videoUrl,
+      };
+    });
+    return {
+      ...rawRes,
+      items,
+    };
   },
 
   /**
