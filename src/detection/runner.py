@@ -128,10 +128,12 @@ def main():
         sys.exit(1)
 
     # Note if conf or iou were specified
-    if args.conf is not None or args.iou is not None:
-        print(
-            f"[JOB:{job_id}] INFO=CLI flags --conf/--iou accepted; underlying HazardVideoPipeline utilizes default internal thresholds."
-        )
+    print(
+        f"[JOB:{job_id}] INFERENCE_CONF={args.conf if args.conf is not None else 0.35}"
+    )
+    print(
+        f"[JOB:{job_id}] INFERENCE_IOU={args.iou if args.iou is not None else 0.45}"
+    )
 
     output_video_path = str(output_dir / "annotated_output.mp4")
 
@@ -163,6 +165,8 @@ def main():
             output_dir=str(output_dir),
             srt_path=args.srt,
             device=device,
+            conf_threshold=args.conf if args.conf is not None else 0.35,
+            iou_threshold=args.iou if args.iou is not None else 0.45,
         )
         pipeline.process_video(
             video_path=str(video_path),

@@ -27,7 +27,9 @@ class HazardVideoPipeline:
         weights_path: str = "models/production/best.pt",
         output_dir: str = "outputs",
         srt_path: Optional[str] = None,
-        device: Optional[str] = None
+        device: Optional[str] = None,
+        conf_threshold: float = 0.35,
+        iou_threshold: float = 0.45,
     ):
         self.output_dir = Path(output_dir)
         self.evidence_dir = self.output_dir / "evidence"
@@ -46,7 +48,12 @@ class HazardVideoPipeline:
         print(f"[AI Engine] Initializing HazardVideoPipeline on device={self.device}")
 
         # Core ML Submodules
-        self.segmentor = YOLOSegmentor(model_path=weights_path, device=self.device)
+        self.segmentor = YOLOSegmentor(
+            model_path=weights_path,
+            device=self.device,
+            conf_threshold=conf_threshold,
+            iou_threshold=iou_threshold,
+        )
         self.depth_estimator = DepthEstimator(model_type="DPT_Large", device=self.device)
         self.severity_analyzer = SeverityAnalyzer()
 

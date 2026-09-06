@@ -1,6 +1,6 @@
 """
 src/detection/yolo_segmentation.py
-Handles YOLOv8-seg model inference, custom ByteTrack tracking,
+Handles YOLOv11m-seg model inference, custom ByteTrack tracking,
 and smooth visualization overlays with Mac M-series (MPS) & dynamic YAML config support.
 """
 import cv2
@@ -10,7 +10,7 @@ from typing import List, Dict, Any, Optional
 import torch
 
 from src.core import classes as hazard_classes
-
+from src.core.config import APP_CONFIG
 
 class YOLOSegmentor:
     def __init__(
@@ -26,6 +26,9 @@ class YOLOSegmentor:
         self.model_path = model_path
         self.conf_threshold = conf_threshold
         self.iou_threshold = iou_threshold
+        print(
+            f"[AI Engine] YOLO thresholds: conf={self.conf_threshold}, iou={self.iou_threshold}"
+        )
         self.imgsz = imgsz
         self.tracker_config = tracker_config
 
@@ -35,6 +38,11 @@ class YOLOSegmentor:
             target_classes if target_classes is not None else hazard_classes.names()
         )
         self.class_conf_thresholds = hazard_classes.conf_thresholds()
+
+        self.min_area_pixels = APP_CONFIG.get("filters", {}).get(
+            "min_area_pixels",
+            50.0,
+        )
 
         # Device Selection: CUDA (NVIDIA) -> MPS (Apple Silicon) -> CPU
         if device is not None:
@@ -89,8 +97,8 @@ class YOLOSegmentor:
                     polygon_points = np.array(xy_coords[0], dtype=np.int32)
                     mask_area = float(cv2.contourArea(polygon_points))
 
-                    # Discard microscopic artifact polygons (< 150px)
-                    if mask_area >= 150.0:
+                    # Discard microscopic artifact polygons
+                    if mask_area >= self.min_area_pixels:
                         mask_polygon = polygon_points
                         mask_area_pixels = mask_area
 
