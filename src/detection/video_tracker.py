@@ -28,8 +28,8 @@ class HazardVideoPipeline:
         output_dir: str = "outputs",
         srt_path: Optional[str] = None,
         device: Optional[str] = None,
-        conf_threshold: float = 0.35,
-        iou_threshold: float = 0.45,
+        conf_threshold: float = 0.15, # Previous 0.35
+        iou_threshold: float = 0.35, # Previous 0.45
     ):
         self.output_dir = Path(output_dir)
         self.evidence_dir = self.output_dir / "evidence"

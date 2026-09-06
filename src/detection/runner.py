@@ -165,8 +165,8 @@ def main():
             output_dir=str(output_dir),
             srt_path=args.srt,
             device=device,
-            conf_threshold=args.conf if args.conf is not None else 0.35,
-            iou_threshold=args.iou if args.iou is not None else 0.45,
+            conf_threshold=args.conf if args.conf is not None else 0.15, # Previous 0.35
+            iou_threshold=args.iou if args.iou is not None else 0.35, # Previous 0.45
         )
         pipeline.process_video(
             video_path=str(video_path),

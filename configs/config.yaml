@@ -18,27 +18,27 @@ filters:
 classes:
   0:
     name: "damaged_footpath"
-    conf: 0.20
+    conf: 0.15 # Previous 0.20
     color: [0, 255, 0]
   1:
     name: "drainage_overflow"
-    conf: 0.45
+    conf: 0.30 # Previous 0.45
     color: [0, 255, 255]
   2:
     name: "open_manhole"
-    conf: 0.25 #0.35
+    conf: 0.60 # Previous 0.35
     color: [200, 0, 200]
     min_hits: 3
     severity_multiplier: 1.3
   3:
     name: "pothole"
-    conf: 0.25 #0.20
+    conf: 0.30 # Previous 0.20
     color: [40, 50, 230]
     needs_depth: true
     severity_multiplier: 1.1
   4:
     name: "waterlogging"
-    conf: 0.40 #0.52
+    conf: 0.30 # Previous 0.52
     color: [235, 150, 50]
     min_hits: 5
     requires_smooth_surface: true

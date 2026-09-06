@@ -16,8 +16,8 @@ class YOLOSegmentor:
     def __init__(
         self,
         model_path: str = "models/production/best.pt",
-        conf_threshold: float = 0.35,     # Base confidence floor
-        iou_threshold: float = 0.45,
+        conf_threshold: float = 0.15, # Previous 0.35
+        iou_threshold: float = 0.35, # Previous 0.45
         imgsz: int = 640,
         tracker_config: str = "configs/custom_bytetrack.yaml",
         target_classes: Optional[Dict[int, str]] = None,
