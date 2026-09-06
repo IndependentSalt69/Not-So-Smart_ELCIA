@@ -46,6 +46,7 @@ def test_alembic_migration_lifecycle(alembic_config):
         "assignments",
         "incident_status_history",
         "inspections",
+        "video_verifications",
         "alembic_version",
     }
 
@@ -77,7 +78,7 @@ def test_alembic_migration_lifecycle(alembic_config):
     final_tables = set(inspector_final.get_table_names())
     assert expected_tables.issubset(final_tables), "Tables missing after second upgrade"
 
-    # Verify head revision matches latest 5-class migration
+    # Verify head revision matches latest migration
     from alembic.script import ScriptDirectory
     script_dir = ScriptDirectory.from_config(alembic_config)
-    assert script_dir.get_current_head() == "20260904_003"
+    assert script_dir.get_current_head() == "20260907_004"

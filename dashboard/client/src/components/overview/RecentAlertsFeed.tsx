@@ -115,7 +115,11 @@ export const RecentAlertsFeed: React.FC<RecentAlertsFeedProps> = ({
                   <div className="flex items-center gap-3 mt-1.5 text-xs text-zinc-500 dark:text-zinc-400 font-mono font-medium">
                     <span>{incident.zoneId}</span>
                     <span>•</span>
-                    <span>AI Conf: {Math.round(incident.confidence * 100)}%</span>
+                    <span>
+                      {incident.confidence !== null && incident.confidence !== undefined
+                        ? `AI Conf: ${Math.round(incident.confidence * 100)}%`
+                        : 'HUMAN REPORTED'}
+                    </span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-zinc-400" />

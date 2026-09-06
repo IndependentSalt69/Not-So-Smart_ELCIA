@@ -46,3 +46,9 @@ class InspectionResult(str, enum.Enum):
     RESOLVED = "RESOLVED"
     NOT_RESOLVED = "NOT_RESOLVED"
     PARTIALLY_RESOLVED = "PARTIALLY_RESOLVED"
+
+
+class VerificationStatus(str, enum.Enum):
+    PENDING_REVIEW = "PENDING_REVIEW"
+    CONFIRMED_CLEAR = "CONFIRMED_CLEAR"
+    ANOMALY_REPORTED = "ANOMALY_REPORTED"

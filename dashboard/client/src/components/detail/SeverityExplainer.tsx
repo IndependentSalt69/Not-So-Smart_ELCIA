@@ -71,10 +71,14 @@ export const SeverityExplainer: React.FC<SeverityExplainerProps> = ({ incident }
           </div>
           <div>
             <h4 className="text-sm xl:text-base font-bold text-zinc-900 dark:text-white">
-              AI Severity & Priority Explainability
+              {incident.source === 'HUMAN_REPORTED' || incident.confidence === null
+                ? 'Incident Severity & Priority Explainability'
+                : 'AI Severity & Priority Explainability'}
             </h4>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-              Multi-factor sensor fusion model (4 contributing vectors)
+              {incident.source === 'HUMAN_REPORTED' || incident.confidence === null
+                ? 'Multi-factor risk assessment (Human-reported anomaly)'
+                : 'Multi-factor sensor fusion model (4 contributing vectors)'}
             </p>
           </div>
         </div>

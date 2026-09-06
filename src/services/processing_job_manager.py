@@ -326,6 +326,9 @@ class ProcessingJobManager:
                             job.results["summary"]["missing_gps"] = ingestion_summary["missing_gps"]
                         if job.results:
                             job.results["incident_ids"] = ingestion_summary["incident_ids"]
+                            if "verification_id" in ingestion_summary:
+                                job.results["verification_id"] = ingestion_summary["verification_id"]
+                                job.results["verification_status"] = ingestion_summary.get("verification_status", "PENDING_REVIEW")
 
                         job.status = JobStatus.COMPLETED
                         job.progress_pct = 100.0

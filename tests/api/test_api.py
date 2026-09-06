@@ -124,6 +124,8 @@ def test_incidents_and_subresources_api_flow(client: TestClient):
     inc_data = create_inc_resp.json()
     inc_id = inc_data["id"]
     assert inc_data["incident_code"] == "INC-API-101"
+    assert inc_data["source"] == "AI_VISION"
+    assert inc_data["confidence"] == 0.94
 
     # 2. Get Incident by ID & code
     assert client.get(f"/api/v1/incidents/{inc_id}").status_code == 200

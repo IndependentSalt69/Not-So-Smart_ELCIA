@@ -11,6 +11,7 @@ from src.api.routes.zones import router as zones_router
 from src.api.routes.users import router as users_router
 from src.api.routes.analytics import router as analytics_router
 from src.api.routes.processing import router as processing_router
+from src.api.routes.verifications import router as verifications_router
 
 api_router = APIRouter()
 
@@ -21,6 +22,7 @@ api_router.include_router(zones_router)
 api_router.include_router(users_router)
 api_router.include_router(analytics_router)
 api_router.include_router(processing_router)
+api_router.include_router(verifications_router)
 
 __all__ = ["api_router"]
 

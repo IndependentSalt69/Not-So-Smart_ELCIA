@@ -99,7 +99,7 @@ export const IncidentQueueView: React.FC<IncidentQueueViewProps> = ({
         case 'time-asc':
           return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
         case 'confidence-desc':
-          return b.confidence - a.confidence;
+          return (b.confidence ?? 0) - (a.confidence ?? 0);
         case 'priority-p1': {
           const rank = { P1: 3, P2: 2, P3: 1 };
           return rank[b.priority] - rank[a.priority];

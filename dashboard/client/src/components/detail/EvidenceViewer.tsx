@@ -18,6 +18,7 @@ import {
   Pause,
   Play,
   RotateCcw,
+  ShieldAlert,
   Sparkles,
   Video,
   Waves,
@@ -55,6 +56,14 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
           setDetectionsList(detections);
           if (detections.length > 0 && detections[0].frameNumber != null) {
             setCurrentFrame(detections[0].frameNumber);
+          }
+          // If the incident only has video evidence (e.g. human-reported flight anomaly), default to video mode
+          if (assets.length > 0) {
+            const hasImage = assets.some((a) => a.evidenceType === 'IMAGE');
+            const hasVideo = assets.some((a) => a.evidenceType === 'VIDEO');
+            if (hasVideo && !hasImage) {
+              setViewMode('video');
+            }
           }
         }
       } catch (err) {
@@ -137,6 +146,10 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
     (primaryEvidence?.mediaUrl ? getIncidentVideoUrlFromEvidencePath(primaryEvidence.mediaUrl) : null) ||
     (incident.evidenceClip || null);
 
+  const isManualIncident =
+    detectionsList.length === 0 ||
+    Boolean(primaryEvidence?.description?.toLowerCase().includes('human-reported')) ||
+    Boolean(incident.history?.some((h) => h.notes && h.notes.includes('MANUAL_REVIEW')));
 
   const fallbackImage =
     showOverlay && incident.evidenceOverlay
@@ -225,7 +238,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
               </div>
             )}
 
-            {detectionsList.length > 0 && (
+            {detectionsList.length > 0 ? (
               <div className="flex items-center gap-2 font-mono text-[11px] px-2 py-0.5 rounded bg-sky-950/80 text-sky-300 border border-sky-800">
                 <Cpu className="w-3.5 h-3.5 text-sky-400" />
                 <span>
@@ -233,7 +246,14 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
                   {detectionsList[0].frameNumber != null && ` • Frame #${detectionsList[0].frameNumber}`}
                 </span>
               </div>
-            )}
+            ) : isManualIncident ? (
+              <div className="flex items-center gap-2 font-mono text-[11px] px-2 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-800">
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                <span>
+                  <strong>Source:</strong> Human Operator Review (Manual Override)
+                </span>
+              </div>
+            ) : null}
           </>
         )}
       </div>
@@ -288,7 +308,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
                 </div>
                 <p className="text-[11px] text-zinc-400 leading-relaxed">
                   {videoLoadError
-                    ? 'The annotated output video clip could not be loaded from the static server.'
+                    ? 'The flight video clip could not be loaded from the static server.'
                     : 'No job-scoped flight video is associated with this incident record.'}
                 </p>
               </div>
@@ -297,7 +317,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
             {derivedVideoUrl && !videoLoadError && (
               <div className="absolute top-3 left-3 bg-red-600/90 text-white font-mono text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 animate-pulse">
                 <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                ANNOTATED TRACK VIDEO
+                {isManualIncident ? 'SOURCE FLIGHT VIDEO — HUMAN-REPORTED ANOMALY' : 'ANNOTATED TRACK VIDEO'}
               </div>
             )}
           </div>

@@ -71,6 +71,7 @@ class Settings(BaseSettings):
     EVIDENCE_DIR: str = str(PROJECT_ROOT / "outputs" / "evidence")
     JOBS_DIR: str = str(PROJECT_ROOT / "outputs" / "jobs")
     PREDICTIONS_DIR: str = str(PROJECT_ROOT / "outputs" / "predictions")
+    UPLOADS_DIR: str = str(PROJECT_ROOT / "uploads")
 
 settings = Settings()
 

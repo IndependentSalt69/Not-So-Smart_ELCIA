@@ -10,6 +10,9 @@ import { processingService } from '@/services/processingService';
 import { DroneTelemetry, InferenceResult, ProcessJobStatusResponse, SampleFootagePreset } from '@/types/ingestion';
 import { ZoneId } from '@/types/incident';
 import { getMediaBaseUrl } from '@/services/api';
+import { ManualAnomalyModal } from '@/components/ingestion/ManualAnomalyModal';
+import { verificationService } from '@/services/verificationService';
+import { VerificationStatus } from '@/types/verification';
 import {
   AlertTriangle,
   Camera,
@@ -27,6 +30,7 @@ import {
   Radio,
   RefreshCw,
   Send,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
   UploadCloud,
@@ -58,6 +62,11 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
   const [realJobStatus, setRealJobStatus] = useState<ProcessJobStatusResponse | null>(null);
   const [realJobError, setRealJobError] = useState<string | null>(null);
   const [videoLoadError, setVideoLoadError] = useState<boolean>(false);
+
+  // No-Incident Human Verification State (Phase 14)
+  const [isManualModalOpen, setIsManualModalOpen] = useState<boolean>(false);
+  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
+  const [isConfirmingClear, setIsConfirmingClear] = useState<boolean>(false);
 
   // SRT Automatic Zone Detection State (Section 11)
   const [zoneDetection, setZoneDetection] = useState<{
@@ -244,15 +253,23 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
             }
 
             const incidentsCreated = statusRes.results?.summary?.incidents_created ?? 0;
-            toast.success(`Real ML Pipeline & Ingestion Complete!`, {
-              description: `Detected hazards automatically ingested into PostgreSQL/PostGIS (${incidentsCreated} incidents created).`,
-            });
+            if (incidentsCreated === 0) {
+              const vStatus = (statusRes.results as any)?.verification_status as VerificationStatus || 'PENDING_REVIEW';
+              setVerificationStatus(vStatus);
+              toast.info('No anomalies detected by AI. Human verification required.', {
+                description: 'Review the video footage and confirm clear or report undetected hazards.',
+              });
+            } else {
+              toast.success(`Real ML Pipeline & Ingestion Complete!`, {
+                description: `Detected hazards automatically ingested into PostgreSQL/PostGIS (${incidentsCreated} incidents created).`,
+              });
 
-            // Trigger live Incident Queue refresh
-            incidentService.notifySubscribers();
+              // Trigger live Incident Queue refresh
+              incidentService.notifySubscribers();
 
-            if (statusRes.results?.incident_ids?.length) {
-              onIncidentPublished(statusRes.results.incident_ids[0]);
+              if (statusRes.results?.incident_ids?.length) {
+                onIncidentPublished(statusRes.results.incident_ids[0]);
+              }
             }
           } else if (statusRes.status === 'FAILED') {
             stopPolling();
@@ -271,6 +288,32 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
       setRealJobError(errMsg);
       toast.error(errMsg);
     }
+  };
+
+  // Human Verification Confirmation Handlers (Phase 14)
+  const handleConfirmNoAnomaly = async () => {
+    if (!activeJobId) return;
+    try {
+      setIsConfirmingClear(true);
+      await verificationService.confirmClear(activeJobId, {
+        notes: 'Flight reviewed and verified clear of civic hazards by command operator.',
+      });
+      setVerificationStatus('CONFIRMED_CLEAR');
+      toast.success('Flight Verified Clear!', {
+        description: 'Audit record persisted to database as True Negative.',
+      });
+    } catch (err: any) {
+      console.error('Failed to confirm verification:', err);
+      toast.error(err.message || 'Failed to confirm verification.');
+    } finally {
+      setIsConfirmingClear(false);
+    }
+  };
+
+  const handleAnomalyCreated = (incidentId: string) => {
+    setVerificationStatus('ANOMALY_REPORTED');
+    incidentService.notifySubscribers();
+    onIncidentPublished(incidentId);
   };
 
   // Run Simulated AI Inference (Fallback for Demo Presets)
@@ -835,48 +878,150 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
               {/* Real Job Summary Panel on Completion */}
               {realJobStatus.status === 'COMPLETED' && realJobStatus.results && (
                 <div className="pt-3 border-t border-zinc-800 space-y-4">
-                  <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs xl:text-sm text-emerald-200 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                      <span className="font-semibold">
-                        PostgreSQL/PostGIS Ingestion Complete: {realJobStatus.results.summary.incidents_created} Incidents, {realJobStatus.results.summary.detections_created} Detections, {realJobStatus.results.summary.evidence_created} Evidence records created.
-                      </span>
-                    </div>
-                  </div>
+                  {(realJobStatus.results.summary.incidents_created ?? 0) > 0 ? (
+                    <>
+                      <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs xl:text-sm text-emerald-200 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                          <span className="font-semibold">
+                            PostgreSQL/PostGIS Ingestion Complete: {realJobStatus.results.summary.incidents_created} Incidents, {realJobStatus.results.summary.detections_created} Detections, {realJobStatus.results.summary.evidence_created} Evidence records created.
+                          </span>
+                        </div>
+                      </div>
 
-                  {/* Hazard Class Counts Breakdown Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
-                    <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
-                      <span className="text-xs text-teal-400 font-bold block">Waterlogging</span>
-                      <span className="text-lg font-black font-mono text-white">
-                        {realJobStatus.results.summary.class_counts?.waterlogging ?? 0}
-                      </span>
+                      {/* Hazard Class Counts Breakdown Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
+                        <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
+                          <span className="text-xs text-teal-400 font-bold block">Waterlogging</span>
+                          <span className="text-lg font-black font-mono text-white">
+                            {realJobStatus.results.summary.class_counts?.waterlogging ?? 0}
+                          </span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
+                          <span className="text-xs text-amber-400 font-bold block">Potholes</span>
+                          <span className="text-lg font-black font-mono text-white">
+                            {realJobStatus.results.summary.class_counts?.pothole ?? 0}
+                          </span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
+                          <span className="text-xs text-cyan-400 font-bold block">Drainage Overflow</span>
+                          <span className="text-lg font-black font-mono text-white">
+                            {realJobStatus.results.summary.class_counts?.drainage_overflow ?? 0}
+                          </span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
+                          <span className="text-xs text-orange-400 font-bold block">Footpath Damage</span>
+                          <span className="text-lg font-black font-mono text-white">
+                            {realJobStatus.results.summary.class_counts?.damaged_footpath ?? 0}
+                          </span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
+                          <span className="text-xs text-purple-400 font-bold block">Open Manhole</span>
+                          <span className="text-lg font-black font-mono text-white">
+                            {realJobStatus.results.summary.class_counts?.open_manhole ?? 0}
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    /* Zero Incidents Detected — Human-in-the-Loop Verification Card (Phase 14) */
+                    <div className="p-5 rounded-2xl bg-zinc-900/90 border border-zinc-700/80 space-y-4 animate-in fade-in">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={cn(
+                              'w-10 h-10 rounded-xl flex items-center justify-center border shrink-0',
+                              verificationStatus === 'CONFIRMED_CLEAR'
+                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                                : verificationStatus === 'ANOMALY_REPORTED'
+                                ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                                : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                            )}
+                          >
+                            {verificationStatus === 'CONFIRMED_CLEAR' ? (
+                              <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                            ) : (
+                              <ShieldAlert className="w-5 h-5 text-amber-400" />
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="text-sm xl:text-base font-black text-white tracking-tight">
+                              {verificationStatus === 'CONFIRMED_CLEAR'
+                                ? 'Flight Verified Clean (True Negative)'
+                                : verificationStatus === 'ANOMALY_REPORTED'
+                                ? 'Manual Incident Created & Linked'
+                                : 'No Anomalies Detected by AI — Human Verification Required'}
+                            </h4>
+                            <p className="text-xs text-zinc-400 font-medium">
+                              {verificationStatus === 'CONFIRMED_CLEAR'
+                                ? 'Audit record persisted to database. Flight certified free of civic risks.'
+                                : verificationStatus === 'ANOMALY_REPORTED'
+                                ? 'Manual incident registered from this flight and routed to live incident queue.'
+                                : 'AI found 0 hazards in this flight clip. Operator sign-off required to certify clean surface or report undetected anomalies.'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0">
+                          <span
+                            className={cn(
+                              'px-3 py-1 rounded-full text-xs font-bold border inline-flex items-center gap-1.5',
+                              verificationStatus === 'CONFIRMED_CLEAR'
+                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                                : verificationStatus === 'ANOMALY_REPORTED'
+                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                                : 'bg-amber-500/20 text-amber-300 border-amber-500/30 animate-pulse'
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                'w-2 h-2 rounded-full',
+                                verificationStatus === 'CONFIRMED_CLEAR'
+                                  ? 'bg-emerald-400'
+                                  : 'bg-amber-400'
+                              )}
+                            />
+                            <span>
+                              {verificationStatus === 'CONFIRMED_CLEAR'
+                                ? 'CONFIRMED CLEAR ✓'
+                                : verificationStatus === 'ANOMALY_REPORTED'
+                                ? 'ANOMALY REPORTED'
+                                : 'PENDING REVIEW'}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Interactive Verification Buttons (when PENDING_REVIEW) */}
+                      {(!verificationStatus || verificationStatus === 'PENDING_REVIEW') && (
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+                          <div className="text-xs text-zinc-400 font-medium">
+                            Review the processed flight video below to confirm clear conditions or capture undetected hazards.
+                          </div>
+                          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleConfirmNoAnomaly}
+                              disabled={isConfirmingClear}
+                              className="w-full sm:w-auto h-9.5 text-xs font-bold rounded-xl border-emerald-500/50 text-emerald-300 hover:bg-emerald-950/50 cursor-pointer"
+                            >
+                              <CheckCircle2 className="w-4 h-4 mr-1.5 text-emerald-400" />
+                              <span>{isConfirmingClear ? 'Confirming...' : 'Confirm No Anomaly'}</span>
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => setIsManualModalOpen(true)}
+                              className="w-full sm:w-auto h-9.5 text-xs font-bold rounded-xl bg-amber-600 hover:bg-amber-700 text-white shadow-md shadow-amber-500/20 cursor-pointer"
+                            >
+                              <AlertTriangle className="w-4 h-4 mr-1.5" />
+                              <span>Report Undetected Hazard</span>
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
-                      <span className="text-xs text-amber-400 font-bold block">Potholes</span>
-                      <span className="text-lg font-black font-mono text-white">
-                        {realJobStatus.results.summary.class_counts?.pothole ?? 0}
-                      </span>
-                    </div>
-                    <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
-                      <span className="text-xs text-cyan-400 font-bold block">Drainage Overflow</span>
-                      <span className="text-lg font-black font-mono text-white">
-                        {realJobStatus.results.summary.class_counts?.drainage_overflow ?? 0}
-                      </span>
-                    </div>
-                    <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
-                      <span className="text-xs text-orange-400 font-bold block">Footpath Damage</span>
-                      <span className="text-lg font-black font-mono text-white">
-                        {realJobStatus.results.summary.class_counts?.damaged_footpath ?? 0}
-                      </span>
-                    </div>
-                    <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
-                      <span className="text-xs text-purple-400 font-bold block">Open Manhole</span>
-                      <span className="text-lg font-black font-mono text-white">
-                        {realJobStatus.results.summary.class_counts?.open_manhole ?? 0}
-                      </span>
-                    </div>
-                  </div>
+                  )}
 
                   <div className="flex items-center justify-between pt-1">
                     <Button
@@ -889,7 +1034,9 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                       <span>Download Ingestion Summary</span>
                     </Button>
                     <span className="text-xs text-emerald-400 font-bold">
-                      Incident Queue Refreshed Live ✓
+                      {(realJobStatus.results.summary.incidents_created ?? 0) > 0
+                        ? 'Incident Queue Refreshed Live ✓'
+                        : 'Surveillance Mission Audited ✓'}
                     </span>
                   </div>
 
@@ -1105,6 +1252,17 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
           )}
         </div>
       </div>
+
+      {/* Manual Anomaly Reporting Modal (Phase 14) */}
+      <ManualAnomalyModal
+        isOpen={isManualModalOpen}
+        onClose={() => setIsManualModalOpen(false)}
+        jobId={activeJobId || ''}
+        videoPlaybackTime={0}
+        flightGpsPoint={null}
+        zoneId={telemetry.zoneId}
+        onAnomalyCreated={handleAnomalyCreated}
+      />
     </div>
   );
 };

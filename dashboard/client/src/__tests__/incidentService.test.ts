@@ -45,6 +45,28 @@ describe('Incident Service', () => {
     expect(getIncidentVideoUrlFromEvidencePath(null)).toBeNull();
   });
 
+  it('correctly resolves source flight video URLs for manual-review incidents from jobs and uploads', () => {
+    // 1. Direct static job annotated output
+    const staticJobUrl = getIncidentVideoUrlFromEvidencePath('/static/jobs/job-456/annotated_output.mp4');
+    expect(staticJobUrl).toBe('http://127.0.0.1:8000/static/jobs/job-456/annotated_output.mp4');
+
+    // 2. Relative uploads flight video path
+    const uploadPath = 'uploads/job-789/flight_raw.mp4';
+    const uploadUrl = getIncidentVideoUrlFromEvidencePath(uploadPath);
+    expect(uploadUrl).toBe('http://127.0.0.1:8000/static/uploads/job-789/flight_raw.mp4');
+
+    // 3. Static uploads flight video URL
+    const staticUploadUrl = getIncidentVideoUrlFromEvidencePath('/static/uploads/job-789/flight_raw.mp4');
+    expect(staticUploadUrl).toBe('http://127.0.0.1:8000/static/uploads/job-789/flight_raw.mp4');
+
+    // 4. Windows backslash upload path
+    const winUploadPath = 'uploads\\job-789\\flight_raw.mp4';
+    expect(getIncidentVideoUrlFromEvidencePath(winUploadPath)).toBe('http://127.0.0.1:8000/static/uploads/job-789/flight_raw.mp4');
+
+    // 5. Genuinely non-video path returns null
+    expect(getIncidentVideoUrlFromEvidencePath('outputs/evidence/some_snapshot.jpg')).toBeNull();
+  });
+
   it('correctly maps 5 hazard types between frontend and backend contracts', () => {
     const pairs: [IncidentType, BackendIncidentType][] = [
       ['waterlogging', 'WATERLOGGING'],
@@ -224,5 +246,50 @@ describe('Incident Service', () => {
     // RE_INSPECTION -> CLOSED
     const closed = await incidentService.updateIncidentStatus('EC-0142', 'CLOSED');
     expect(closed.status).toBe('CLOSED');
+  });
+
+  it('preserves actual AI detection confidence and AI_VISION source for genuine AI incidents', () => {
+    const aiIncidentItem: BackendIncidentItem = {
+      id: 'ai-pothole-uuid',
+      incident_code: 'INC-AUTO-01',
+      incident_type: 'POTHOLE',
+      confidence: 0.94,
+      severity_score: 8.0,
+      priority: 'P1',
+      zone_id: 'EC-01',
+      status: 'DETECTED',
+      source: 'AI_VISION',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const frontendIncident = mapBackendIncidentToFrontend(aiIncidentItem);
+    expect(frontendIncident.confidence).toBe(0.94);
+    expect(frontendIncident.source).toBe('AI_VISION');
+    expect(frontendIncident.severityFactors.explanation[0]).toBe('Pothole detected by aerial drone vision sensor.');
+  });
+
+  it('maps human-reported incident to confidence null, source HUMAN_REPORTED, and operator explanation', () => {
+    const manualIncidentItem: BackendIncidentItem = {
+      id: 'manual-incident-uuid',
+      incident_code: 'INC-JOB12345-M12',
+      incident_type: 'WATERLOGGING',
+      confidence: 1.0, // Backend DB NOT NULL placeholder
+      severity_score: 6.5,
+      priority: 'P2',
+      zone_id: 'EC-01',
+      status: 'DETECTED',
+      source: 'HUMAN_REPORTED',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const frontendIncident = mapBackendIncidentToFrontend(manualIncidentItem);
+    // AI detection confidence must be null (rendered as N/A), never 1.0 or 100%
+    expect(frontendIncident.confidence).toBeNull();
+    expect(frontendIncident.source).toBe('HUMAN_REPORTED');
+    expect(frontendIncident.severityFactors.explanation[0]).toBe(
+      'Waterlogging reported manually by human operator during aerial footage review.'
+    );
   });
 });

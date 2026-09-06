@@ -11,6 +11,7 @@ from src.db.models.enums import (
     IncidentStatus,
     EvidenceType,
     InspectionResult,
+    VerificationStatus,
 )
 from src.db.models.zone import Zone
 from src.db.models.user import User
@@ -20,6 +21,7 @@ from src.db.models.evidence import Evidence
 from src.db.models.assignment import Assignment
 from src.db.models.history import IncidentStatusHistory
 from src.db.models.inspection import Inspection
+from src.db.models.verification import VideoVerification
 
 __all__ = [
     "Base",
@@ -29,6 +31,7 @@ __all__ = [
     "IncidentStatus",
     "EvidenceType",
     "InspectionResult",
+    "VerificationStatus",
     "Zone",
     "User",
     "Incident",
@@ -37,4 +40,5 @@ __all__ = [
     "Assignment",
     "IncidentStatusHistory",
     "Inspection",
+    "VideoVerification",
 ]

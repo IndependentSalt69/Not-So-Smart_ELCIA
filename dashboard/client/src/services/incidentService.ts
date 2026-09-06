@@ -19,12 +19,25 @@ export function getEvidenceMediaUrl(filePath?: string | null): string {
   const origin = getMediaBaseUrl();
   const normalizedPath = filePath.replace(/\\/g, '/');
 
+  // Handle already-prefixed static URLs e.g. /static/jobs/... or /static/uploads/...
+  if (normalizedPath.startsWith('/static/')) {
+    return `${origin}${normalizedPath}`;
+  }
+
   // Map outputs/jobs/<job_id>/... -> /static/jobs/<job_id>/...
   const jobsMatch = normalizedPath.match(/(?:^|\/)outputs\/jobs\/([^\/]+)\/(.+)$/);
   if (jobsMatch) {
     const jobId = jobsMatch[1];
     const subPath = jobsMatch[2];
     return `${origin}/static/jobs/${jobId}/${subPath}`;
+  }
+
+  // Map uploads/<job_id>/... -> /static/uploads/<job_id>/...
+  const uploadsMatch = normalizedPath.match(/(?:^|\/)uploads\/([^\/]+)\/(.+)$/);
+  if (uploadsMatch) {
+    const jobId = uploadsMatch[1];
+    const subPath = uploadsMatch[2];
+    return `${origin}/static/uploads/${jobId}/${subPath}`;
   }
 
   // Map outputs/evidence/<filename> -> /static/evidence/<filename>
@@ -45,21 +58,48 @@ export function getEvidenceMediaUrl(filePath?: string | null): string {
 export function getIncidentVideoUrlFromEvidencePath(filePath?: string | null): string | null {
   if (!filePath) return null;
 
-  if (
-    (filePath.startsWith('http://') || filePath.startsWith('https://')) &&
-    filePath.includes('annotated_output.mp4')
-  ) {
-    return filePath;
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  const origin = getMediaBaseUrl();
+
+  // 1. Direct absolute URLs
+  if (normalizedPath.startsWith('http://') || normalizedPath.startsWith('https://')) {
+    return normalizedPath;
   }
 
-  const origin = getMediaBaseUrl();
-  const normalizedPath = filePath.replace(/\\/g, '/');
+  // 2. Direct static paths e.g. /static/jobs/... or /static/uploads/...
+  if (normalizedPath.startsWith('/static/')) {
+    return `${origin}${normalizedPath}`;
+  }
 
-  // Match outputs/jobs/<job_id>/... or static/jobs/<job_id>/...
-  const jobsMatch = normalizedPath.match(/(?:^|\/)(?:outputs|static)\/jobs\/([^\/]+)\//);
+  // 3. Match outputs/jobs/<job_id>/... or static/jobs/<job_id>/...
+  const jobsMatch = normalizedPath.match(/(?:^|\/)(?:outputs|static)\/jobs\/([^\/]+)\/(.+)$/);
   if (jobsMatch && jobsMatch[1]) {
     const jobId = jobsMatch[1];
+    const subPath = jobsMatch[2];
+    if (/\.(mp4|mov|avi|webm|m4v)$/i.test(subPath)) {
+      return `${origin}/static/jobs/${jobId}/${subPath}`;
+    }
     return `${origin}/static/jobs/${jobId}/annotated_output.mp4`;
+  }
+
+  // 4. Match outputs/jobs/<job_id>/ (folder reference default to annotated_output.mp4)
+  const jobFolderMatch = normalizedPath.match(/(?:^|\/)(?:outputs|static)\/jobs\/([^\/]+)\/?$/);
+  if (jobFolderMatch && jobFolderMatch[1]) {
+    const jobId = jobFolderMatch[1];
+    return `${origin}/static/jobs/${jobId}/annotated_output.mp4`;
+  }
+
+  // 5. Match uploads/<job_id>/... or static/uploads/<job_id>/...
+  const uploadsMatch = normalizedPath.match(/(?:^|\/)(?:uploads|static\/uploads)\/([^\/]+)\/(.+)$/);
+  if (uploadsMatch && uploadsMatch[1]) {
+    const jobId = uploadsMatch[1];
+    const subPath = uploadsMatch[2];
+    return `${origin}/static/uploads/${jobId}/${subPath}`;
+  }
+
+  // 6. Generic video file extension fallback
+  if (/\.(mp4|mov|avi|webm|m4v)$/i.test(normalizedPath)) {
+    return getEvidenceMediaUrl(filePath);
   }
 
   return null;
@@ -116,6 +156,7 @@ export interface BackendIncidentItem {
     type: 'Point';
     coordinates: [number, number];
   } | null;
+  source?: 'AI_VISION' | 'HUMAN_REPORTED' | string;
   created_at: string;
   updated_at: string;
 }
@@ -207,6 +248,13 @@ export function formatPersistenceDuration(seconds?: number | null): string {
 export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Incident {
   const type: IncidentType = mapBackendTypeToFrontend(item.incident_type);
 
+  const isHumanReported =
+    item.source === 'HUMAN_REPORTED' ||
+    (item.incident_code && item.incident_code.includes('-M'));
+
+  const confidence = isHumanReported ? null : item.confidence;
+  const source: 'AI_VISION' | 'HUMAN_REPORTED' = isHumanReported ? 'HUMAN_REPORTED' : 'AI_VISION';
+
   const lng = item.location?.coordinates?.[0] ?? 77.6631;
   const lat = item.location?.coordinates?.[1] ?? 12.8452;
 
@@ -235,7 +283,8 @@ export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Inciden
     id: item.id || item.incident_code, // Prefer actual backend UUID primary key
     code: item.incident_code || item.id, // Human readable tracking code
     type,
-    confidence: item.confidence,
+    confidence,
+    source,
     severity: item.severity_score,
     priority: item.priority as PriorityLevel,
     timestamp: item.started_at || item.created_at,
@@ -260,7 +309,9 @@ export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Inciden
       roadCriticality: Math.min(10, severity * 1.05),
       roadCriticalityLabel: 'Primary arterial corridor connecting Phase 1 & Hosur Highway',
       explanation: [
-        `${getIncidentTypeLabel(type)} detected by aerial drone vision sensor.`,
+        isHumanReported
+          ? `${getIncidentTypeLabel(type)} reported manually by human operator during aerial footage review.`
+          : `${getIncidentTypeLabel(type)} detected by aerial drone vision sensor.`,
         durationSeconds !== null
           ? `Temporal persistence verified over scan duration (${formatPersistenceDuration(durationSeconds)}).`
           : `Temporal persistence unrecorded during initial aerial pass.`,
@@ -519,7 +570,7 @@ export const incidentService = {
             comparison = a.severity - b.severity;
             break;
           case 'confidence':
-            comparison = a.confidence - b.confidence;
+            comparison = (a.confidence ?? 0) - (b.confidence ?? 0);
             break;
           case 'priority': {
             const rank = { P1: 3, P2: 2, P3: 1 };

@@ -36,7 +36,10 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
   onSelect,
   onQuickEvidence,
 }) => {
-  const confidencePct = Math.round(incident.confidence * 100);
+  const confidencePct =
+    incident.confidence !== null && incident.confidence !== undefined
+      ? Math.round(incident.confidence * 100)
+      : null;
 
   // Real ML evidence thumbnail resolution state
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(() => {
@@ -142,7 +145,7 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
               <span>{incident.severity.toFixed(1)} / 10</span>
             </div>
             <div className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
-              AI Conf: {confidencePct}%
+              {confidencePct !== null ? `AI Conf: ${confidencePct}%` : 'HUMAN REPORTED'}
             </div>
           </div>
 
@@ -217,8 +220,14 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
             {incident.zoneId}
           </span>
           <span className="flex items-center gap-1.5 text-emerald-300 font-bold">
-            <Sparkles className="w-3.5 h-3.5" />
-            {confidencePct}% Conf
+            {confidencePct !== null ? (
+              <>
+                <Sparkles className="w-3.5 h-3.5" />
+                {confidencePct}% Conf
+              </>
+            ) : (
+              <span>HUMAN REPORTED</span>
+            )}
           </span>
         </div>
       </div>

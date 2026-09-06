@@ -49,6 +49,14 @@ from src.repositories.analytics import (
     get_analytics_trends,
     get_analytics_zones,
 )
+from src.repositories.verifications import (
+    create_verification,
+    get_verification,
+    list_verifications,
+    count_verifications,
+    confirm_verification_clear,
+    report_verification_anomaly,
+)
 
 __all__ = [
     # ZONES
@@ -87,5 +95,12 @@ __all__ = [
     "get_analytics_summary",
     "get_analytics_trends",
     "get_analytics_zones",
+    # VERIFICATIONS
+    "create_verification",
+    "get_verification",
+    "list_verifications",
+    "count_verifications",
+    "confirm_verification_clear",
+    "report_verification_anomaly",
 ]
 

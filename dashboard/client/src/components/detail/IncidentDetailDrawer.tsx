@@ -146,16 +146,24 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
             {showTechDetails && (
               <div className="p-5 pt-0 border-t border-zinc-100 dark:border-zinc-800/60 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
                 <div>
-                  <span className="text-zinc-500 block uppercase font-bold text-[10px]">Detection Confidence</span>
-                  <span className="font-bold text-zinc-900 dark:text-zinc-100">{(incident.confidence * 100).toFixed(1)}%</span>
+                  <span className="text-zinc-500 block uppercase font-bold text-[10px]">AI Detection Confidence</span>
+                  <span className="font-bold text-zinc-900 dark:text-zinc-100">
+                    {incident.confidence !== null && incident.confidence !== undefined
+                      ? `${(incident.confidence * 100).toFixed(1)}%`
+                      : 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block uppercase font-bold text-[10px]">Detection Source</span>
+                  <span className="font-bold text-zinc-900 dark:text-zinc-100">
+                    {incident.source === 'HUMAN_REPORTED' || incident.confidence === null
+                      ? 'HUMAN REPORTED'
+                      : 'AI VISION'}
+                  </span>
                 </div>
                 <div>
                   <span className="text-zinc-500 block uppercase font-bold text-[10px]">Model Class</span>
                   <span className="font-bold text-zinc-900 dark:text-zinc-100">{incident.type.toUpperCase()}</span>
-                </div>
-                <div>
-                  <span className="text-zinc-500 block uppercase font-bold text-[10px]">Incident ID</span>
-                  <span className="font-bold text-zinc-900 dark:text-zinc-100 truncate block">{incident.id}</span>
                 </div>
                 <div>
                   <span className="text-zinc-500 block uppercase font-bold text-[10px]">Coordinates</span>

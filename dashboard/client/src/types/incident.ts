@@ -181,7 +181,8 @@ export interface Incident {
   id: string; // Backend UUID e.g., "820d5447-eb9f-4264-9e66-995fd147d6a7" or tracking code
   code?: string; // Tracking code e.g. "TEST-INC-001" or "EC-0142"
   type: IncidentType;
-  confidence: number; // 0.0 to 1.0 (e.g. 0.94 -> 94%)
+  confidence: number | null; // 0.0 to 1.0 (e.g. 0.94 -> 94%) or null for human-reported
+  source?: 'AI_VISION' | 'HUMAN_REPORTED';
   severity: number; // 0.0 to 10.0
   priority: PriorityLevel;
   timestamp: string; // ISO String or relative format

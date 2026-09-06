@@ -275,4 +275,42 @@ def ingest_job_results(
             summary["failed"] += 1
             raise hazard_err
 
+    # Phase 14: No-Incident Human Verification Workflow (Scope: ONLY when incidents_created == 0)
+    if summary["incidents_created"] == 0:
+        try:
+            from src.repositories.verifications import get_verification, create_verification
+            existing_verif = get_verification(db, job_id)
+            if existing_verif:
+                summary["verification_id"] = str(existing_verif.id)
+                summary["verification_status"] = existing_verif.status.value
+            else:
+                annotated_video_p = out_path / "annotated_output.mp4"
+                annotated_url = f"/static/jobs/{job_id}/annotated_output.mp4" if annotated_video_p.exists() else None
+
+                upload_dir = Path("uploads") / job_id
+                video_fn = "input.mp4"
+                video_p = str(annotated_video_p) if annotated_video_p.exists() else ""
+                if upload_dir.exists():
+                    for f in upload_dir.iterdir():
+                        if f.is_file() and f.suffix.lower() in [".mp4", ".mov", ".avi"]:
+                            video_fn = f.name
+                            video_p = str(f)
+                            break
+
+                verif = create_verification(
+                    db=db,
+                    job_id=job_id,
+                    video_filename=video_fn,
+                    video_path=video_p,
+                    annotated_video_url=annotated_url,
+                    telemetry_path=str(telemetry_file) if telemetry_file.exists() else None,
+                    zone_id=zone.id if zone else None,
+                    ai_hazard_count=0,
+                )
+                summary["verification_id"] = str(verif.id)
+                summary["verification_status"] = verif.status.value
+        except Exception as verif_err:
+            # Do not crash the entire ingestion if verification creation encounters an issue, but log it
+            print(f"[INGESTION] Warning creating video verification record for job {job_id}: {verif_err}")
+
     return summary

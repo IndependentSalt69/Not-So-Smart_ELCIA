@@ -25,6 +25,7 @@ class IncidentBase(BaseModel):
     duration_seconds: Optional[float] = None
     recommended_action: Optional[str] = None
     location: Optional[GeoJSONPoint] = Field(None, description="GeoJSON point coordinates [longitude, latitude]")
+    source: str = Field(default="AI_VISION", description="Incident detection source: AI_VISION or HUMAN_REPORTED")
 
 
 class IncidentCreate(IncidentBase):
