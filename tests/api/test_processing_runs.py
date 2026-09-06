@@ -67,6 +67,13 @@ def _create_test_user(db_session: Session) -> User:
     return user
 
 
+@pytest.fixture(autouse=True)
+def reset_job_manager():
+    job_manager.jobs.clear()
+    yield
+    job_manager.jobs.clear()
+
+
 def test_single_hazard_flight(client: TestClient, db_session: Session):
     """Test 1: Single-hazard flight aggregation and detail retrieval."""
     zone = _create_test_zone(db_session, "S1")

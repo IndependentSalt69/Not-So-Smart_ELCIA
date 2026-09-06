@@ -7,7 +7,7 @@ Survives backend server restarts by querying persisted PostGIS/PostgreSQL detect
 from datetime import datetime, timezone
 from pathlib import Path
 import re
-from typing import Dict, List, Optional, Tuple, Union, Set
+from typing import Any, Dict, List, Optional, Tuple, Union, Set
 from uuid import UUID
 
 from sqlalchemy import select
@@ -286,6 +286,10 @@ def _build_run_summary(run_data: Dict[str, Any]) -> FlightInspectionRunSummary:
         inc_starts = [i.started_at for i in incidents_list if i.started_at]
         if inc_starts:
             created_at = min(inc_starts)
+        else:
+            inc_created = [i.created_at for i in incidents_list if i.created_at]
+            if inc_created:
+                created_at = min(inc_created)
 
     completed_at = run_data.get("completed_at")
     if not completed_at and incidents_list:
