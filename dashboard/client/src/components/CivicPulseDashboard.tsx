@@ -60,7 +60,7 @@ export default function CivicPulseDashboard() {
   };
 
   const handleResetFilters = () => {
-    setFilters({ queueTab: filters.queueTab || 'active' });
+    setFilters({ queueTab: filters.queueTab || 'active', flightRunId: 'all' });
     toast.info('All filters have been reset.');
   };
 

@@ -7,12 +7,19 @@ import { cn } from '@/lib/utils';
 import { inferenceService, SAMPLE_PRESETS } from '@/services/inferenceService';
 import { incidentService } from '@/services/incidentService';
 import { processingService } from '@/services/processingService';
+import { inspectionService } from '@/services/inspectionService';
 import { DroneTelemetry, InferenceResult, ProcessJobStatusResponse, SampleFootagePreset } from '@/types/ingestion';
 import { ZoneId } from '@/types/incident';
+import { FlightInspectionRunDetailParsed } from '@/types/inspection';
 import { getMediaBaseUrl } from '@/services/api';
 import { ManualAnomalyModal } from '@/components/ingestion/ManualAnomalyModal';
 import { verificationService } from '@/services/verificationService';
 import { VerificationStatus } from '@/types/verification';
+import {
+  FlightInspectionCard,
+  FlightInspectionResultsList,
+  FlightRunHistoryDrawer,
+} from '@/components/inspections';
 import {
   AlertTriangle,
   Camera,
@@ -25,6 +32,7 @@ import {
   FileCode,
   FileVideo,
   Footprints,
+  History,
   ImageIcon,
   Play,
   Radio,
@@ -62,6 +70,12 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
   const [realJobStatus, setRealJobStatus] = useState<ProcessJobStatusResponse | null>(null);
   const [realJobError, setRealJobError] = useState<string | null>(null);
   const [videoLoadError, setVideoLoadError] = useState<boolean>(false);
+
+  // Flight Inspection States (Phase 4)
+  const [flightInspection, setFlightInspection] = useState<FlightInspectionRunDetailParsed | null>(null);
+  const [isFlightInspectionLoading, setIsFlightInspectionLoading] = useState<boolean>(false);
+  const [flightInspectionError, setFlightInspectionError] = useState<string | null>(null);
+  const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState<boolean>(false);
 
   // No-Incident Human Verification State (Phase 14)
   const [isManualModalOpen, setIsManualModalOpen] = useState<boolean>(false);
@@ -110,6 +124,26 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
     };
   }, [stopPolling]);
 
+  // Load authoritative Flight Inspection detail from Phase 2 backend aggregation API
+  const loadFlightInspection = async (jobId: string) => {
+    try {
+      setIsFlightInspectionLoading(true);
+      setFlightInspectionError(null);
+      const detail = await inspectionService.getFlightRunDetail(jobId);
+      setFlightInspection(detail);
+      if (detail.verification?.status) {
+        setVerificationStatus(detail.verification.status);
+      } else if (detail.summary.total_hazards === 0) {
+        setVerificationStatus((detail.summary.status as VerificationStatus) || 'PENDING_REVIEW');
+      }
+    } catch (err: any) {
+      console.error('Failed to load flight inspection details:', err);
+      setFlightInspectionError(err.message || 'Failed to load flight inspection summary from server.');
+    } finally {
+      setIsFlightInspectionLoading(false);
+    }
+  };
+
   // Handle Preset selection
   const handleSelectPreset = (preset: SampleFootagePreset) => {
     setSelectedPreset(preset);
@@ -123,6 +157,9 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
     setRealJobStatus(null);
     setRealJobError(null);
     setActiveJobId(null);
+    setFlightInspection(null);
+    setFlightInspectionError(null);
+    setIsFlightInspectionLoading(false);
   };
 
   // Handle Video file upload
@@ -143,6 +180,9 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
       setRealJobStatus(null);
       setRealJobError(null);
       setActiveJobId(null);
+      setFlightInspection(null);
+      setFlightInspectionError(null);
+      setIsFlightInspectionLoading(false);
       toast.success(`Loaded video: ${file.name}`);
     }
   };
@@ -191,7 +231,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
   const handleBrowseVideo = () => videoInputRef.current?.click();
   const handleBrowseSrt = () => srtInputRef.current?.click();
 
-  // Run REAL ML Pipeline via FastAPI Backend (Phase 11D)
+  // Run REAL ML Pipeline via FastAPI Backend (Phase 11D + Phase 4)
   const handleRunRealProcessing = async () => {
     if (!videoFile) {
       toast.error('Real ML processing requires a video file (.mp4, .mov, .avi).');
@@ -204,6 +244,9 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
       setRealJobError(null);
       setRealJobStatus(null);
       setInferenceResult(null);
+      setFlightInspection(null);
+      setFlightInspectionError(null);
+      setIsFlightInspectionLoading(false);
 
       toast.info('Uploading drone footage and queuing ML processing job...');
 
@@ -266,11 +309,10 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
 
               // Trigger live Incident Queue refresh
               incidentService.notifySubscribers();
-
-              if (statusRes.results?.incident_ids?.length) {
-                onIncidentPublished(statusRes.results.incident_ids[0]);
-              }
             }
+
+            // Phase 4: Fetch authoritative Flight Inspection detail from backend aggregation API
+            await loadFlightInspection(initialRes.job_id);
           } else if (statusRes.status === 'FAILED') {
             stopPolling();
             setIsRealProcessing(false);
@@ -290,18 +332,21 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
     }
   };
 
-  // Human Verification Confirmation Handlers (Phase 14)
+  // Human Verification Confirmation Handlers (Phase 14 & Phase 4)
   const handleConfirmNoAnomaly = async () => {
-    if (!activeJobId) return;
+    const targetJobId = flightInspection?.summary.job_id || activeJobId;
+    if (!targetJobId) return;
     try {
       setIsConfirmingClear(true);
-      await verificationService.confirmClear(activeJobId, {
+      await verificationService.confirmClear(targetJobId, {
         notes: 'Flight reviewed and verified clear of civic hazards by command operator.',
       });
       setVerificationStatus('CONFIRMED_CLEAR');
       toast.success('Flight Verified Clear!', {
         description: 'Audit record persisted to database as True Negative.',
       });
+      // Refresh flight inspection detail to reflect CONFIRMED_CLEAR state
+      await loadFlightInspection(targetJobId);
     } catch (err: any) {
       console.error('Failed to confirm verification:', err);
       toast.error(err.message || 'Failed to confirm verification.');
@@ -310,10 +355,23 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
     }
   };
 
-  const handleAnomalyCreated = (incidentId: string) => {
+  const handleAnomalyCreated = async (incidentId: string) => {
     setVerificationStatus('ANOMALY_REPORTED');
     incidentService.notifySubscribers();
+    const targetJobId = flightInspection?.summary.job_id || activeJobId;
+    if (targetJobId) {
+      await loadFlightInspection(targetJobId);
+    }
     onIncidentPublished(incidentId);
+  };
+
+  // Historical Run Selection from Drawer
+  const handleSelectHistoricalRun = async (jobId: string) => {
+    setActiveJobId(jobId);
+    setIsHistoryDrawerOpen(false);
+    setRealJobError(null);
+    setInferenceResult(null);
+    await loadFlightInspection(jobId);
   };
 
   // Run Simulated AI Inference (Fallback for Demo Presets)
@@ -366,15 +424,17 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
 
   // Export GeoJSON / Report
   const handleExportJson = () => {
-    if (!inferenceResult && !realJobStatus?.results) return;
-    const exportData = realJobStatus?.results
+    if (!inferenceResult && !flightInspection && !realJobStatus?.results) return;
+    const exportData = flightInspection
+      ? flightInspection
+      : realJobStatus?.results
       ? realJobStatus.results
       : inferenceResult;
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `CivicPulse_AI_Processing_${activeJobId || inferenceResult?.id}.json`;
+    a.download = `CivicPulse_AI_Processing_${activeJobId || flightInspection?.summary.job_id || inferenceResult?.id}.json`;
     a.click();
     toast.success('GeoJSON report downloaded');
   };
@@ -397,14 +457,29 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-3.5 shrink-0 bg-white/10 backdrop-blur-md p-4 xl:p-5 rounded-2xl border border-white/15">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-              <Cpu className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="text-xs font-semibold text-slate-300">Analysis Engine</div>
-              <div className="text-lg xl:text-xl font-black text-white">CivicPulse AI</div>
-              <div className="text-xs text-emerald-300 font-bold">Auto-Report & Ingest</div>
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <Button
+              variant="outline"
+              onClick={() => setIsHistoryDrawerOpen(true)}
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20 rounded-2xl h-auto py-3 px-4 flex items-center gap-2.5 backdrop-blur-md cursor-pointer transition-all"
+              data-testid="header-flight-history-btn"
+            >
+              <History className="w-5 h-5 text-emerald-400" />
+              <div className="text-left">
+                <div className="text-[10px] uppercase font-bold text-slate-300">Surveillance Log</div>
+                <div className="text-xs font-bold text-white">Flight History</div>
+              </div>
+            </Button>
+
+            <div className="flex items-center gap-3.5 bg-white/10 backdrop-blur-md p-4 xl:p-5 rounded-2xl border border-white/15">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                <Cpu className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-slate-300">Analysis Engine</div>
+                <div className="text-lg xl:text-xl font-black text-white">CivicPulse AI</div>
+                <div className="text-xs text-emerald-300 font-bold">Auto-Report & Ingest</div>
+              </div>
             </div>
           </div>
         </div>
@@ -445,7 +520,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                       : preset.type === 'open_manhole'
                       ? 'bg-purple-100 dark:bg-purple-900/60 text-purple-600'
                       : preset.type === 'pothole'
-                      ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-600'
+                      ? 'bg-red-100 dark:bg-red-900/60 text-red-600'
                       : 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600'
                   )}
                 >
@@ -458,18 +533,31 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                   ) : preset.type === 'open_manhole' ? (
                     <CircleDot className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   ) : preset.type === 'pothole' ? (
-                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
                   ) : (
                     <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                   )}
                 </div>
-                <div className="min-w-0">
-                  <div className="text-sm font-bold text-zinc-900 dark:text-white truncate">
-                    {preset.title}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-zinc-900 dark:text-white truncate">
+                      {preset.title}
+                    </h4>
+                    {isSelected && (
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                    )}
                   </div>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 mt-0.5 font-medium">
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 line-clamp-1">
                     {preset.description}
                   </p>
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <span className="text-[10px] font-mono font-semibold text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
+                      {preset.defaultTelemetry.zoneId}
+                    </span>
+                    <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                      {preset.type.toUpperCase()}
+                    </span>
+                  </div>
                 </div>
               </div>
             );
@@ -477,124 +565,133 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
         </div>
       </div>
 
-      {/* Main Studio Two-Column Grid */}
+      {/* Main Studio Work Area */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Upload & Flight Telemetry Config */}
+        {/* Left Column: File Uploader & Telemetry Controls */}
         <div className="lg:col-span-5 space-y-5">
-          {/* File Upload Box */}
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm xl:text-base font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
-                <UploadCloud className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
-                <span>Upload Custom Drone Footage & Telemetry</span>
+          <div className="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
+              <h3 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                <UploadCloud className="w-5 h-5 text-emerald-500" />
+                <span>Upload Drone Clip & Flight Data</span>
               </h3>
+              {videoFile && (
+                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                  Ready
+                </span>
+              )}
             </div>
 
-            {/* Hidden File Inputs */}
-            <input
-              ref={videoInputRef}
-              type="file"
-              accept="video/mp4,video/quicktime,video/x-msvideo,.mp4,.mov,.avi"
-              onChange={handleVideoUpload}
-              className="hidden"
-            />
-            <input
-              ref={srtInputRef}
-              type="file"
-              accept=".srt"
-              onChange={handleSrtUpload}
-              className="hidden"
-            />
-
-            {/* Video File Picker Surface */}
-            <div
-              onClick={handleBrowseVideo}
-              className={cn(
-                'border-2 border-dashed rounded-2xl p-5 text-center cursor-pointer transition-all space-y-2 group',
-                videoFile
-                  ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30'
-                  : 'border-zinc-300 dark:border-zinc-700 hover:border-emerald-500 bg-zinc-50/50 dark:bg-zinc-800/20'
-              )}
-            >
-              <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto transition-transform group-hover:scale-110">
-                <FileVideo className="w-5 h-5" />
-              </div>
-              <div className="text-xs xl:text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                {videoFile ? videoFile.name : 'Select Drone Video File (.mp4, .mov, .avi)'}
-              </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                {videoFile ? `Size: ${(videoFile.size / (1024 * 1024)).toFixed(1)} MB` : 'Required for Real ML Pipeline Execution'}
-              </p>
-            </div>
-
-            {/* Optional SRT Telemetry Picker Surface */}
-            <div
-              onClick={handleBrowseSrt}
-              className={cn(
-                'border border-dashed rounded-2xl p-4 flex items-center justify-between cursor-pointer transition-all',
-                srtFile
-                  ? 'border-cyan-500 bg-cyan-50/40 dark:bg-cyan-950/30'
-                  : 'border-zinc-300 dark:border-zinc-700 hover:border-cyan-500 bg-zinc-50/30 dark:bg-zinc-800/10'
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <FileCode className={cn('w-5 h-5', srtFile ? 'text-cyan-500' : 'text-zinc-400')} />
-                <div className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
-                  {srtFile ? srtFile.name : 'No SRT uploaded — GPS telemetry unavailable'}
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleBrowseSrt();
-                }}
-                className="h-7 text-xs font-semibold rounded-lg border-zinc-300 dark:border-zinc-700"
+            {/* Video File Dropzone */}
+            <div className="space-y-1.5">
+              <label className="text-xs xl:text-sm font-bold text-zinc-800 dark:text-zinc-200 block">
+                Primary Flight Video (.mp4 / .mov / .avi):
+              </label>
+              <input
+                ref={videoInputRef}
+                type="file"
+                accept=".mp4,.mov,.avi,video/*"
+                onChange={handleVideoUpload}
+                className="hidden"
+              />
+              <div
+                onClick={handleBrowseVideo}
+                className={cn(
+                  'p-4 rounded-2xl border-2 border-dashed transition-all cursor-pointer flex items-center gap-3.5',
+                  videoFile
+                    ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-400 dark:border-emerald-700'
+                    : 'bg-zinc-50 dark:bg-zinc-800/40 border-zinc-300 dark:border-zinc-700 hover:border-emerald-500'
+                )}
               >
-                {srtFile ? 'Change SRT' : 'Add SRT'}
-              </Button>
-            </div>
-          </div>
-
-          {/* Flight Telemetry Form */}
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-xs space-y-4">
-            <h3 className="text-sm xl:text-base font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
-              <Compass className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Flight Telemetry & Spatial Metadata</span>
-            </h3>
-
-            <div className="space-y-3.5">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs xl:text-sm font-bold text-zinc-800 dark:text-zinc-200 block">
-                    Surveillance Zone:
-                  </label>
-                  {zoneDetection.status === 'AUTO_DETECTED' && !zoneDetection.isManualOverride && (
-                    <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-800">
-                      Auto-Detected
-                    </span>
-                  )}
-                  {zoneDetection.status === 'MULTI_ZONE' && !zoneDetection.isManualOverride && (
-                    <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-800">
-                      Multi-Zone
-                    </span>
-                  )}
-                  {zoneDetection.isManualOverride && (
-                    <span className="text-[11px] font-bold text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full border border-zinc-300 dark:border-zinc-700">
-                      Manual
-                    </span>
-                  )}
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                  <FileVideo className="w-5 h-5" />
                 </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                    {videoFile ? videoFile.name : 'Click to select / drop drone video file'}
+                  </p>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                    {videoFile
+                      ? `${(videoFile.size / (1024 * 1024)).toFixed(1)} MB • Video loaded`
+                      : 'Requires MP4, MOV, or AVI'}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  type="button"
+                  className="shrink-0 text-xs h-8 border-zinc-300 dark:border-zinc-700"
+                >
+                  {videoFile ? 'Change' : 'Browse'}
+                </Button>
+              </div>
+            </div>
+
+            {/* SRT Telemetry File Dropzone */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs xl:text-sm font-bold text-zinc-800 dark:text-zinc-200 block">
+                  DJI SRT Telemetry Subtitle (.srt):
+                </label>
+                <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                  Auto-Detects Zone
+                </span>
+              </div>
+              <input
+                ref={srtInputRef}
+                type="file"
+                accept=".srt,text/plain"
+                onChange={handleSrtUpload}
+                className="hidden"
+              />
+              <div
+                onClick={handleBrowseSrt}
+                className={cn(
+                  'p-4 rounded-2xl border-2 border-dashed transition-all cursor-pointer flex items-center gap-3.5',
+                  srtFile
+                    ? 'bg-teal-50/50 dark:bg-teal-950/20 border-teal-400 dark:border-teal-700'
+                    : 'bg-zinc-50 dark:bg-zinc-800/40 border-zinc-300 dark:border-zinc-700 hover:border-teal-500'
+                )}
+              >
+                <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-600 flex items-center justify-center shrink-0">
+                  <FileCode className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                    {srtFile ? srtFile.name : 'Optional: Load DJI SRT Telemetry File'}
+                  </p>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                    {srtFile
+                      ? `${(srtFile.size / 1024).toFixed(1)} KB • Telemetry active`
+                      : 'Extracts real-time per-frame GPS & Altitude'}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  type="button"
+                  className="shrink-0 text-xs h-8 border-zinc-300 dark:border-zinc-700"
+                >
+                  {srtFile ? 'Change' : 'Browse'}
+                </Button>
+              </div>
+            </div>
+
+            {/* Flight Metadata Configuration Form */}
+            <div className="space-y-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+              <h4 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                Operational Zone & Telemetry
+              </h4>
+
+              <div>
+                <label className="text-xs xl:text-sm font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
+                  Operational Surveillance Zone:
+                </label>
                 <Select
                   value={telemetry.zoneId}
                   onValueChange={(val: ZoneId) => {
                     setTelemetry({ ...telemetry, zoneId: val });
-                    setZoneDetection((prev) => ({
-                      ...prev,
-                      isManualOverride: true,
-                    }));
+                    setZoneDetection((prev) => ({ ...prev, isManualOverride: true }));
                   }}
                 >
                   <SelectTrigger className="h-10 rounded-xl text-xs xl:text-sm bg-zinc-50 dark:bg-zinc-800/50 border-zinc-300 dark:border-zinc-700">
@@ -607,44 +704,6 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                     <SelectItem value="EC-04" className="text-xs xl:text-sm">EC-04: Main Junction Corridor & Flyover</SelectItem>
                   </SelectContent>
                 </Select>
-
-                {/* Zone Detection Status Banner */}
-                {zoneDetection.isManualOverride ? (
-                  <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1.5 px-2.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60">
-                    <span>✎ Manually selected by operator</span>
-                  </div>
-                ) : zoneDetection.status === 'AUTO_DETECTED' ? (
-                  <div className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300 font-medium mt-1.5 p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span>
-                      ✓ Zone automatically detected from SRT telemetry ({Math.round((zoneDetection.confidence || 1) * 100)}% match)
-                    </span>
-                  </div>
-                ) : zoneDetection.status === 'MULTI_ZONE' ? (
-                  <div className="text-xs text-amber-700 dark:text-amber-300 font-medium mt-1.5 p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 space-y-1">
-                    <div className="flex items-center gap-1.5">
-                      <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-                      <span className="font-semibold">
-                        ⚠ Multi-Zone Flight Detected (Dominant: {zoneDetection.detectedZoneCode})
-                      </span>
-                    </div>
-                    {zoneDetection.breakdown && zoneDetection.breakdown.length > 0 && (
-                      <div className="text-[11px] text-amber-800 dark:text-amber-400 pl-5">
-                        Distribution: {zoneDetection.breakdown.map((b) => `${b.code} (${b.percentage}%)`).join(' • ')}
-                      </div>
-                    )}
-                  </div>
-                ) : zoneDetection.status === 'NO_MATCH' ? (
-                  <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300 font-medium mt-1.5 p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800">
-                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-                    <span>⚠ No configured surveillance zone matched the flight path. Manual selection required.</span>
-                  </div>
-                ) : zoneDetection.status === 'NO_GPS' ? (
-                  <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1.5 px-2.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60">
-                    <span className="w-2 h-2 rounded-full bg-zinc-400" />
-                    <span>GPS telemetry unavailable in SRT — select zone manually</span>
-                  </div>
-                ) : null}
               </div>
 
               <div>
@@ -684,8 +743,8 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
               </div>
             </div>
 
-            {/* Action Buttons: REAL PROCESS vs DEMO SIMULATION */}
-            <div className="space-y-2.5 pt-2">
+            {/* Action Buttons */}
+            <div className="pt-2">
               <Button
                 onClick={handleRunRealProcessing}
                 disabled={!videoFile || isRealProcessing}
@@ -708,20 +767,6 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                   </>
                 )}
               </Button>
-
-              <Button
-                variant="outline"
-                onClick={handleRunDemoInference}
-                disabled={isAnalyzing || isRealProcessing}
-                className="w-full h-10 rounded-xl text-xs font-semibold border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
-              >
-                {isAnalyzing ? (
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Zap className="w-4 h-4 mr-2 text-amber-500" />
-                )}
-                <span>Run Demo Preset Simulation (Offline Preview)</span>
-              </Button>
             </div>
           </div>
         </div>
@@ -735,7 +780,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
               <div className="flex items-center gap-2">
                 <Camera className="w-4 h-4 text-emerald-400" />
                 <span className="text-xs xl:text-sm font-bold text-zinc-200">
-                  {realJobStatus?.status === 'COMPLETED'
+                  {realJobStatus?.status === 'COMPLETED' || flightInspection
                     ? 'PROCESSED ML OUTPUT (Annotated Track Video)'
                     : inferenceResult
                     ? 'Inference Output & Mask Overlay'
@@ -743,7 +788,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                 </span>
               </div>
 
-              {realJobStatus?.status === 'COMPLETED' ? (
+              {realJobStatus?.status === 'COMPLETED' || flightInspection ? (
                 <div className="flex items-center gap-1.5 bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-xl text-xs font-mono font-bold">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   <span>PROCESSED ML OUTPUT</span>
@@ -798,227 +843,145 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                   <span>
                     GPS: {telemetry.coordinates.lat.toFixed(4)}°N, {telemetry.coordinates.lng.toFixed(4)}°E
                   </span>
-                  <span>•</span>
-                  <span className="text-teal-400 font-bold">1080p 60FPS</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* REAL ML Processing Live Progress Visualizer (Phase 11D) */}
-          {realJobStatus && (
+          {/* Real ML Processing Status & Flight Inspection View */}
+          {(realJobStatus || flightInspection || isFlightInspectionLoading || flightInspectionError) && (
             <div className="p-6 rounded-3xl bg-zinc-900 border border-zinc-800 text-white shadow-lg space-y-4 animate-in fade-in">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={cn(
-                      'w-3 h-3 rounded-full',
-                      realJobStatus.status === 'QUEUED'
-                        ? 'bg-amber-400 animate-pulse'
-                        : realJobStatus.status === 'PROCESSING'
-                        ? 'bg-emerald-400 animate-ping'
-                        : realJobStatus.status === 'COMPLETED'
-                        ? 'bg-emerald-500'
-                        : 'bg-red-500'
-                    )}
-                  />
-                  <div>
-                    <div className="text-sm font-bold text-white flex items-center gap-2">
-                      <span>
-                        {realJobStatus.status === 'QUEUED'
-                          ? 'Queued for GPU Execution'
-                          : realJobStatus.status === 'PROCESSING'
-                          ? 'Real AI Processing Pipeline Active'
-                          : realJobStatus.status === 'COMPLETED'
-                          ? 'Analysis & Database Ingestion Complete'
-                          : 'Processing Failed'}
-                      </span>
-                      <span className="text-xs font-mono text-zinc-400">
-                        (Job: {realJobStatus.job_id.slice(0, 8)})
-                      </span>
+              {realJobStatus && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          'w-3 h-3 rounded-full',
+                          realJobStatus.status === 'QUEUED'
+                            ? 'bg-amber-400 animate-pulse'
+                            : realJobStatus.status === 'PROCESSING'
+                            ? 'bg-emerald-400 animate-ping'
+                            : realJobStatus.status === 'COMPLETED'
+                            ? 'bg-emerald-500'
+                            : 'bg-red-500'
+                        )}
+                      />
+                      <div>
+                        <div className="text-sm font-bold text-white flex items-center gap-2">
+                          <span>
+                            {realJobStatus.status === 'QUEUED'
+                              ? 'Queued for GPU Execution'
+                              : realJobStatus.status === 'PROCESSING'
+                              ? 'Real AI Processing Pipeline Active'
+                              : realJobStatus.status === 'COMPLETED'
+                              ? 'Analysis & Database Ingestion Complete'
+                              : 'Processing Failed'}
+                          </span>
+                          <span className="text-xs font-mono text-zinc-400">
+                            (Job: {realJobStatus.job_id.slice(0, 8)})
+                          </span>
+                        </div>
+                        <p className="text-xs text-emerald-400 font-medium mt-0.5">
+                          {realJobStatus.current_stage}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-xs text-emerald-400 font-medium mt-0.5">
-                      {realJobStatus.current_stage}
-                    </p>
+
+                    <div className="text-right">
+                      <div className="text-xs font-mono text-zinc-400">Status</div>
+                      <div
+                        className={cn(
+                          'text-xs font-bold px-2.5 py-0.5 rounded-full inline-block mt-0.5',
+                          realJobStatus.status === 'COMPLETED'
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : realJobStatus.status === 'FAILED'
+                            ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                            : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        )}
+                      >
+                        {realJobStatus.status}
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="text-right">
-                  <div className="text-xs font-mono text-zinc-400">Status</div>
-                  <div
-                    className={cn(
-                      'text-xs font-bold px-2.5 py-0.5 rounded-full inline-block mt-0.5',
-                      realJobStatus.status === 'COMPLETED'
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                        : realJobStatus.status === 'FAILED'
-                        ? 'bg-red-500/20 text-red-300 border border-red-500/30'
-                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                    )}
-                  >
-                    {realJobStatus.status}
+                  {/* Progress Bar */}
+                  <div className="w-full bg-zinc-800 h-2.5 rounded-full overflow-hidden">
+                    <div
+                      style={{ width: `${realJobStatus.status === 'COMPLETED' ? 100 : Math.max(realJobStatus.progress_pct, 15)}%` }}
+                      className={cn(
+                        'h-full rounded-full transition-all duration-500 shadow-sm',
+                        realJobStatus.status === 'COMPLETED'
+                          ? 'bg-emerald-500'
+                          : realJobStatus.status === 'FAILED'
+                          ? 'bg-red-500'
+                          : 'bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 animate-pulse'
+                      )}
+                    />
                   </div>
-                </div>
-              </div>
+                </>
+              )}
 
-              {/* Progress Bar */}
-              <div className="w-full bg-zinc-800 h-2.5 rounded-full overflow-hidden">
-                <div
-                  style={{ width: `${realJobStatus.status === 'COMPLETED' ? 100 : Math.max(realJobStatus.progress_pct, 15)}%` }}
-                  className={cn(
-                    'h-full rounded-full transition-all duration-500 shadow-sm',
-                    realJobStatus.status === 'COMPLETED'
-                      ? 'bg-emerald-500'
-                      : realJobStatus.status === 'FAILED'
-                      ? 'bg-red-500'
-                      : 'bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 animate-pulse'
-                  )}
-                />
-              </div>
-
-              {/* Real Job Summary Panel on Completion */}
-              {realJobStatus.status === 'COMPLETED' && realJobStatus.results && (
+              {/* Real Job Summary & Flight Inspection Panel on Completion */}
+              {(realJobStatus?.status === 'COMPLETED' || flightInspection || isFlightInspectionLoading || flightInspectionError) && (
                 <div className="pt-3 border-t border-zinc-800 space-y-4">
-                  {(realJobStatus.results.summary.incidents_created ?? 0) > 0 ? (
-                    <>
-                      <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs xl:text-sm text-emerald-200 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                          <span className="font-semibold">
-                            PostgreSQL/PostGIS Ingestion Complete: {realJobStatus.results.summary.incidents_created} Incidents, {realJobStatus.results.summary.detections_created} Detections, {realJobStatus.results.summary.evidence_created} Evidence records created.
-                          </span>
-                        </div>
-                      </div>
+                  {/* Loading State for Inspection Detail */}
+                  {isFlightInspectionLoading && (
+                    <div className="p-8 rounded-2xl bg-zinc-900/90 border border-zinc-800 text-center space-y-3 animate-in fade-in">
+                      <RefreshCw className="w-6 h-6 text-emerald-400 animate-spin mx-auto" />
+                      <h4 className="text-sm font-bold text-white">Aggregating Flight Inspection Results...</h4>
+                      <p className="text-xs text-zinc-400">Reconstructing flight inspection metrics and incident records from backend.</p>
+                    </div>
+                  )}
 
-                      {/* Hazard Class Counts Breakdown Grid */}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
-                        <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
-                          <span className="text-xs text-teal-400 font-bold block">Waterlogging</span>
-                          <span className="text-lg font-black font-mono text-white">
-                            {realJobStatus.results.summary.class_counts?.waterlogging ?? 0}
-                          </span>
+                  {/* Error State for Inspection Detail Retrieval */}
+                  {flightInspectionError && !isFlightInspectionLoading && (
+                    <div className="p-5 rounded-2xl bg-amber-950/40 border border-amber-500/40 space-y-3 animate-in fade-in">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+                          <AlertTriangle className="w-5 h-5 shrink-0" />
+                          <span>Unable to Load Flight Inspection Details</span>
                         </div>
-                        <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
-                          <span className="text-xs text-amber-400 font-bold block">Potholes</span>
-                          <span className="text-lg font-black font-mono text-white">
-                            {realJobStatus.results.summary.class_counts?.pothole ?? 0}
-                          </span>
-                        </div>
-                        <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
-                          <span className="text-xs text-cyan-400 font-bold block">Drainage Overflow</span>
-                          <span className="text-lg font-black font-mono text-white">
-                            {realJobStatus.results.summary.class_counts?.drainage_overflow ?? 0}
-                          </span>
-                        </div>
-                        <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
-                          <span className="text-xs text-orange-400 font-bold block">Footpath Damage</span>
-                          <span className="text-lg font-black font-mono text-white">
-                            {realJobStatus.results.summary.class_counts?.damaged_footpath ?? 0}
-                          </span>
-                        </div>
-                        <div className="p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-center">
-                          <span className="text-xs text-purple-400 font-bold block">Open Manhole</span>
-                          <span className="text-lg font-black font-mono text-white">
-                            {realJobStatus.results.summary.class_counts?.open_manhole ?? 0}
-                          </span>
-                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const targetId = flightInspection?.summary.job_id || activeJobId;
+                            if (targetId) loadFlightInspection(targetId);
+                          }}
+                          className="text-xs h-8 px-3 border-amber-500/50 text-amber-300 hover:bg-amber-950/60 cursor-pointer"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                          <span>Retry</span>
+                        </Button>
                       </div>
-                    </>
-                  ) : (
-                    /* Zero Incidents Detected — Human-in-the-Loop Verification Card (Phase 14) */
-                    <div className="p-5 rounded-2xl bg-zinc-900/90 border border-zinc-700/80 space-y-4 animate-in fade-in">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={cn(
-                              'w-10 h-10 rounded-xl flex items-center justify-center border shrink-0',
-                              verificationStatus === 'CONFIRMED_CLEAR'
-                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                                : verificationStatus === 'ANOMALY_REPORTED'
-                                ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                                : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                            )}
-                          >
-                            {verificationStatus === 'CONFIRMED_CLEAR' ? (
-                              <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                            ) : (
-                              <ShieldAlert className="w-5 h-5 text-amber-400" />
-                            )}
-                          </div>
-                          <div>
-                            <h4 className="text-sm xl:text-base font-black text-white tracking-tight">
-                              {verificationStatus === 'CONFIRMED_CLEAR'
-                                ? 'Flight Verified Clean (True Negative)'
-                                : verificationStatus === 'ANOMALY_REPORTED'
-                                ? 'Manual Incident Created & Linked'
-                                : 'No Anomalies Detected by AI — Human Verification Required'}
-                            </h4>
-                            <p className="text-xs text-zinc-400 font-medium">
-                              {verificationStatus === 'CONFIRMED_CLEAR'
-                                ? 'Audit record persisted to database. Flight certified free of civic risks.'
-                                : verificationStatus === 'ANOMALY_REPORTED'
-                                ? 'Manual incident registered from this flight and routed to live incident queue.'
-                                : 'AI found 0 hazards in this flight clip. Operator sign-off required to certify clean surface or report undetected anomalies.'}
-                            </p>
-                          </div>
-                        </div>
+                      <p className="text-xs text-zinc-300 font-mono bg-black/40 p-3 rounded-xl border border-amber-900/40">
+                        {flightInspectionError}
+                      </p>
+                    </div>
+                  )}
 
-                        <div className="shrink-0">
-                          <span
-                            className={cn(
-                              'px-3 py-1 rounded-full text-xs font-bold border inline-flex items-center gap-1.5',
-                              verificationStatus === 'CONFIRMED_CLEAR'
-                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                                : verificationStatus === 'ANOMALY_REPORTED'
-                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                                : 'bg-amber-500/20 text-amber-300 border-amber-500/30 animate-pulse'
-                            )}
-                          >
-                            <span
-                              className={cn(
-                                'w-2 h-2 rounded-full',
-                                verificationStatus === 'CONFIRMED_CLEAR'
-                                  ? 'bg-emerald-400'
-                                  : 'bg-amber-400'
-                              )}
-                            />
-                            <span>
-                              {verificationStatus === 'CONFIRMED_CLEAR'
-                                ? 'CONFIRMED CLEAR ✓'
-                                : verificationStatus === 'ANOMALY_REPORTED'
-                                ? 'ANOMALY REPORTED'
-                                : 'PENDING REVIEW'}
-                            </span>
-                          </span>
-                        </div>
-                      </div>
+                  {/* Authoritative Flight Inspection Results (Phase 4) */}
+                  {flightInspection && !isFlightInspectionLoading && (
+                    <div className="space-y-4 animate-in fade-in">
+                      <FlightInspectionCard
+                        summary={flightInspection.summary}
+                        verification={flightInspection.verification}
+                        onOpenHistory={() => setIsHistoryDrawerOpen(true)}
+                        onPlayVideo={(url) => {
+                          setMediaType('video');
+                          setMediaPreviewUrl(url);
+                        }}
+                        onConfirmClear={handleConfirmNoAnomaly}
+                        onReportAnomaly={() => setIsManualModalOpen(true)}
+                        isConfirmingClear={isConfirmingClear}
+                      />
 
-                      {/* Interactive Verification Buttons (when PENDING_REVIEW) */}
-                      {(!verificationStatus || verificationStatus === 'PENDING_REVIEW') && (
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
-                          <div className="text-xs text-zinc-400 font-medium">
-                            Review the processed flight video below to confirm clear conditions or capture undetected hazards.
-                          </div>
-                          <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={handleConfirmNoAnomaly}
-                              disabled={isConfirmingClear}
-                              className="w-full sm:w-auto h-9.5 text-xs font-bold rounded-xl border-emerald-500/50 text-emerald-300 hover:bg-emerald-950/50 cursor-pointer"
-                            >
-                              <CheckCircle2 className="w-4 h-4 mr-1.5 text-emerald-400" />
-                              <span>{isConfirmingClear ? 'Confirming...' : 'Confirm No Anomaly'}</span>
-                            </Button>
-                            <Button
-                              type="button"
-                              onClick={() => setIsManualModalOpen(true)}
-                              className="w-full sm:w-auto h-9.5 text-xs font-bold rounded-xl bg-amber-600 hover:bg-amber-700 text-white shadow-md shadow-amber-500/20 cursor-pointer"
-                            >
-                              <AlertTriangle className="w-4 h-4 mr-1.5" />
-                              <span>Report Undetected Hazard</span>
-                            </Button>
-                          </div>
-                        </div>
+                      {flightInspection.incidents.length > 0 && (
+                        <FlightInspectionResultsList
+                          incidents={flightInspection.incidents}
+                          onSelectIncident={(incident) => onIncidentPublished(incident.id)}
+                        />
                       )}
                     </div>
                   )}
@@ -1034,57 +997,15 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
                       <span>Download Ingestion Summary</span>
                     </Button>
                     <span className="text-xs text-emerald-400 font-bold">
-                      {(realJobStatus.results.summary.incidents_created ?? 0) > 0
+                      {(flightInspection?.summary.total_hazards ?? realJobStatus?.results?.summary?.incidents_created ?? 0) > 0
                         ? 'Incident Queue Refreshed Live ✓'
                         : 'Surveillance Mission Audited ✓'}
                     </span>
                   </div>
-
-                  {/* Processed Flight Video (Annotated Output) */}
-                  {realJobStatus.results.output_video_url && (
-                    <div className="pt-4 border-t border-zinc-800 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Video className="w-4 h-4 text-emerald-400" />
-                          <h4 className="text-xs xl:text-sm font-bold text-zinc-100 uppercase tracking-wider">
-                            Processed Flight Video (Annotated ML Track Output)
-                          </h4>
-                        </div>
-                        <span className="text-xs font-mono text-emerald-400 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
-                          YOLOv8 + MiDaS
-                        </span>
-                      </div>
-
-                      {!videoLoadError ? (
-                        <div className="relative aspect-video w-full bg-black rounded-2xl overflow-hidden border border-zinc-800">
-                          <video
-                            src={
-                              realJobStatus.results.output_video_url.startsWith('http')
-                                ? realJobStatus.results.output_video_url
-                                : `${getMediaBaseUrl()}${realJobStatus.results.output_video_url}`
-                            }
-                            controls
-                            playsInline
-                            onError={() => setVideoLoadError(true)}
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
-                      ) : (
-                        <div className="p-4 rounded-2xl bg-zinc-800/80 border border-zinc-700 text-center text-xs font-medium text-amber-400">
-                          Processed video unavailable
-                        </div>
-                      )}
-
-                      <p className="text-xs text-zinc-400 font-medium">
-                        Displays the exact annotated output video generated by the ML engine, including hazard tracking IDs, segmentation masks, and relative depth estimation overlays.
-                      </p>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
           )}
-
 
           {/* Real ML Processing Error Alert */}
           {realJobError && (
@@ -1257,11 +1178,20 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
       <ManualAnomalyModal
         isOpen={isManualModalOpen}
         onClose={() => setIsManualModalOpen(false)}
-        jobId={activeJobId || ''}
+        jobId={flightInspection?.summary.job_id || activeJobId || ''}
         videoPlaybackTime={0}
         flightGpsPoint={null}
         zoneId={telemetry.zoneId}
         onAnomalyCreated={handleAnomalyCreated}
+      />
+
+      {/* Historical Flight Run History Drawer (Phase 4) */}
+      <FlightRunHistoryDrawer
+        isOpen={isHistoryDrawerOpen}
+        onClose={() => setIsHistoryDrawerOpen(false)}
+        activeJobId={flightInspection?.summary.job_id || activeJobId}
+        onSelectRun={handleSelectHistoricalRun}
+        zoneId={telemetry.zoneId}
       />
     </div>
   );

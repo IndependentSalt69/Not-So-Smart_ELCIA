@@ -457,6 +457,8 @@ async function ensureBackendSeeded() {
   }
 }
 
+import { inspectionService } from '@/services/inspectionService';
+
 export const incidentService = {
   /**
    * Subscribe to incidents state changes
@@ -526,6 +528,86 @@ export const incidentService = {
     sortField: SortField = 'timestamp',
     sortDir: SortDirection = 'desc'
   ): Promise<Incident[]> {
+    // 1. Flight Run Scoped Incident Retrieval (Phase 5B)
+    if (filters?.flightRunId && filters.flightRunId !== 'all') {
+      try {
+        let flightIncidents: Incident[] = [];
+        if (isMockDataEnabled()) {
+          const runId = filters.flightRunId.toLowerCase();
+          flightIncidents = incidentsState.filter((inc) => {
+            const incCode = (inc.code || inc.id).toLowerCase();
+            return incCode.includes(runId);
+          });
+        } else {
+          const detail = await inspectionService.getFlightRunDetail(filters.flightRunId);
+          flightIncidents = detail?.incidents || [];
+          if (flightIncidents.length > 0) {
+            upsertIncidentsState(flightIncidents, false);
+          }
+        }
+
+        // Apply local filtering to flight incidents
+        if (filters.queueTab === 'completed') {
+          flightIncidents = flightIncidents.filter((inc) => inc.status === 'CLOSED');
+        } else if (filters.queueTab === 'rejected') {
+          flightIncidents = flightIncidents.filter((inc) => inc.status === 'REJECTED');
+        } else if (filters.queueTab === 'active' || (!filters.queueTab && (!filters.status || filters.status === 'all'))) {
+          flightIncidents = flightIncidents.filter((inc) => inc.status !== 'CLOSED' && inc.status !== 'REJECTED');
+        }
+
+        if (filters.status && filters.status !== 'all') {
+          flightIncidents = flightIncidents.filter((inc) => inc.status === filters.status);
+        }
+        if (filters.type && filters.type !== 'all') {
+          flightIncidents = flightIncidents.filter((inc) => inc.type === filters.type);
+        }
+        if (filters.priority && filters.priority !== 'all') {
+          flightIncidents = flightIncidents.filter((inc) => inc.priority === filters.priority);
+        }
+        if (filters.zoneId && filters.zoneId !== 'all') {
+          flightIncidents = flightIncidents.filter((inc) => inc.zoneId === filters.zoneId);
+        }
+        if (filters.searchQuery && filters.searchQuery.trim() !== '') {
+          const q = filters.searchQuery.toLowerCase().trim();
+          flightIncidents = flightIncidents.filter(
+            (inc) =>
+              inc.id.toLowerCase().includes(q) ||
+              (inc.code && inc.code.toLowerCase().includes(q)) ||
+              inc.locationDescription.toLowerCase().includes(q) ||
+              inc.zone.toLowerCase().includes(q) ||
+              inc.type.toLowerCase().includes(q)
+          );
+        }
+
+        // Apply local sorting
+        flightIncidents.sort((a, b) => {
+          let comparison = 0;
+          switch (sortField) {
+            case 'severity':
+              comparison = a.severity - b.severity;
+              break;
+            case 'confidence':
+              comparison = (a.confidence ?? 0) - (b.confidence ?? 0);
+              break;
+            case 'priority': {
+              const rank = { P1: 3, P2: 2, P3: 1 };
+              comparison = rank[a.priority] - rank[b.priority];
+              break;
+            }
+            case 'timestamp':
+            default:
+              comparison = new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+              break;
+          }
+          return sortDir === 'asc' ? comparison : -comparison;
+        });
+
+        return flightIncidents;
+      } catch (err) {
+        console.warn(`Failed to fetch flight run incidents for '${filters.flightRunId}':`, err);
+        return [];
+      }
+    }
     if (isMockDataEnabled()) {
       let result = [...incidentsState];
 

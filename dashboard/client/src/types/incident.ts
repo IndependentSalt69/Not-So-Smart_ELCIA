@@ -20,6 +20,28 @@ export const INCIDENT_TYPE_LABELS: Record<IncidentType, string> = {
   open_manhole: 'Open Manhole',
 };
 
+export interface BackendIncidentItem {
+  id: string;
+  incident_code: string;
+  incident_type: BackendIncidentType;
+  confidence: number;
+  severity_score: number;
+  priority: 'P1' | 'P2' | 'P3';
+  zone_id: string;
+  status: IncidentStatus;
+  started_at?: string | null;
+  ended_at?: string | null;
+  duration_seconds?: number | null;
+  recommended_action?: string | null;
+  location?: {
+    type: 'Point';
+    coordinates: [number, number];
+  } | null;
+  source?: 'AI_VISION' | 'HUMAN_REPORTED' | string;
+  created_at: string;
+  updated_at: string;
+}
+
 export function mapBackendTypeToFrontend(backendType?: string | null): IncidentType {
   switch (backendType?.toUpperCase()) {
     case 'WATERLOGGING':
@@ -231,6 +253,7 @@ export interface IncidentFilters {
   priority?: PriorityLevel | 'all';
   status?: IncidentStatus | 'all';
   zoneId?: ZoneId | 'all';
+  flightRunId?: string;
   searchQuery?: string;
 }
 

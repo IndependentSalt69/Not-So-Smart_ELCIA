@@ -2,8 +2,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { incidentService } from '@/services/incidentService';
+import { inspectionService } from '@/services/inspectionService';
 import { IncidentFilters as FilterType, IncidentStatus, IncidentType, PriorityLevel, ZoneId } from '@/types/incident';
-import { AlertTriangle, CircleDot, Droplets, Filter, Footprints, RotateCcw, Search, Waves, X } from 'lucide-react';
+import { FlightInspectionRunSummary } from '@/types/inspection';
+import { AlertTriangle, CircleDot, Droplets, Filter, Footprints, Plane, RotateCcw, Search, Waves, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 interface IncidentFiltersProps {
@@ -113,11 +116,54 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
   onFilterChange,
   onReset,
 }) => {
+  const [flightRuns, setFlightRuns] = useState<FlightInspectionRunSummary[]>([]);
+  const [isFlightRunsLoading, setIsFlightRunsLoading] = useState<boolean>(false);
+
+  // Load live flight runs scoped to selected zone
+  useEffect(() => {
+    let isMounted = true;
+    const loadFlightRuns = async () => {
+      try {
+        setIsFlightRunsLoading(true);
+        const res = await inspectionService.listFlightRuns({
+          zone_id: filters.zoneId && filters.zoneId !== 'all' ? filters.zoneId : undefined,
+          limit: 100,
+        });
+        if (isMounted) {
+          const items = res?.items || [];
+          setFlightRuns(items);
+
+          // If currently selected flightRunId is no longer in scoped runs for this zone, reset it to 'all'
+          if (filters.flightRunId && filters.flightRunId !== 'all') {
+            const exists = items.some(
+              (r) => r.job_id === filters.flightRunId || r.job_prefix === filters.flightRunId
+            );
+            if (!exists) {
+              onFilterChange({ ...filters, flightRunId: 'all' });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load flight inspection runs in filters:', err);
+      } finally {
+        if (isMounted) {
+          setIsFlightRunsLoading(false);
+        }
+      }
+    };
+
+    loadFlightRuns();
+    return () => {
+      isMounted = false;
+    };
+  }, [filters.zoneId]);
+
   const isFiltered =
     (filters.type && filters.type !== 'all') ||
     (filters.priority && filters.priority !== 'all') ||
     (filters.status && filters.status !== 'all') ||
     (filters.zoneId && filters.zoneId !== 'all') ||
+    (filters.flightRunId && filters.flightRunId !== 'all') ||
     (filters.searchQuery && filters.searchQuery.trim() !== '');
 
   const handleTypeChange = (type: IncidentType | 'all') => {
@@ -134,6 +180,10 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
 
   const handleZoneChange = (zoneId: string) => {
     onFilterChange({ ...filters, zoneId: zoneId as ZoneId | 'all' });
+  };
+
+  const handleFlightRunChange = (flightRunId: string) => {
+    onFilterChange({ ...filters, flightRunId });
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -201,14 +251,16 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
         </div>
       </div>
 
-      {/* Bottom row: Zone and Status Dropdowns + Reset */}
+      {/* Bottom row: Zone, Flight Run, and Status Dropdowns + Reset */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-zinc-100 dark:border-zinc-800/60">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+        <div className="flex flex-wrap items-stretch sm:items-center gap-3 flex-1">
           {/* Zone Selector */}
-          <div className="w-full sm:w-60">
+          <div className="w-full sm:w-56">
             <Select value={filters.zoneId || 'all'} onValueChange={handleZoneChange}>
               <SelectTrigger className="h-10 rounded-xl text-sm font-semibold border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 w-full">
-                <SelectValue placeholder="All Zones" />
+                <SelectValue placeholder="All Zones">
+                  {filters.zoneId && filters.zoneId !== 'all' ? filters.zoneId : 'All Zones'}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all" className="text-sm">All Zones</SelectItem>
@@ -220,11 +272,67 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
             </Select>
           </div>
 
+          {/* Flight Inspection Run Selector */}
+          <div className="w-full sm:w-72">
+            <Select
+              value={filters.flightRunId || 'all'}
+              onValueChange={handleFlightRunChange}
+              disabled={isFlightRunsLoading}
+            >
+              <SelectTrigger className="h-10 rounded-xl text-sm font-semibold border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 w-full">
+                <div className="flex items-center gap-2 truncate">
+                  <Plane className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                  <SelectValue placeholder="All Inspection Runs">
+                    {filters.flightRunId && filters.flightRunId !== 'all'
+                      ? `Flight #${filters.flightRunId.slice(0, 8).toUpperCase()}`
+                      : 'All Inspection Runs'}
+                  </SelectValue>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-sm font-medium">
+                  All Inspection Runs
+                </SelectItem>
+                {flightRuns.map((run) => {
+                  const hazardText =
+                    run.total_hazards === 0
+                      ? '0 hazards (Clean)'
+                      : `${run.total_hazards} ${run.total_hazards === 1 ? 'hazard' : 'hazards'}`;
+                  const zoneText = run.zone_code || 'EC-01';
+                  return (
+                    <SelectItem
+                      key={run.job_id}
+                      value={run.job_id}
+                      className="text-sm font-medium"
+                    >
+                      <span className="flex items-center justify-between gap-3 w-full">
+                        <span className="font-bold text-zinc-900 dark:text-white">
+                          Flight #{run.job_prefix}
+                        </span>
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
+                          {hazardText} • {zoneText}
+                        </span>
+                      </span>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Status Selector */}
-          <div className="w-full sm:w-64">
+          <div className="w-full sm:w-60">
             <Select value={filters.status || 'all'} onValueChange={handleStatusChange}>
               <SelectTrigger className="h-10 rounded-xl text-sm font-semibold border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 w-full">
-                <SelectValue placeholder={filters.queueTab === 'completed' ? 'All Resolved' : filters.queueTab === 'rejected' ? 'All Rejected' : 'All Active Statuses'} />
+                <SelectValue placeholder={filters.queueTab === 'completed' ? 'All Resolved' : filters.queueTab === 'rejected' ? 'All Rejected' : 'All Active Statuses'}>
+                  {filters.status && filters.status !== 'all'
+                    ? filters.status
+                    : filters.queueTab === 'completed'
+                    ? 'All Resolved'
+                    : filters.queueTab === 'rejected'
+                    ? 'All Rejected'
+                    : 'All Active Statuses'}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all" className="text-sm">

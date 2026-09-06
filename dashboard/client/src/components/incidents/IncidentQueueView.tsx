@@ -1,7 +1,9 @@
 import { EmptyState } from '@/components/common/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import { incidentService } from '@/services/incidentService';
+import { inspectionService } from '@/services/inspectionService';
 import {
   Incident,
   IncidentFilters as FilterType,
@@ -10,13 +12,17 @@ import {
   SortDirection,
   SortField,
 } from '@/types/incident';
+import { FlightInspectionRunDetailParsed } from '@/types/inspection';
 import {
   Activity,
   ArrowUpDown,
   CheckCircle2,
   LayoutGrid,
   ListFilter,
+  Plane,
+  Play,
   SlidersHorizontal,
+  X,
   XCircle,
 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -47,8 +53,39 @@ export const IncidentQueueView: React.FC<IncidentQueueViewProps> = ({
 }) => {
   const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
   const [sortOption, setSortOption] = useState<string>('severity-desc');
+  const [flightDetail, setFlightDetail] = useState<FlightInspectionRunDetailParsed | null>(null);
+  const [isFlightDetailLoading, setIsFlightDetailLoading] = useState<boolean>(false);
+  const [videoModalUrl, setVideoModalUrl] = useState<string | null>(null);
 
   const currentTab: IncidentQueueTab = filters.queueTab || 'active';
+
+  // Fetch flight details when a specific flight run is selected
+  useEffect(() => {
+    if (filters.flightRunId && filters.flightRunId !== 'all') {
+      let isMounted = true;
+      setIsFlightDetailLoading(true);
+      inspectionService
+        .getFlightRunDetail(filters.flightRunId)
+        .then((detail) => {
+          if (isMounted) {
+            setFlightDetail(detail);
+          }
+        })
+        .catch((err) => {
+          console.warn('Failed to fetch flight detail for queue header:', err);
+        })
+        .finally(() => {
+          if (isMounted) {
+            setIsFlightDetailLoading(false);
+          }
+        });
+      return () => {
+        isMounted = false;
+      };
+    } else {
+      setFlightDetail(null);
+    }
+  }, [filters.flightRunId]);
 
   const tabConfig: Record<
     IncidentQueueTab,
@@ -215,6 +252,87 @@ export const IncidentQueueView: React.FC<IncidentQueueViewProps> = ({
         onReset={onResetFilters}
       />
 
+      {/* Flight Inspection Context Banner (Rendered when a specific flight run is filtered) */}
+      {filters.flightRunId && filters.flightRunId !== 'all' && flightDetail && (
+        <div className="bg-gradient-to-r from-zinc-900 to-zinc-800 text-white rounded-3xl p-5 border border-zinc-700/60 shadow-lg relative overflow-hidden">
+          {/* Subtle background glow */}
+          <div className="absolute top-0 right-0 w-80 h-full bg-emerald-500/5 blur-3xl pointer-events-none" />
+
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+            <div className="space-y-1.5 flex-1">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex items-center gap-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-bold">
+                  <Plane className="w-3.5 h-3.5" />
+                  <span>Flight Inspection #{flightDetail.summary.job_prefix}</span>
+                </div>
+
+                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300">
+                  {flightDetail.summary.zone_code ? `Zone ${flightDetail.summary.zone_code}` : 'All Zones'}
+                </span>
+
+                {flightDetail.summary.total_hazards === 0 && (
+                  <span
+                    className={cn(
+                      'text-xs font-bold px-2.5 py-1 rounded-full border',
+                      flightDetail.summary.status === 'CONFIRMED_CLEAR'
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                        : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                    )}
+                  >
+                    {flightDetail.summary.status === 'CONFIRMED_CLEAR'
+                      ? 'CONFIRMED CLEAR (True Negative)'
+                      : 'VERIFICATION REQUIRED'}
+                  </span>
+                )}
+              </div>
+
+              <div>
+                {flightDetail.summary.total_hazards === 0 ? (
+                  <p className="text-sm text-zinc-300 font-medium">
+                    <strong className="text-white font-bold">Clean Flight Baseline:</strong> 0 physical hazards detected by AI vision across {flightDetail.summary.zone_code || 'the zone'}.
+                  </p>
+                ) : (
+                  <p className="text-sm text-zinc-300 font-medium">
+                    <strong className="text-white font-bold">
+                      {flightDetail.summary.total_hazards} individual {flightDetail.summary.total_hazards === 1 ? 'hazard' : 'hazards'} detected
+                    </strong>
+                    {Object.keys(flightDetail.summary.class_counts).length > 0 && (
+                      <span className="text-zinc-400">
+                        {' '}— {Object.entries(flightDetail.summary.class_counts)
+                          .map(([cls, count]) => `${count} ${cls.toLowerCase().replace('_', ' ')}`)
+                          .join(' • ')}
+                      </span>
+                    )}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-2.5 self-start md:self-auto shrink-0">
+              {flightDetail.summary.annotated_video_url && (
+                <Button
+                  size="sm"
+                  onClick={() => setVideoModalUrl(flightDetail.summary.annotated_video_url || null)}
+                  className="h-9 px-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer flex items-center gap-1.5"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>Watch Flight Video</span>
+                </Button>
+              )}
+
+              <button
+                onClick={() => onFilterChange({ ...filters, flightRunId: 'all' })}
+                className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                title="Clear Flight Filter"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Match Counter Header */}
       <div className="flex items-center justify-between text-xs xl:text-sm font-semibold text-zinc-600 dark:text-zinc-400 px-1">
         <span>
@@ -222,8 +340,13 @@ export const IncidentQueueView: React.FC<IncidentQueueViewProps> = ({
           <span className="text-zinc-900 dark:text-zinc-100 font-bold">
             {sortedIncidents.length}
           </span>{' '}
-          incidents in{' '}
-          <span className="capitalize font-bold text-zinc-900 dark:text-zinc-100">{currentTab}</span> view
+          {sortedIncidents.length === 1 ? 'incident' : 'incidents'}
+          {filters.flightRunId && filters.flightRunId !== 'all' && flightDetail?.summary ? (
+            <>
+              {' '}from <span className="font-bold text-zinc-900 dark:text-zinc-100">Flight #{flightDetail.summary.job_prefix}</span>
+            </>
+          ) : null}{' '}
+          in <span className="capitalize font-bold text-zinc-900 dark:text-zinc-100">{currentTab}</span> view
         </span>
       </div>
 
@@ -235,11 +358,23 @@ export const IncidentQueueView: React.FC<IncidentQueueViewProps> = ({
           ))}
         </div>
       ) : sortedIncidents.length === 0 ? (
-        <EmptyState
-          title={tabConfig[currentTab].emptyTitle}
-          description={tabConfig[currentTab].emptyDesc}
-          onResetFilters={onResetFilters}
-        />
+        filters.flightRunId && filters.flightRunId !== 'all' && flightDetail?.summary.total_hazards === 0 ? (
+          <EmptyState
+            title={`Zero Hazards Detected on Flight #${flightDetail.summary.job_prefix}`}
+            description={`This drone flight scan detected 0 physical hazards across ${flightDetail.summary.zone_code || 'the zone'}. Baseline roadway condition is clear.`}
+            onResetFilters={() => onFilterChange({ ...filters, flightRunId: 'all' })}
+          />
+        ) : (
+          <EmptyState
+            title={tabConfig[currentTab].emptyTitle}
+            description={
+              filters.flightRunId && filters.flightRunId !== 'all'
+                ? `No incidents matching '${currentTab}' view found for Flight #${flightDetail?.summary.job_prefix || ''}.`
+                : tabConfig[currentTab].emptyDesc
+            }
+            onResetFilters={onResetFilters}
+          />
+        )
       ) : layoutMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5 xl:gap-6">
           {sortedIncidents.map((incident) => (
@@ -265,6 +400,37 @@ export const IncidentQueueView: React.FC<IncidentQueueViewProps> = ({
           ))}
         </div>
       )}
+
+      {/* Annotated Video Playback Modal */}
+      {videoModalUrl && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl relative">
+            <div className="flex items-center justify-between p-4 border-b border-zinc-800 text-white">
+              <div className="flex items-center gap-2">
+                <Plane className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-sm font-bold">
+                  Flight Inspection #{flightDetail?.summary.job_prefix} — Annotated Footage
+                </h3>
+              </div>
+              <button
+                onClick={() => setVideoModalUrl(null)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="aspect-video bg-black flex items-center justify-center">
+              <video
+                src={videoModalUrl}
+                controls
+                autoPlay
+                className="w-full h-full object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

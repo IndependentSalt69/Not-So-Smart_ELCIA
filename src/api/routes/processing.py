@@ -4,12 +4,75 @@ FastAPI router endpoints for ML video processing jobs (Phase 11B).
 """
 
 from typing import Optional
-from fastapi import APIRouter, File, Form, UploadFile, HTTPException, status
+from fastapi import APIRouter, File, Form, UploadFile, HTTPException, Query, Depends, status
+from sqlalchemy.orm import Session
 
-from src.schemas.processing import ProcessJobResponse, JobStatusResponse
+from src.api.dependencies import get_db
+from src.schemas.processing import (
+    ProcessJobResponse,
+    JobStatusResponse,
+    FlightInspectionRunSummary,
+    FlightInspectionRunListResponse,
+    FlightInspectionRunDetail,
+)
+from src.repositories.processing_runs import list_flight_runs, get_flight_run
 from src.services.processing_job_manager import job_manager, JobStatus
 
 router = APIRouter(prefix="/process", tags=["processing"])
+
+
+@router.get(
+    "/runs",
+    status_code=status.HTTP_200_OK,
+    response_model=FlightInspectionRunListResponse,
+    summary="List Flight Inspection Runs",
+    description="Lists reconstructed historical and active drone flight inspection runs with aggregate metrics, supporting zone filtering and pagination.",
+)
+def get_flight_inspection_runs(
+    zone_id: Optional[str] = Query(None, description="Optional operational zone ID or code (e.g. EC-01)"),
+    skip: int = Query(0, ge=0, description="Number of runs to skip"),
+    limit: int = Query(20, ge=1, le=100, description="Max number of runs to return"),
+    db: Session = Depends(get_db),
+) -> FlightInspectionRunListResponse:
+    """
+    Returns aggregated flight runs from persisted detections, incidents, and video verifications.
+    Survives server restarts and preserves the 1 physical hazard = 1 Incident semantic.
+    """
+    items, total = list_flight_runs(
+        db=db,
+        zone_id=zone_id,
+        skip=skip,
+        limit=limit,
+    )
+    return FlightInspectionRunListResponse(
+        items=items,
+        total=total,
+        skip=skip,
+        limit=limit,
+    )
+
+
+@router.get(
+    "/runs/{job_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=FlightInspectionRunDetail,
+    summary="Get Flight Inspection Run Detail",
+    description="Retrieves a specific flight inspection run summary, all associated individual incident records, and verification info.",
+)
+def get_flight_inspection_run_detail(
+    job_id: str,
+    db: Session = Depends(get_db),
+) -> FlightInspectionRunDetail:
+    """
+    Returns full flight run detail with summary and individual incident list sorted deterministically.
+    """
+    run_detail = get_flight_run(db=db, job_id_or_prefix=job_id)
+    if not run_detail:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Flight inspection run '{job_id}' not found.",
+        )
+    return run_detail
 
 
 @router.post(
