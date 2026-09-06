@@ -167,7 +167,76 @@ Incidents progress through a strict, audited state machine:
 
 ## Local Setup & Quick Start
 
-### 1. Backend Setup
+### Quick Start by Operating System
+
+CivicPulse provides dedicated, automated setup and startup scripts for both Windows and macOS:
+
+| Platform | Setup Script | Start Script | Acceleration Tier |
+| :--- | :--- | :--- | :--- |
+| **Windows** | `.\setup_gpu.ps1` | `.\start.ps1` | NVIDIA CUDA GPU Acceleration |
+| **macOS (Apple Silicon)** | `./setup_mac.sh` | `./start_mac.sh` | Apple Metal Performance Shaders (MPS) |
+| **macOS (Intel)** | `./setup_mac.sh` | `./start_mac.sh` | CPU Fallback Execution |
+
+---
+
+### macOS Quick Start
+
+#### 1. Prerequisites (Homebrew)
+Ensure required CLI tools are installed on your Mac:
+```bash
+# Install Homebrew (if not already installed)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install project dependencies
+brew install python@3.11 node ffmpeg git
+```
+
+#### 2. Run Automated Setup
+```bash
+# Make scripts executable (if needed)
+chmod +x setup_mac.sh start_mac.sh
+
+# Run idempotent macOS environment setup
+./setup_mac.sh
+```
+`setup_mac.sh` automatically detects Apple Silicon (`arm64`) vs Intel (`x86_64`), creates `.venv`, installs requirements from `requirements.txt`, validates PyTorch MPS/CPU capability, verifies `.env` configurations, tests database and backend imports, and installs frontend dependencies.
+
+#### 3. Launch Services
+```bash
+./start_mac.sh
+```
+This concurrently starts:
+- **Backend API**: `http://127.0.0.1:8000`
+- **Dashboard**: `http://localhost:3000`
+
+Press `Ctrl+C` at any time to cleanly stop all running services.
+
+---
+
+### Windows Quick Start
+
+#### 1. Prerequisites
+- Python 3.11+
+- Node.js 18+ & npm
+- FFmpeg (`winget install Gyan.FFmpeg.Shared`)
+- NVIDIA GPU with CUDA drivers
+
+#### 2. Run Automated Setup
+In PowerShell (as Administrator or user with script execution rights):
+```powershell
+.\setup_gpu.ps1
+```
+
+#### 3. Launch Services
+```powershell
+.\start.ps1
+```
+
+---
+
+### Manual Setup (Platform-Agnostic)
+
+#### 1. Backend Setup
 
 ```bash
 # Clone the repository
@@ -192,7 +261,7 @@ alembic upgrade head
 python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8000
 ```
 
-### 2. Frontend Dashboard Setup
+#### 2. Frontend Dashboard Setup
 
 ```bash
 # Navigate to dashboard directory
@@ -205,7 +274,7 @@ npm install --legacy-peer-deps
 npm run dev
 ```
 
-The dashboard will launch locally at `http://localhost:5173`.
+The dashboard will launch locally at `http://localhost:3000` (or `http://localhost:5173`).
 
 ---
 
