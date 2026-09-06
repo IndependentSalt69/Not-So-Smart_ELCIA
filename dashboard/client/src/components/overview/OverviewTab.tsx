@@ -1,6 +1,6 @@
 import { Incident, IncidentFilters } from '@/types/incident';
 import { AnalyticsSummary } from '@/types/analytics';
-import { CloudRain } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import React from 'react';
 import { KpiSummaryGrid } from './KpiSummaryGrid';
 import { MiniMapWidget } from './MiniMapWidget';
@@ -10,7 +10,7 @@ interface OverviewTabProps {
   incidents: Incident[];
   analytics?: AnalyticsSummary | null;
   onSelectIncident: (incident: Incident) => void;
-  onNavigateView: (view: 'overview' | 'queue' | 'map' | 'analytics') => void;
+  onNavigateView: (view: 'overview' | 'queue' | 'map' | 'analytics' | 'ingest') => void;
   onApplyFilter: (filters: Partial<IncidentFilters>) => void;
 }
 
@@ -39,22 +39,38 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   return (
     <div className="space-y-6">
       {/* Hero Operational Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-950 via-zinc-900 to-emerald-950/70 text-white p-6 sm:p-8 xl:p-10 2xl:p-12 shadow-md border border-zinc-800/80">
-        {/* Decorative background glow elements */}
-        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 -mb-12 w-80 h-80 rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 space-y-3 max-w-4xl">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-xs xl:text-sm font-semibold tracking-wide">
-            <CloudRain className="w-4 h-4" />
-            <span>Monsoon Season Surveillance • Active Aerial Patrol</span>
+      <div className="rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 p-6 sm:p-8 lg:p-10 shadow-xs">
+        <div className="space-y-5 max-w-4xl">
+          <div className="space-y-2">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-zinc-900 dark:text-white">
+              CivicPulse Operations Command Center
+            </h1>
+            <p className="text-base sm:text-lg lg:text-xl font-semibold text-emerald-600 dark:text-emerald-400">
+              Automated aerial monitoring for civic hazard detection & response
+            </p>
           </div>
-          <h1 className="text-2xl sm:text-3xl xl:text-4xl 2xl:text-5xl font-black tracking-tight text-white leading-tight">
-            CivicPulse Operations Command Center
-          </h1>
-          <p className="text-sm xl:text-base 2xl:text-lg text-slate-300 leading-relaxed max-w-3xl">
+
+          <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-3xl">
             Automated aerial computer-vision monitoring for rapid waterlogging mitigation, pothole triage, and automated civic response across Electronics City Phase 1 & 2 corridors.
           </p>
+
+          <div className="flex flex-wrap items-center gap-3.5 pt-2">
+            <Button
+              type="button"
+              onClick={() => onNavigateView('ingest')}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm sm:text-base px-5 py-2.5 h-auto rounded-xl shadow-xs transition-colors cursor-pointer"
+            >
+              Upload & Analyze Video
+            </Button>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => onNavigateView('queue')}
+              className="border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-semibold text-sm sm:text-base px-5 py-2.5 h-auto rounded-xl transition-colors cursor-pointer"
+            >
+              View Incident Queue
+            </Button>
+          </div>
         </div>
       </div>
 

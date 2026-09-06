@@ -35,7 +35,6 @@ import {
   History,
   ImageIcon,
   Play,
-  Radio,
   RefreshCw,
   Send,
   ShieldAlert,
@@ -435,52 +434,45 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
     const a = document.createElement('a');
     a.href = url;
     a.download = `CivicPulse_AI_Processing_${activeJobId || flightInspection?.summary.job_id || inferenceResult?.id}.json`;
-    a.click();
+a.click();
     toast.success('GeoJSON report downloaded');
   };
 
   return (
     <div className="space-y-6">
       {/* Studio Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-950 via-zinc-900 to-emerald-950/70 text-white p-6 sm:p-8 xl:p-10 shadow-md border border-zinc-800/80">
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs xl:text-sm font-semibold">
-              <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
-              <span>Aerial Video Analysis Studio</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl xl:text-4xl 2xl:text-5xl font-black tracking-tight text-white">
-              Upload & Analyze Drone Video
+      <div className="rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 p-6 sm:p-8 lg:p-10 shadow-xs">
+        <div className="space-y-5 max-w-4xl">
+          <div className="space-y-2">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-zinc-900 dark:text-white">
+              CivicPulse AI
             </h1>
-            <p className="text-sm xl:text-base text-slate-300 leading-relaxed">
-              Upload drone video clips and optional flight information to automatically detect waterlogging, potholes, open manholes, damaged footpaths, and drainage issues across the corridor.
+            <p className="text-base sm:text-lg lg:text-xl font-semibold text-emerald-600 dark:text-emerald-400">
+              AI-powered aerial monitoring for civic hazard detection
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-3xl">
+            Upload drone video footage to detect and analyze waterlogging, potholes, open manholes, damaged footpaths, and drainage issues across urban corridors.
+          </p>
+
+          <div className="flex flex-wrap items-center gap-3.5 pt-2">
+            <Button
+              type="button"
+              onClick={handleBrowseVideo}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm sm:text-base px-5 py-2.5 h-auto rounded-xl shadow-xs transition-colors cursor-pointer"
+            >
+              Upload & Analyze Video
+            </Button>
             <Button
               variant="outline"
+              type="button"
               onClick={() => setIsHistoryDrawerOpen(true)}
-              className="bg-white/10 hover:bg-white/20 text-white border-white/20 rounded-2xl h-auto py-3 px-4 flex items-center gap-2.5 backdrop-blur-md cursor-pointer transition-all"
               data-testid="header-flight-history-btn"
+              className="border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-semibold text-sm sm:text-base px-5 py-2.5 h-auto rounded-xl transition-colors cursor-pointer"
             >
-              <History className="w-5 h-5 text-emerald-400" />
-              <div className="text-left">
-                <div className="text-[10px] uppercase font-bold text-slate-300">Surveillance Log</div>
-                <div className="text-xs font-bold text-white">Flight History</div>
-              </div>
+              Flight History
             </Button>
-
-            <div className="flex items-center gap-3.5 bg-white/10 backdrop-blur-md p-4 xl:p-5 rounded-2xl border border-white/15">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-                <Cpu className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-slate-300">Analysis Engine</div>
-                <div className="text-lg xl:text-xl font-black text-white">CivicPulse AI</div>
-                <div className="text-xs text-emerald-300 font-bold">Auto-Report & Ingest</div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
