@@ -298,7 +298,7 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
                     run.total_hazards === 0
                       ? '0 hazards (Clean)'
                       : `${run.total_hazards} ${run.total_hazards === 1 ? 'hazard' : 'hazards'}`;
-                  const zoneText = run.zone_code || 'EC-01';
+                  const zoneText = run.zone_code || 'Zone N/A';
                   return (
                     <SelectItem
                       key={run.job_id}

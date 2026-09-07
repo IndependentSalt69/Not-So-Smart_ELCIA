@@ -283,13 +283,13 @@ def _build_run_summary(run_data: Dict[str, Any]) -> FlightInspectionRunSummary:
     # Resolve Timestamps
     created_at = run_data["created_at"]
     if incidents_list:
-        inc_starts = [i.started_at for i in incidents_list if i.started_at]
-        if inc_starts:
-            created_at = min(inc_starts)
+        inc_created = [i.created_at for i in incidents_list if i.created_at]
+        if inc_created:
+            created_at = min(inc_created)
         else:
-            inc_created = [i.created_at for i in incidents_list if i.created_at]
-            if inc_created:
-                created_at = min(inc_created)
+            inc_starts = [i.started_at for i in incidents_list if i.started_at]
+            if inc_starts:
+                created_at = min(inc_starts)
 
     completed_at = run_data.get("completed_at")
     if not completed_at and incidents_list:

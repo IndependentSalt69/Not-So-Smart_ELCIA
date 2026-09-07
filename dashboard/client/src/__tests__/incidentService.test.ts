@@ -292,4 +292,108 @@ describe('Incident Service', () => {
       'Waterlogging reported manually by human operator during aerial footage review.'
     );
   });
+
+  describe('Zone Consistency Mapping', () => {
+    it('1. EC-04 incident maps to zoneId = EC-04 with canonical zone name', () => {
+      const item: BackendIncidentItem = {
+        id: 'inc-ec04-uuid-1',
+        incident_code: 'INC-57923255-1',
+        incident_type: 'POTHOLE',
+        confidence: 0.92,
+        severity_score: 7.2,
+        priority: 'P2',
+        zone_id: '803a13e5-416d-4614-b404-f730d1d8926e',
+        zone_code: 'EC-04',
+        zone_name: 'Main Junction Corridor (EPIC Area)',
+        status: 'DETECTED',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const mapped = mapBackendIncidentToFrontend(item);
+      expect(mapped.zoneId).toBe('EC-04');
+      expect(mapped.zone).toBe('Main Junction Corridor (EPIC Area)');
+    });
+
+    it('2. EC-03 incident maps to EC-03', () => {
+      const item: BackendIncidentItem = {
+        id: 'inc-ec03-uuid-1',
+        incident_code: 'INC-EC03-01',
+        incident_type: 'WATERLOGGING',
+        confidence: 0.85,
+        severity_score: 8.0,
+        priority: 'P1',
+        zone_id: '01f02dbd-ad38-471a-bcfd-1366bc18aa67',
+        zone_code: 'EC-03',
+        status: 'DETECTED',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const mapped = mapBackendIncidentToFrontend(item);
+      expect(mapped.zoneId).toBe('EC-03');
+      expect(mapped.zone).toBe('Phase 2 - North (Velankani Drive)');
+    });
+
+    it('3. EC-01 incident remains EC-01', () => {
+      const item: BackendIncidentItem = {
+        id: 'inc-ec01-uuid-1',
+        incident_code: 'INC-EC01-01',
+        incident_type: 'DRAINAGE_OVERFLOW',
+        confidence: 0.91,
+        severity_score: 6.8,
+        priority: 'P2',
+        zone_id: 'ade35080-dbe8-4989-b158-f844f383562f',
+        zone_code: 'EC-01',
+        status: 'DETECTED',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const mapped = mapBackendIncidentToFrontend(item);
+      expect(mapped.zoneId).toBe('EC-01');
+      expect(mapped.zone).toBe('Phase 1 - West (Hosur Road Corridor)');
+    });
+
+    it('4. Missing/unknown zone does NOT become EC-01', () => {
+      const unknownItem: BackendIncidentItem = {
+        id: 'inc-unknown-uuid',
+        incident_code: 'INC-UNKNOWN-01',
+        incident_type: 'POTHOLE',
+        confidence: 0.75,
+        severity_score: 5.0,
+        priority: 'P3',
+        zone_id: '99999999-9999-9999-9999-999999999999',
+        zone_code: null,
+        zone_name: null,
+        status: 'DETECTED',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const mapped = mapBackendIncidentToFrontend(unknownItem);
+      expect(mapped.zoneId).toBeNull();
+      expect(mapped.zoneId).not.toBe('EC-01');
+      expect(mapped.zone).toBe('Zone unavailable');
+    });
+
+    it('5. Resolves zone code from known UUID if zone_code is missing', () => {
+      const itemOnlyUuid: BackendIncidentItem = {
+        id: 'inc-uuid-only',
+        incident_code: 'INC-57923255-4',
+        incident_type: 'POTHOLE',
+        confidence: 0.89,
+        severity_score: 6.5,
+        priority: 'P2',
+        zone_id: '803a13e5-416d-4614-b404-f730d1d8926e',
+        status: 'DETECTED',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const mapped = mapBackendIncidentToFrontend(itemOnlyUuid);
+      expect(mapped.zoneId).toBe('EC-04');
+      expect(mapped.zone).toBe('Main Junction Corridor (EPIC Area)');
+    });
+  });
 });

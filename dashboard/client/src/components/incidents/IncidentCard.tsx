@@ -122,7 +122,7 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
               <PriorityBadge priority={incident.priority} />
               <StatusBadge status={incident.status} />
               <span className="text-xs text-zinc-400 font-mono hidden md:inline">
-                {incident.zoneId}
+                {incident.zoneId || 'Zone N/A'}
               </span>
               {isRealCapture && (
                 <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-700/80 hidden lg:inline-flex items-center gap-1.5">
@@ -217,7 +217,7 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
         <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between text-xs font-mono text-white/95 bg-black/70 px-2.5 py-1 rounded-lg backdrop-blur-xs">
           <span className="flex items-center gap-1.5 font-bold">
             <MapPin className="w-3.5 h-3.5 text-sky-400" />
-            {incident.zoneId}
+            {incident.zoneId || 'Zone N/A'}
           </span>
           <span className="flex items-center gap-1.5 text-emerald-300 font-bold">
             {confidencePct !== null ? (

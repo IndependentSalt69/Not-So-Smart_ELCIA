@@ -44,6 +44,10 @@ describe('Incident Filtering Logic', () => {
 
     const ec03 = await incidentService.getIncidents({ zoneId: 'EC-03' });
     expect(ec03.every((i) => i.zoneId === 'EC-03')).toBe(true);
+
+    const ec04 = await incidentService.getIncidents({ zoneId: 'EC-04' });
+    expect(ec04.length).toBeGreaterThan(0);
+    expect(ec04.every((i) => i.zoneId === 'EC-04')).toBe(true);
   });
 
   it('correctly searches text across ID and description', async () => {

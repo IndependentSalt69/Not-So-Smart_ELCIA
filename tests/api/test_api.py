@@ -363,3 +363,116 @@ def test_incident_status_multi_query_filtering(client: TestClient, db_session: S
     assert invalid_resp.status_code == 422
 
 
+def test_incident_zone_filtering_and_serialization(client: TestClient):
+    """
+    Test Phase 2 Zone Consistency Requirements:
+    1. IncidentResponse serializes zone_code and zone_name.
+    2. GET /incidents/?zone_id=EC-04 accepts zone code string and returns matching incidents.
+    3. GET /incidents/?zone_id=<UUID> accepts UUID and returns the exact same incidents.
+    4. GET /incidents/?zone_id=EC-01 returns EC-01 incidents without cross-contamination.
+    5. Unknown zone code (e.g. EC-99) returns 0 results cleanly with HTTP 200 (no DataError).
+    """
+    # 1. Create two distinct zones: EC-01 and EC-04
+    z1_resp = client.post(
+        "/api/v1/zones/",
+        json={"code": "EC-01", "name": "Phase 1 - West (Hosur Road Corridor)"},
+    )
+    assert z1_resp.status_code in (201, 400)
+    if z1_resp.status_code == 201:
+        z1_id = z1_resp.json()["id"]
+    else:
+        z1_id = client.get("/api/v1/zones/EC-01").json()["id"]
+
+    z4_resp = client.post(
+        "/api/v1/zones/",
+        json={"code": "EC-04", "name": "Main Junction Corridor (EPIC Area)"},
+    )
+    assert z4_resp.status_code in (201, 400)
+    if z4_resp.status_code == 201:
+        z4_id = z4_resp.json()["id"]
+    else:
+        z4_id = client.get("/api/v1/zones/EC-04").json()["id"]
+
+    # 2. Create incidents in EC-04
+    inc1 = client.post(
+        "/api/v1/incidents/",
+        json={
+            "incident_code": "INC-TEST-EC04-1",
+            "incident_type": "POTHOLE",
+            "confidence": 0.95,
+            "severity_score": 8.0,
+            "priority": "P1",
+            "zone_id": z4_id,
+            "status": "DETECTED",
+        },
+    )
+    assert inc1.status_code == 201
+    inc1_data = inc1.json()
+    assert inc1_data["zone_code"] == "EC-04"
+    assert inc1_data["zone_name"] == "Main Junction Corridor (EPIC Area)"
+
+    inc2 = client.post(
+        "/api/v1/incidents/",
+        json={
+            "incident_code": "INC-TEST-EC04-2",
+            "incident_type": "WATERLOGGING",
+            "confidence": 0.90,
+            "severity_score": 7.0,
+            "priority": "P2",
+            "zone_id": z4_id,
+            "status": "DETECTED",
+        },
+    )
+    assert inc2.status_code == 201
+    assert inc2.json()["zone_code"] == "EC-04"
+
+    # 3. Create incident in EC-01
+    inc3 = client.post(
+        "/api/v1/incidents/",
+        json={
+            "incident_code": "INC-TEST-EC01-1",
+            "incident_type": "DRAINAGE_OVERFLOW",
+            "confidence": 0.88,
+            "severity_score": 6.5,
+            "priority": "P2",
+            "zone_id": z1_id,
+            "status": "DETECTED",
+        },
+    )
+    assert inc3.status_code == 201
+    assert inc3.json()["zone_code"] == "EC-01"
+
+    # 4. Filter by zone code: EC-04
+    resp_code = client.get("/api/v1/incidents/?zone_id=EC-04")
+    assert resp_code.status_code == 200
+    items_code = resp_code.json()["items"]
+    codes_ec04 = {i["incident_code"] for i in items_code}
+    assert "INC-TEST-EC04-1" in codes_ec04
+    assert "INC-TEST-EC04-2" in codes_ec04
+    assert "INC-TEST-EC01-1" not in codes_ec04
+    assert all(i["zone_code"] == "EC-04" for i in items_code)
+
+    # 5. Filter by UUID: z4_id
+    resp_uuid = client.get(f"/api/v1/incidents/?zone_id={z4_id}")
+    assert resp_uuid.status_code == 200
+    items_uuid = resp_uuid.json()["items"]
+    codes_uuid = {i["incident_code"] for i in items_uuid}
+    assert codes_ec04 == codes_uuid
+
+    # 6. Filter by zone code: EC-01
+    resp_ec01 = client.get("/api/v1/incidents/?zone_id=EC-01")
+    assert resp_ec01.status_code == 200
+    items_ec01 = resp_ec01.json()["items"]
+    codes_ec01 = {i["incident_code"] for i in items_ec01}
+    assert "INC-TEST-EC01-1" in codes_ec01
+    assert "INC-TEST-EC04-1" not in codes_ec01
+    assert "INC-TEST-EC04-2" not in codes_ec01
+
+    # 7. Filter by unknown zone: EC-99
+    resp_unknown = client.get("/api/v1/incidents/?zone_id=EC-99")
+    assert resp_unknown.status_code == 200
+    assert resp_unknown.json()["total"] == 0
+    assert resp_unknown.json()["items"] == []
+
+
+

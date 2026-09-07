@@ -102,7 +102,7 @@ def create_new_incident(
     response_model=IncidentListResponse,
 )
 def list_all_incidents(
-    zone_id: Optional[UUID] = Query(None, description="Filter by operational zone ID"),
+    zone_id: Optional[str] = Query(None, description="Filter by operational zone UUID or zone code (e.g. EC-01, EC-04)"),
     status_param: Optional[str] = Query(None, alias="status", description="Filter by status or comma-separated statuses"),
     priority: Optional[PriorityLevel] = Query(None, description="Filter by priority level"),
     incident_type: Optional[IncidentType] = Query(None, description="Filter by incident type"),

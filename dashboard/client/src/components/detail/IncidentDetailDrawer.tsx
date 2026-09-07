@@ -87,7 +87,7 @@ export const IncidentDetailDrawer: React.FC<IncidentDetailDrawerProps> = ({
               <div className="flex items-center gap-1.5 text-xs xl:text-sm font-bold text-emerald-600 dark:text-emerald-400">
                 <MapPin className="w-4 h-4" />
                 <span>
-                  {incident.zoneId} — {incident.zone}
+                  {incident.zoneId ? `${incident.zoneId} — ` : ''}{incident.zone || 'Zone unavailable'}
                 </span>
               </div>
               <p className="text-sm xl:text-base font-bold text-zinc-900 dark:text-zinc-100">

@@ -6,10 +6,12 @@ Write-Host " CivicPulse - NVIDIA GPU Setup" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 
-$Root = Split-Path -Parent $MyInvocation.MyCommand.Path
-Set-Location $Root
+# Determine repository root from script location (working-directory independent)
+$ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Definition }
+$RepoRoot = (Resolve-Path (Join-Path $ScriptDir "..\..")).Path
+Set-Location $RepoRoot
 
-$Python = ".\.venv\Scripts\python.exe"
+$Python = Join-Path $RepoRoot ".venv\Scripts\python.exe"
 
 # ------------------------------------------------------------
 # 1. NVIDIA
@@ -48,15 +50,15 @@ python --version
 Write-Host "[3/9] Checking virtual environment..." -ForegroundColor Yellow
 
 if (-not (Test-Path $Python)) {
-    Write-Host "      Creating .venv..." -ForegroundColor Gray
-    python -m venv .venv
+    Write-Host "      Creating .venv at $RepoRoot\.venv..." -ForegroundColor Gray
+    python -m venv "$RepoRoot\.venv"
 }
 
 if (-not (Test-Path $Python)) {
-    throw "Failed to create .venv."
+    throw "Failed to create .venv at $RepoRoot\.venv."
 }
 
-Write-Host "      .venv ready." -ForegroundColor Green
+Write-Host "      .venv ready: $RepoRoot\.venv" -ForegroundColor Green
 
 # ------------------------------------------------------------
 # 4. Common dependencies
@@ -64,8 +66,12 @@ Write-Host "      .venv ready." -ForegroundColor Green
 
 Write-Host "[4/9] Installing common dependencies..." -ForegroundColor Yellow
 
+if (-not (Test-Path "$RepoRoot\requirements.txt")) {
+    throw "requirements.txt not found at $RepoRoot\requirements.txt."
+}
+
 & $Python -m pip install --upgrade pip
-& $Python -m pip install -r requirements.txt
+& $Python -m pip install -r "$RepoRoot\requirements.txt"
 
 # ------------------------------------------------------------
 # 5. CUDA PyTorch
@@ -112,25 +118,25 @@ print('lap:', lap.__version__)
 
 Write-Host "[7/9] Checking local configuration..." -ForegroundColor Yellow
 
-if (-not (Test-Path ".env")) {
-    throw ".env not found. Add your Supabase credentials."
+if (-not (Test-Path "$RepoRoot\.env")) {
+    throw ".env not found at $RepoRoot\.env. Add your Supabase credentials."
 }
 
-if (-not (Test-Path "models\production\best.pt")) {
-    throw "models\production\best.pt not found."
+if (-not (Test-Path "$RepoRoot\models\production\best.pt")) {
+    throw "Production model not found at $RepoRoot\models\production\best.pt."
 }
 
-if (-not (Test-Path "dashboard\.env")) {
-    throw "dashboard\.env not found. Add VITE_API_BASE_URL and VITE_GOOGLE_MAPS_API_KEY."
+if (-not (Test-Path "$RepoRoot\dashboard\.env")) {
+    throw "dashboard\.env not found at $RepoRoot\dashboard\.env. Add VITE_API_BASE_URL and VITE_GOOGLE_MAPS_API_KEY."
 }
 
-Write-Host "      root .env:       OK" -ForegroundColor Green
-Write-Host "      production model: OK" -ForegroundColor Green
-Write-Host "      dashboard .env:  OK" -ForegroundColor Green
+Write-Host "      root .env:       OK ($RepoRoot\.env)" -ForegroundColor Green
+Write-Host "      production model: OK ($RepoRoot\models\production\best.pt)" -ForegroundColor Green
+Write-Host "      dashboard .env:  OK ($RepoRoot\dashboard\.env)" -ForegroundColor Green
 Write-Host ""
 Write-Host "      Testing Supabase connection..." -ForegroundColor Gray
 
-$SupabaseTest = Join-Path $Root ".supabase_test.py"
+$SupabaseTest = Join-Path $RepoRoot ".supabase_test.py"
 
 @'
 from sqlalchemy import create_engine, text
@@ -182,9 +188,9 @@ if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
     throw "npm not found. Install Node.js first."
 }
 
-Push-Location "$Root\dashboard"
+Push-Location "$RepoRoot\dashboard"
 
-if (-not (Test-Path "node_modules")) {
+if (-not (Test-Path "$RepoRoot\dashboard\node_modules")) {
     npm install --legacy-peer-deps
 } else {
     Write-Host "      node_modules already present." -ForegroundColor Green
@@ -203,5 +209,5 @@ Write-Host "Model:  Found" -ForegroundColor Green
 Write-Host "FFmpeg: Found" -ForegroundColor Green
 Write-Host ""
 Write-Host "Run:" -ForegroundColor Cyan
-Write-Host "    .\start.ps1" -ForegroundColor White
+Write-Host "    .\setup\windows\start.ps1" -ForegroundColor White
 Write-Host ""

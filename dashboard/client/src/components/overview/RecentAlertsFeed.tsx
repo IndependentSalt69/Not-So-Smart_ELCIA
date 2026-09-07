@@ -113,7 +113,7 @@ export const RecentAlertsFeed: React.FC<RecentAlertsFeedProps> = ({
                   </p>
 
                   <div className="flex items-center gap-3 mt-1.5 text-xs text-zinc-500 dark:text-zinc-400 font-mono font-medium">
-                    <span>{incident.zoneId}</span>
+                    <span>{incident.zoneId || 'Zone unavailable'}</span>
                     <span>•</span>
                     <span>
                       {incident.confidence !== null && incident.confidence !== undefined

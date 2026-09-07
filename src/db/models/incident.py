@@ -165,5 +165,15 @@ class Incident(Base):
                     return "HUMAN_REPORTED"
         return "AI_VISION"
 
+    @property
+    def zone_code(self) -> Optional[str]:
+        """Human-readable zone code e.g. EC-01, EC-04."""
+        return self.zone.code if hasattr(self, "zone") and self.zone else None
+
+    @property
+    def zone_name(self) -> Optional[str]:
+        """Human-readable zone operational name."""
+        return self.zone.name if hasattr(self, "zone") and self.zone else None
+
     def __repr__(self) -> str:
         return f"<Incident(code='{self.incident_code}', type='{self.incident_type}', status='{self.status}', priority='{self.priority}')>"

@@ -28,6 +28,8 @@ export interface BackendIncidentItem {
   severity_score: number;
   priority: 'P1' | 'P2' | 'P3';
   zone_id: string;
+  zone_code?: string | null;
+  zone_name?: string | null;
   status: IncidentStatus;
   started_at?: string | null;
   ended_at?: string | null;
@@ -209,7 +211,7 @@ export interface Incident {
   priority: PriorityLevel;
   timestamp: string; // ISO String or relative format
   zone: string; // "Phase 1 - Hosur Arterial"
-  zoneId: ZoneId;
+  zoneId?: ZoneId | string | null;
   locationDescription: string;
   coordinates: {
     lat: number;

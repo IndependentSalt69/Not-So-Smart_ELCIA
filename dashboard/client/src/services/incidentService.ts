@@ -137,6 +137,7 @@ import {
   SortDirection,
   SortField,
   User,
+  ZoneId,
 } from '@/types/incident';
 
 export interface BackendIncidentItem {
@@ -147,6 +148,8 @@ export interface BackendIncidentItem {
   severity_score: number;
   priority: 'P1' | 'P2' | 'P3';
   zone_id: string;
+  zone_code?: string | null;
+  zone_name?: string | null;
   status: IncidentStatus;
   started_at?: string | null;
   ended_at?: string | null;
@@ -159,6 +162,65 @@ export interface BackendIncidentItem {
   source?: 'AI_VISION' | 'HUMAN_REPORTED' | string;
   created_at: string;
   updated_at: string;
+}
+
+export const KNOWN_ZONE_UUID_MAP: Record<string, { code: string; name: string }> = {
+  'ade35080-dbe8-4989-b158-f844f383562f': {
+    code: 'EC-01',
+    name: 'Phase 1 - West (Hosur Road Corridor)',
+  },
+  'bdcc6339-7b9b-474f-92f8-f4c56f6ae0f9': {
+    code: 'EC-02',
+    name: 'Phase 1 - East (Neeladri Road)',
+  },
+  '01f02dbd-ad38-471a-bcfd-1366bc18aa67': {
+    code: 'EC-03',
+    name: 'Phase 2 - North (Velankani Drive)',
+  },
+  '803a13e5-416d-4614-b404-f730d1d8926e': {
+    code: 'EC-04',
+    name: 'Main Junction Corridor (EPIC Area)',
+  },
+};
+
+export const KNOWN_ZONE_CODE_NAME_MAP: Record<string, string> = {
+  'EC-01': 'Phase 1 - West (Hosur Road Corridor)',
+  'EC-02': 'Phase 1 - East (Neeladri Road)',
+  'EC-03': 'Phase 2 - North (Velankani Drive)',
+  'EC-04': 'Main Junction Corridor (EPIC Area)',
+};
+
+export function resolveZoneInfo(item: {
+  zone_code?: string | null;
+  zone_name?: string | null;
+  zone_id?: string | null;
+}): { zoneId: string | null; zoneName: string } {
+  // 1. Resolve Zone Code
+  let code: string | null = null;
+  if (item.zone_code && item.zone_code.trim() !== '') {
+    code = item.zone_code.trim();
+  } else if (item.zone_id && KNOWN_ZONE_UUID_MAP[item.zone_id.toLowerCase()]) {
+    code = KNOWN_ZONE_UUID_MAP[item.zone_id.toLowerCase()].code;
+  } else if (item.zone_id && item.zone_id.toUpperCase().startsWith('EC-')) {
+    code = item.zone_id.toUpperCase().trim();
+  }
+
+  // 2. Resolve Human-Readable Zone Name
+  let name: string | null = null;
+  if (item.zone_name && item.zone_name.trim() !== '') {
+    name = item.zone_name.trim();
+  } else if (code && KNOWN_ZONE_CODE_NAME_MAP[code]) {
+    name = KNOWN_ZONE_CODE_NAME_MAP[code];
+  } else if (item.zone_id && KNOWN_ZONE_UUID_MAP[item.zone_id.toLowerCase()]) {
+    name = KNOWN_ZONE_UUID_MAP[item.zone_id.toLowerCase()].name;
+  } else if (code) {
+    name = `Electronics City Zone (${code})`;
+  }
+
+  return {
+    zoneId: code,
+    zoneName: name || 'Zone unavailable',
+  };
 }
 
 export interface BackendIncidentListResponse {
@@ -279,6 +341,8 @@ export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Inciden
     type
   );
 
+  const { zoneId, zoneName } = resolveZoneInfo(item);
+
   return {
     id: item.id || item.incident_code, // Prefer actual backend UUID primary key
     code: item.incident_code || item.id, // Human readable tracking code
@@ -288,11 +352,11 @@ export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Inciden
     severity: item.severity_score,
     priority: item.priority as PriorityLevel,
     timestamp: item.started_at || item.created_at,
-    zone: `Electronics City Zone (${item.zone_id ? item.zone_id.slice(0, 8) : 'EC-01'})`,
-    zoneId: 'EC-01',
+    zone: zoneName,
+    zoneId: (zoneId as ZoneId) || (zoneId as any),
     locationDescription: item.recommended_action
       ? `${displayCode} - ${getIncidentTypeLabel(type)} Hazard`
-      : `Electronics City Arterial Corridor (${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E)`,
+      : `${zoneName} (${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E)`,
     coordinates: { lat, lng },
     durationSeconds,
     evidenceFrame,
@@ -689,6 +753,9 @@ export const incidentService = {
         }
         if (filters.type && filters.type !== 'all') {
           queryParams.incident_type = mapFrontendTypeToBackend(filters.type);
+        }
+        if (filters.zoneId && filters.zoneId !== 'all') {
+          queryParams.zone_id = filters.zoneId;
         }
       }
 

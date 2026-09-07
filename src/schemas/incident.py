@@ -57,6 +57,8 @@ class IncidentResponse(IncidentBase):
     id: UUID
     created_at: datetime
     updated_at: datetime
+    zone_code: Optional[str] = None
+    zone_name: Optional[str] = None
 
     @field_validator("location", mode="before")
     @classmethod

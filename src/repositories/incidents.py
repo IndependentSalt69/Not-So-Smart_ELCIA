@@ -7,12 +7,13 @@ import uuid
 from datetime import datetime
 from typing import Optional, List, Union, Any, Sequence
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from src.db.models.incident import Incident
 from src.db.models.history import IncidentStatusHistory
 from src.db.models.enums import IncidentType, PriorityLevel, IncidentStatus
 from src.core.spatial import geojson_to_geoalchemy
+from src.repositories.zones import get_zone
 
 
 def parse_uuid(val: Union[uuid.UUID, str]) -> Optional[uuid.UUID]:
@@ -22,6 +23,20 @@ def parse_uuid(val: Union[uuid.UUID, str]) -> Optional[uuid.UUID]:
         return uuid.UUID(str(val))
     except ValueError:
         return None
+
+
+def _resolve_zone_filter(db: Session, stmt, zone_id: Optional[Union[uuid.UUID, str]]):
+    """Safely resolves zone identifier (UUID or zone code) to avoid invalid text representation errors."""
+    if zone_id is None:
+        return stmt
+    target_zone = get_zone(db, zone_id)
+    if target_zone:
+        return stmt.where(Incident.zone_id == target_zone.id)
+    uid = parse_uuid(zone_id)
+    if uid:
+        return stmt.where(Incident.zone_id == uid)
+    # Unknown zone code / non-existent identifier -> match 0 records cleanly
+    return stmt.where(Incident.zone_id.is_(None))
 
 
 def create_incident(
@@ -40,7 +55,8 @@ def create_incident(
     location: Optional[Any] = None,
 ) -> Incident:
     """Create a new civic incident record."""
-    zid = parse_uuid(zone_id) or zone_id
+    target_zone = get_zone(db, zone_id)
+    zid = target_zone.id if target_zone else (parse_uuid(zone_id) or zone_id)
     loc_elem = geojson_to_geoalchemy(location)
     incident = Incident(
         incident_code=incident_code,
@@ -69,14 +85,14 @@ def create_incident(
 
 
 def get_incident(db: Session, incident_id: Union[uuid.UUID, str]) -> Optional[Incident]:
-    """Get incident by primary key UUID or incident_code."""
+    """Get incident by primary key UUID or incident_code with eager loaded zone."""
     uid = parse_uuid(incident_id)
     if uid:
-        stmt = select(Incident).where(Incident.id == uid)
+        stmt = select(Incident).options(selectinload(Incident.zone)).where(Incident.id == uid)
         result = db.scalars(stmt).first()
         if result:
             return result
-    stmt = select(Incident).where(Incident.incident_code == str(incident_id))
+    stmt = select(Incident).options(selectinload(Incident.zone)).where(Incident.incident_code == str(incident_id))
     return db.scalars(stmt).first()
 
 
@@ -119,10 +135,8 @@ def list_incidents(
     order: str = "desc",
 ) -> List[Incident]:
     """List incidents with multi-criteria filtering, sorting, and pagination."""
-    stmt = select(Incident)
-    if zone_id is not None:
-        zid = parse_uuid(zone_id) or zone_id
-        stmt = stmt.where(Incident.zone_id == zid)
+    stmt = select(Incident).options(selectinload(Incident.zone))
+    stmt = _resolve_zone_filter(db, stmt, zone_id)
     stmt = _apply_status_filter(stmt, status)
     if priority is not None:
         stmt = stmt.where(Incident.priority == priority)
@@ -153,9 +167,7 @@ def count_incidents(
     """Get total count of incidents matching the filter criteria."""
     from sqlalchemy import func
     stmt = select(func.count(Incident.id))
-    if zone_id is not None:
-        zid = parse_uuid(zone_id) or zone_id
-        stmt = stmt.where(Incident.zone_id == zid)
+    stmt = _resolve_zone_filter(db, stmt, zone_id)
     stmt = _apply_status_filter(stmt, status)
     if priority is not None:
         stmt = stmt.where(Incident.priority == priority)
@@ -179,7 +191,8 @@ def update_incident(
         for key, value in kwargs.items():
             if hasattr(incident, key) and key not in ("id", "created_at"):
                 if key == "zone_id" and value is not None:
-                    value = parse_uuid(value) or value
+                    target_zone = get_zone(db, value)
+                    value = target_zone.id if target_zone else (parse_uuid(value) or value)
                 elif key == "location" and value is not None:
                     value = geojson_to_geoalchemy(value)
                 setattr(incident, key, value)
