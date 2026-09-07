@@ -13,33 +13,36 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-# Determine project root from script directory
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$ROOT_DIR"
+# ------------------------------------------------------------
+# Determine Project Root (working-directory independent)
+# ------------------------------------------------------------
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$REPO_ROOT"
 
-PYTHON="$ROOT_DIR/.venv/bin/python"
+PYTHON="$REPO_ROOT/.venv/bin/python"
 
 # ------------------------------------------------------------
 # Validations
 # ------------------------------------------------------------
 if [ ! -f "$PYTHON" ]; then
     echo -e "${RED}Error: Virtual environment not found at $PYTHON.${NC}"
-    echo "Please run ./setup_mac.sh first."
+    echo "Please run ./setup/macOS/setup_mac.sh first."
     exit 1
 fi
 
-if [ ! -f "$ROOT_DIR/.env" ]; then
-    echo -e "${RED}Error: .env not found in project root ($ROOT_DIR/.env).${NC}"
+if [ ! -f "$REPO_ROOT/.env" ]; then
+    echo -e "${RED}Error: .env not found in project root ($REPO_ROOT/.env).${NC}"
     exit 1
 fi
 
-if [ ! -f "$ROOT_DIR/dashboard/.env" ]; then
-    echo -e "${RED}Error: dashboard/.env not found ($ROOT_DIR/dashboard/.env).${NC}"
+if [ ! -f "$REPO_ROOT/dashboard/.env" ]; then
+    echo -e "${RED}Error: dashboard/.env not found ($REPO_ROOT/dashboard/.env).${NC}"
     exit 1
 fi
 
-if [ ! -f "$ROOT_DIR/models/production/best.pt" ]; then
-    echo -e "${RED}Error: Production model not found at $ROOT_DIR/models/production/best.pt.${NC}"
+if [ ! -f "$REPO_ROOT/models/production/best.pt" ]; then
+    echo -e "${RED}Error: Production model not found at $REPO_ROOT/models/production/best.pt.${NC}"
     exit 1
 fi
 
@@ -92,7 +95,7 @@ BACKEND_PID=$!
 # 2. Start Frontend
 # ------------------------------------------------------------
 echo -e "${GREEN}Frontend starting...${NC}"
-(cd "$ROOT_DIR/dashboard" && npm run dev) &
+(cd "$REPO_ROOT/dashboard" && npm run dev) &
 FRONTEND_PID=$!
 
 # ------------------------------------------------------------
