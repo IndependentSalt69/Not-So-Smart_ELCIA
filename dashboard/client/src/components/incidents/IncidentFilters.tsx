@@ -268,6 +268,7 @@ export const IncidentFilters: React.FC<IncidentFiltersProps> = ({
                 <SelectItem value="EC-02" className="text-sm">EC-02: Phase 1 East</SelectItem>
                 <SelectItem value="EC-03" className="text-sm">EC-03: Phase 2 Tech Park</SelectItem>
                 <SelectItem value="EC-04" className="text-sm">EC-04: Main Junction</SelectItem>
+                <SelectItem value="OTHER" className="text-sm">Other / Custom Zones</SelectItem>
               </SelectContent>
             </Select>
           </div>

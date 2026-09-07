@@ -22,7 +22,7 @@ export interface TrendDataPoint {
 }
 
 export interface ZoneMetric {
-  zoneId: string;
+  zoneId?: string | null;
   zoneCode?: string;
   zoneName: string;
   activeIncidents: number;
@@ -99,7 +99,7 @@ export interface BackendAnalyticsTrendItem {
 }
 
 export interface BackendZoneAnalyticsItem {
-  zone_id: string;
+  zone_id?: string | null;
   zone_code: string;
   zone_name: string;
   active_incidents: number;

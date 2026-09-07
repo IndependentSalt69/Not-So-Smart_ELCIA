@@ -63,13 +63,24 @@ def create_new_incident(
     db: Session = Depends(get_db),
 ) -> IncidentResponse:
     """Create a new civic incident record."""
-    # Verify zone exists
-    zone = repo_get_zone(db=db, zone_id=payload.zone_id)
-    if not zone:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Zone '{payload.zone_id}' not found.",
-        )
+    # Verify zone or custom_zone_name
+    zid = None
+    custom_name = None
+    if payload.zone_id is not None:
+        zone = repo_get_zone(db=db, zone_id=payload.zone_id)
+        if not zone:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Zone '{payload.zone_id}' not found.",
+            )
+        zid = zone.id
+    else:
+        if not payload.custom_zone_name or not payload.custom_zone_name.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Custom zone name is required when 'Other' zone is selected.",
+            )
+        custom_name = payload.custom_zone_name.strip()[:128]
 
     try:
         incident = repo_create_incident(
@@ -79,7 +90,8 @@ def create_new_incident(
             confidence=payload.confidence,
             severity_score=payload.severity_score,
             priority=payload.priority,
-            zone_id=payload.zone_id,
+            zone_id=zid,
+            custom_zone_name=custom_name,
             status=payload.status,
             started_at=payload.started_at,
             ended_at=payload.ended_at,

@@ -138,7 +138,10 @@ export const FlightInspectionCard: React.FC<FlightInspectionCardProps> = ({
             </div>
             <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
               <span className="font-semibold text-zinc-700 dark:text-zinc-300">
-                Zone: {summary.zone_code || 'N/A'}
+                Zone:{' '}
+                {summary.zone_code === 'OTHER'
+                  ? (summary.custom_zone_name || 'Other Zone')
+                  : (summary.zone_code || 'N/A')}
               </span>
               <span>•</span>
               <span className="inline-flex items-center gap-1">

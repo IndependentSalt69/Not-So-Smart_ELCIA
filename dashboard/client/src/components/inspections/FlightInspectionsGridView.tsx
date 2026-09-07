@@ -68,8 +68,9 @@ export const FlightInspectionsGridView: React.FC<FlightInspectionsGridViewProps>
         const matchesPrefix = (run.job_prefix || '').toLowerCase().includes(q);
         const matchesId = (run.job_id || '').toLowerCase().includes(q);
         const matchesZone = (run.zone_code || '').toLowerCase().includes(q);
+        const matchesCustomZone = (run.custom_zone_name || '').toLowerCase().includes(q);
         const matchesStatus = (run.status || '').toLowerCase().includes(q);
-        if (!matchesPrefix && !matchesId && !matchesZone && !matchesStatus) {
+        if (!matchesPrefix && !matchesId && !matchesZone && !matchesCustomZone && !matchesStatus) {
           return false;
         }
       }
@@ -152,6 +153,7 @@ export const FlightInspectionsGridView: React.FC<FlightInspectionsGridViewProps>
               <SelectItem value="EC-02" className="text-sm">EC-02: Phase 1 East</SelectItem>
               <SelectItem value="EC-03" className="text-sm">EC-03: Phase 2 Tech Park</SelectItem>
               <SelectItem value="EC-04" className="text-sm">EC-04: Main Junction</SelectItem>
+              <SelectItem value="OTHER" className="text-sm">Other / Custom Zones</SelectItem>
             </SelectContent>
           </Select>
         </div>

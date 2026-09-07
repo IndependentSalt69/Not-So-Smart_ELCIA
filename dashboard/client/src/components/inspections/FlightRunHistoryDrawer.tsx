@@ -182,7 +182,9 @@ export const FlightRunHistoryDrawer: React.FC<FlightRunHistoryDrawerProps> = ({
                         #{run.job_prefix}
                       </span>
                       <span className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-700 px-1.5 py-0.5 rounded">
-                        {run.zone_code || 'N/A'}
+                        {run.zone_code === 'OTHER'
+                          ? (run.custom_zone_name || 'Other')
+                          : (run.zone_code || 'N/A')}
                       </span>
                     </div>
 

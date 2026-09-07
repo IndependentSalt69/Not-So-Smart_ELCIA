@@ -211,14 +211,15 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
         });
 
         if (res.detected_zone_code && ['EC-01', 'EC-02', 'EC-03', 'EC-04'].includes(res.detected_zone_code)) {
-          setTelemetry((prev) => ({ ...prev, zoneId: res.detected_zone_code as ZoneId }));
+          setTelemetry((prev) => ({ ...prev, zoneId: res.detected_zone_code as ZoneId, customZoneName: undefined }));
           if (res.status === 'AUTO_DETECTED') {
             toast.success(`Zone ${res.detected_zone_code} auto-detected from SRT!`);
           } else if (res.status === 'MULTI_ZONE') {
             toast.info(`Multi-zone flight: Dominant zone ${res.detected_zone_code} auto-selected.`);
           }
         } else if (res.status === 'NO_MATCH') {
-          toast.warning('No configured surveillance zone matched flight path. Please select zone manually.');
+          setTelemetry((prev) => ({ ...prev, zoneId: 'OTHER' }));
+          toast.warning('Flight path outside predefined zones (EC-01 to EC-04). "Other" zone selected. Please enter custom zone name.');
         }
       } catch (err: any) {
         console.warn('Zone detection error:', err);
@@ -237,6 +238,18 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
       return;
     }
 
+    if (telemetry.zoneId === 'OTHER') {
+      const trimmedCustom = telemetry.customZoneName?.trim();
+      if (!trimmedCustom) {
+        toast.error('Please enter a custom zone name when "Other" is selected.');
+        return;
+      }
+      if (trimmedCustom.length > 128) {
+        toast.error('Custom zone name cannot exceed 128 characters.');
+        return;
+      }
+    }
+
     try {
       stopPolling();
       setIsRealProcessing(true);
@@ -253,7 +266,8 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
         videoFile,
         srtFile,
         telemetry.zoneId,
-        telemetry.droneId
+        telemetry.droneId,
+        telemetry.zoneId === 'OTHER' ? telemetry.customZoneName?.trim() : undefined
       );
 
       setActiveJobId(initialRes.job_id);
@@ -682,7 +696,7 @@ a.click();
                 <Select
                   value={telemetry.zoneId}
                   onValueChange={(val: ZoneId) => {
-                    setTelemetry({ ...telemetry, zoneId: val });
+                    setTelemetry({ ...telemetry, zoneId: val, customZoneName: val === 'OTHER' ? telemetry.customZoneName : undefined });
                     setZoneDetection((prev) => ({ ...prev, isManualOverride: true }));
                   }}
                 >
@@ -694,9 +708,29 @@ a.click();
                     <SelectItem value="EC-02" className="text-xs xl:text-sm">EC-02: Phase 1 East Commercial Belt</SelectItem>
                     <SelectItem value="EC-03" className="text-xs xl:text-sm">EC-03: Phase 2 Tech Park Boulevard</SelectItem>
                     <SelectItem value="EC-04" className="text-xs xl:text-sm">EC-04: Main Junction Corridor & Flyover</SelectItem>
+                    <SelectItem value="OTHER" className="text-xs xl:text-sm font-semibold text-emerald-600 dark:text-emerald-400">Other (Custom Zone)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              {telemetry.zoneId === 'OTHER' && (
+                <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                  <label className="text-xs xl:text-sm font-bold text-emerald-600 dark:text-emerald-400 block mb-1">
+                    Custom Operational Zone Name <span className="text-rose-500">*</span>:
+                  </label>
+                  <Input
+                    value={telemetry.customZoneName || ''}
+                    onChange={(e) => setTelemetry({ ...telemetry, customZoneName: e.target.value.slice(0, 128) })}
+                    placeholder="Enter custom zone name (e.g. Electronic City Phase 3 / Peripheral)"
+                    maxLength={128}
+                    required
+                    className="h-10 rounded-xl text-xs xl:text-sm bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-700 focus-visible:ring-emerald-500"
+                  />
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
+                    Required when Other is selected (max 128 characters).
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="text-xs xl:text-sm font-bold text-zinc-800 dark:text-zinc-200 block mb-1">

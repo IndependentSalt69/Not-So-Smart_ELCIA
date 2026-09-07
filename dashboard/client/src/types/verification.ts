@@ -8,6 +8,7 @@ export interface VideoVerification {
   annotated_video_url?: string | null;
   telemetry_path?: string | null;
   zone_id?: string | null;
+  custom_zone_name?: string | null;
   drone_id?: string | null;
   ai_hazard_count: number;
   status: VerificationStatus;
@@ -40,6 +41,7 @@ export interface ReportAnomalyPayload {
   timestamp_sec?: number;
   frame_number?: number;
   zone_id?: string;
+  custom_zone_name?: string;
   location?: {
     type: 'Point';
     coordinates: [number, number];

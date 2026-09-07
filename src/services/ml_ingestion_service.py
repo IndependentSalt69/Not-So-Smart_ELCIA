@@ -73,6 +73,7 @@ def ingest_job_results(
     job_id: str,
     output_dir: Union[str, Path],
     zone_id: Optional[Union[UUID, str]] = None,
+    custom_zone_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Ingests hazard_telemetry.json and evidence images into PostgreSQL/PostGIS.
@@ -99,19 +100,13 @@ def ingest_job_results(
 
     # 3. Resolve Zone
     zone = None
-    if zone_id:
+    resolved_custom_name = None
+    if zone_id and str(zone_id).strip().upper() != "OTHER":
         zone = get_zone(db, zone_id)
-
-    if not zone:
-        # Fallback to EC-01 or first available zone in DB
-        zone = get_zone(db, "EC-01")
-        if not zone:
-            all_zones = list_zones(db)
-            if all_zones:
-                zone = all_zones[0]
-
-    if not zone:
-        raise ValueError("No operational zone found in database for ingestion.")
+        if not zone and not isinstance(zone_id, UUID):
+            resolved_custom_name = str(zone_id).strip()[:128]
+    if custom_zone_name:
+        resolved_custom_name = custom_zone_name.strip()[:128]
 
     summary = {
         "total_hazards": len(telemetry_data),
@@ -210,7 +205,8 @@ def ingest_job_results(
                 confidence=confidence,
                 severity_score=backend_severity,
                 priority=priority,
-                zone_id=zone.id,
+                zone_id=zone.id if zone else None,
+                custom_zone_name=resolved_custom_name if not zone else None,
                 status=IncidentStatus.DETECTED,
                 started_at=datetime.now(timezone.utc),
                 duration_seconds=duration_seconds,
@@ -305,6 +301,7 @@ def ingest_job_results(
                     annotated_video_url=annotated_url,
                     telemetry_path=str(telemetry_file) if telemetry_file.exists() else None,
                     zone_id=zone.id if zone else None,
+                    custom_zone_name=resolved_custom_name if not zone else None,
                     ai_hazard_count=0,
                 )
                 summary["verification_id"] = str(verif.id)

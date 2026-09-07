@@ -395,5 +395,49 @@ describe('Incident Service', () => {
       expect(mapped.zoneId).toBe('EC-04');
       expect(mapped.zone).toBe('Main Junction Corridor (EPIC Area)');
     });
+
+    it('6. Other / Custom Zone incident maps to zoneId = OTHER and customZoneName', () => {
+      const customItem: BackendIncidentItem = {
+        id: 'inc-custom-uuid',
+        incident_code: 'INC-CUSTOM-01',
+        incident_type: 'WATERLOGGING',
+        confidence: 0.88,
+        severity_score: 7.5,
+        priority: 'P1',
+        zone_id: null,
+        zone_code: 'OTHER',
+        zone_name: 'Electronic City Toll Gate Corridor',
+        custom_zone_name: 'Electronic City Toll Gate Corridor',
+        status: 'DETECTED',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const mapped = mapBackendIncidentToFrontend(customItem);
+      expect(mapped.zoneId).toBe('OTHER');
+      expect(mapped.customZoneName).toBe('Electronic City Toll Gate Corridor');
+      expect(mapped.zone).toBe('Electronic City Toll Gate Corridor');
+    });
+
+    it('7. Other zone with custom_zone_name but no zone_code still maps to OTHER', () => {
+      const customItem: BackendIncidentItem = {
+        id: 'inc-custom-uuid-2',
+        incident_code: 'INC-CUSTOM-02',
+        incident_type: 'OPEN_MANHOLE',
+        confidence: 0.95,
+        severity_score: 9.0,
+        priority: 'P1',
+        zone_id: null,
+        custom_zone_name: 'NeoTown Access Road',
+        status: 'DETECTED',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const mapped = mapBackendIncidentToFrontend(customItem);
+      expect(mapped.zoneId).toBe('OTHER');
+      expect(mapped.customZoneName).toBe('NeoTown Access Road');
+      expect(mapped.zone).toBe('NeoTown Access Road');
+    });
   });
 });

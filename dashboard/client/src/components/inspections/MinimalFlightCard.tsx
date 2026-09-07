@@ -100,7 +100,11 @@ export const MinimalFlightCard: React.FC<MinimalFlightCardProps> = ({
         <div className="absolute top-2.5 left-2.5 z-10">
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold tracking-wide bg-black/70 backdrop-blur-md text-zinc-200 border border-white/10 shadow-xs">
             <MapPin className="w-3 h-3 text-emerald-400" />
-            {summary.zone_code ? `Zone ${summary.zone_code}` : 'Zone unavailable'}
+            {summary.zone_code === 'OTHER'
+              ? (summary.custom_zone_name || 'Other Zone')
+              : summary.zone_code
+                ? `Zone ${summary.zone_code}`
+                : 'Zone unavailable'}
           </span>
         </div>
 

@@ -151,6 +151,7 @@ def report_undetected_hazard(
             timestamp_sec=payload.timestamp_sec,
             frame_number=payload.frame_number,
             zone_id=payload.zone_id,
+            custom_zone_name=payload.custom_zone_name,
             reviewer_id=payload.reviewer_id,
         )
         return ReportAnomalyResponse(

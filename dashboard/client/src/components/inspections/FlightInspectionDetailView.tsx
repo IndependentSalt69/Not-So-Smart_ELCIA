@@ -255,7 +255,13 @@ export const FlightInspectionDetailView: React.FC<FlightInspectionDetailViewProp
 
               <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 flex items-center gap-1">
                 <MapPin className="w-3 h-3 text-emerald-400" />
-                <span>{summary.zone_code ? `Zone ${summary.zone_code}` : 'Zone unavailable'}</span>
+                <span>
+                  {summary.zone_code === 'OTHER'
+                    ? (summary.custom_zone_name || 'Other / Custom Zone')
+                    : summary.zone_code
+                      ? `Zone ${summary.zone_code}`
+                      : 'Zone unavailable'}
+                </span>
               </span>
 
               <span className="text-xs text-zinc-400 flex items-center gap-1">

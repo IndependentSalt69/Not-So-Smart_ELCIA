@@ -26,16 +26,18 @@ def parse_uuid(val: Union[uuid.UUID, str]) -> Optional[uuid.UUID]:
 
 
 def _resolve_zone_filter(db: Session, stmt, zone_id: Optional[Union[uuid.UUID, str]]):
-    """Safely resolves zone identifier (UUID or zone code) to avoid invalid text representation errors."""
+    """Safely resolves zone identifier (UUID, zone code, or OTHER) to filter incidents."""
     if zone_id is None:
         return stmt
+    if str(zone_id).strip().upper() == "OTHER":
+        return stmt.where(Incident.zone_id.is_(None))
     target_zone = get_zone(db, zone_id)
     if target_zone:
         return stmt.where(Incident.zone_id == target_zone.id)
     uid = parse_uuid(zone_id)
     if uid:
         return stmt.where(Incident.zone_id == uid)
-    # Unknown zone code / non-existent identifier -> match 0 records cleanly
+    # Unknown zone code / custom zone -> match incidents where zone_id is None
     return stmt.where(Incident.zone_id.is_(None))
 
 
@@ -46,7 +48,8 @@ def create_incident(
     confidence: float,
     severity_score: float,
     priority: PriorityLevel,
-    zone_id: Union[uuid.UUID, str],
+    zone_id: Optional[Union[uuid.UUID, str]] = None,
+    custom_zone_name: Optional[str] = None,
     status: IncidentStatus = IncidentStatus.DETECTED,
     started_at: Optional[datetime] = None,
     ended_at: Optional[datetime] = None,
@@ -55,8 +58,19 @@ def create_incident(
     location: Optional[Any] = None,
 ) -> Incident:
     """Create a new civic incident record."""
-    target_zone = get_zone(db, zone_id)
-    zid = target_zone.id if target_zone else (parse_uuid(zone_id) or zone_id)
+    zid = None
+    custom_name = None
+    if zone_id is not None and str(zone_id).strip().upper() != "OTHER":
+        target_zone = get_zone(db, zone_id)
+        if target_zone:
+            zid = target_zone.id
+        else:
+            zid = parse_uuid(zone_id)
+            if not zid:
+                custom_name = str(zone_id).strip()[:128]
+    if custom_zone_name:
+        custom_name = custom_zone_name.strip()[:128]
+
     loc_elem = geojson_to_geoalchemy(location)
     incident = Incident(
         incident_code=incident_code,
@@ -65,6 +79,7 @@ def create_incident(
         severity_score=severity_score,
         priority=priority,
         zone_id=zid,
+        custom_zone_name=custom_name if not zid else None,
         status=status,
         ended_at=ended_at,
         duration_seconds=duration_seconds,
@@ -190,9 +205,14 @@ def update_incident(
     try:
         for key, value in kwargs.items():
             if hasattr(incident, key) and key not in ("id", "created_at"):
-                if key == "zone_id" and value is not None:
-                    target_zone = get_zone(db, value)
-                    value = target_zone.id if target_zone else (parse_uuid(value) or value)
+                if key == "zone_id":
+                    if value is None or str(value).strip().upper() == "OTHER":
+                        value = None
+                    else:
+                        target_zone = get_zone(db, value)
+                        value = target_zone.id if target_zone else (parse_uuid(value) or value)
+                elif key == "custom_zone_name":
+                    value = value.strip()[:128] if isinstance(value, str) and value.strip() else None
                 elif key == "location" and value is not None:
                     value = geojson_to_geoalchemy(value)
                 setattr(incident, key, value)

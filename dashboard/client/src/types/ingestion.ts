@@ -6,6 +6,7 @@ export interface DroneTelemetry {
   altitudeMeters: number;
   speedMps: number;
   zoneId: ZoneId;
+  customZoneName?: string;
   locationDescription: string;
   coordinates: {
     lat: number;

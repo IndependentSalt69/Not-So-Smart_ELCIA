@@ -115,7 +115,8 @@ def _build_flight_runs_map(db: Session) -> Dict[str, Dict[str, Any]]:
             "verification": verif,
             "incidents": {},
             "zone_id": verif.zone_id,
-            "zone_code": verif.zone.code if verif.zone else None,
+            "zone_code": verif.zone.code if verif.zone else ("OTHER" if verif.custom_zone_name else None),
+            "custom_zone_name": verif.custom_zone_name,
             "created_at": verif.created_at,
             "completed_at": verif.reviewed_at,
             "status": verif.status.value,
@@ -155,6 +156,7 @@ def _build_flight_runs_map(db: Session) -> Dict[str, Dict[str, Any]]:
                 "incidents": {},
                 "zone_id": None,
                 "zone_code": None,
+                "custom_zone_name": None,
                 "created_at": det.created_at,
                 "completed_at": None,
                 "status": "COMPLETED",
@@ -193,6 +195,7 @@ def _build_flight_runs_map(db: Session) -> Dict[str, Dict[str, Any]]:
                         "incidents": {},
                         "zone_id": None,
                         "zone_code": None,
+                        "custom_zone_name": None,
                         "created_at": inc.created_at,
                         "completed_at": None,
                         "status": "COMPLETED",
@@ -232,6 +235,7 @@ def _build_flight_runs_map(db: Session) -> Dict[str, Dict[str, Any]]:
                 "incidents": {},
                 "zone_id": UUID(mem_job.zone_id) if mem_job.zone_id and len(mem_job.zone_id) == 36 else None,
                 "zone_code": mem_job.zone_id if mem_job.zone_id and len(mem_job.zone_id) <= 10 else None,
+                "custom_zone_name": mem_job.custom_zone_name,
                 "created_at": mem_job.created_at,
                 "completed_at": mem_job.completed_at,
                 "status": mem_job.status.value,
@@ -241,6 +245,8 @@ def _build_flight_runs_map(db: Session) -> Dict[str, Dict[str, Any]]:
                 runs_map[job_id]["status"] = mem_job.status.value
             if mem_job.completed_at:
                 runs_map[job_id]["completed_at"] = mem_job.completed_at
+            if mem_job.custom_zone_name:
+                runs_map[job_id]["custom_zone_name"] = mem_job.custom_zone_name
 
     return runs_map
 
@@ -268,17 +274,27 @@ def _build_run_summary(run_data: Dict[str, Any]) -> FlightInspectionRunSummary:
         if inc.source == "HUMAN_REPORTED" or "-M" in inc.incident_code:
             has_human_report = True
 
-    # Resolve Zone
+    # Resolve Zone & Custom Zone Name
     zone_id = run_data.get("zone_id")
     zone_code = run_data.get("zone_code")
+    custom_zone_name = run_data.get("custom_zone_name")
 
     if not zone_id and incidents_list:
         zone_id = incidents_list[0].zone_id
         if incidents_list[0].zone:
             zone_code = incidents_list[0].zone.code
+        for inc in incidents_list:
+            if inc.custom_zone_name:
+                custom_zone_name = inc.custom_zone_name
+                break
 
     if not zone_code and verification and verification.zone:
         zone_code = verification.zone.code
+    if not custom_zone_name and verification and verification.custom_zone_name:
+        custom_zone_name = verification.custom_zone_name
+
+    if not zone_code and (custom_zone_name or (not zone_id and (incidents_list or verification))):
+        zone_code = "OTHER"
 
     # Resolve Timestamps
     created_at = run_data["created_at"]
@@ -313,6 +329,7 @@ def _build_run_summary(run_data: Dict[str, Any]) -> FlightInspectionRunSummary:
         job_prefix=job_prefix,
         zone_id=zone_id,
         zone_code=zone_code,
+        custom_zone_name=custom_zone_name,
         total_hazards=total_hazards,
         class_counts=class_counts,
         priority_counts=priority_counts,
@@ -343,15 +360,20 @@ def list_flight_runs(
 
     # Apply Zone Filter
     if zone_id is not None:
-        target_zone = get_zone(db, zone_id)
-        if target_zone:
+        if str(zone_id).strip().upper() == "OTHER":
             summaries = [
-                s for s in summaries if (s.zone_id == target_zone.id or s.zone_code == target_zone.code)
+                s for s in summaries if (s.zone_id is None or s.zone_code == "OTHER")
             ]
         else:
-            summaries = [
-                s for s in summaries if (str(s.zone_id) == str(zone_id) or s.zone_code == str(zone_id))
-            ]
+            target_zone = get_zone(db, zone_id)
+            if target_zone:
+                summaries = [
+                    s for s in summaries if (s.zone_id == target_zone.id or s.zone_code == target_zone.code)
+                ]
+            else:
+                summaries = [
+                    s for s in summaries if (str(s.zone_id) == str(zone_id) or s.zone_code == str(zone_id))
+                ]
 
     # Sort descending by created_at (newest runs first)
     def sort_key(s: FlightInspectionRunSummary):

@@ -70,6 +70,11 @@ class VideoVerification(Base):
         nullable=True,
         index=True,
     )
+    custom_zone_name: Mapped[Optional[str]] = mapped_column(
+        String(128),
+        nullable=True,
+        doc="User-provided custom zone name when outside EC-01..EC-04",
+    )
     drone_id: Mapped[Optional[str]] = mapped_column(
         String(64),
         nullable=True,

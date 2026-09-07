@@ -70,8 +70,8 @@ class AnalyticsTrendItem(BaseModel):
 class ZoneAnalyticsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    zone_id: UUID
-    zone_code: str = Field(..., description="Unique zone identifier code")
+    zone_id: Optional[UUID] = Field(None, description="Operational zone UUID or null for Other/Custom zones")
+    zone_code: str = Field(..., description="Unique zone identifier code (e.g. EC-01 or OTHER)")
     zone_name: str = Field(..., description="Human readable zone name")
     active_incidents: int = Field(..., ge=0, description="Count of active incidents in zone")
     waterlogged_area_sqm: Optional[float] = Field(

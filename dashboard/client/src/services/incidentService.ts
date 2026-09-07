@@ -194,6 +194,7 @@ export function resolveZoneInfo(item: {
   zone_code?: string | null;
   zone_name?: string | null;
   zone_id?: string | null;
+  custom_zone_name?: string | null;
 }): { zoneId: string | null; zoneName: string } {
   // 1. Resolve Zone Code
   let code: string | null = null;
@@ -203,16 +204,22 @@ export function resolveZoneInfo(item: {
     code = KNOWN_ZONE_UUID_MAP[item.zone_id.toLowerCase()].code;
   } else if (item.zone_id && item.zone_id.toUpperCase().startsWith('EC-')) {
     code = item.zone_id.toUpperCase().trim();
+  } else if (item.custom_zone_name || item.zone_id === null || item.zone_id === 'OTHER') {
+    code = 'OTHER';
   }
 
   // 2. Resolve Human-Readable Zone Name
   let name: string | null = null;
-  if (item.zone_name && item.zone_name.trim() !== '') {
+  if (item.custom_zone_name && item.custom_zone_name.trim() !== '') {
+    name = item.custom_zone_name.trim();
+  } else if (item.zone_name && item.zone_name.trim() !== '') {
     name = item.zone_name.trim();
   } else if (code && KNOWN_ZONE_CODE_NAME_MAP[code]) {
     name = KNOWN_ZONE_CODE_NAME_MAP[code];
   } else if (item.zone_id && KNOWN_ZONE_UUID_MAP[item.zone_id.toLowerCase()]) {
     name = KNOWN_ZONE_UUID_MAP[item.zone_id.toLowerCase()].name;
+  } else if (code === 'OTHER') {
+    name = 'Other / Custom Zone';
   } else if (code) {
     name = `Electronics City Zone (${code})`;
   }
@@ -354,6 +361,7 @@ export function mapBackendIncidentToFrontend(item: BackendIncidentItem): Inciden
     timestamp: item.started_at || item.created_at,
     zone: zoneName,
     zoneId: (zoneId as ZoneId) || (zoneId as any),
+    customZoneName: item.custom_zone_name || (zoneId === 'OTHER' ? zoneName : null),
     locationDescription: item.recommended_action
       ? `${displayCode} - ${getIncidentTypeLabel(type)} Hazard`
       : `${zoneName} (${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E)`,

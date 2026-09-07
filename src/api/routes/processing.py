@@ -85,7 +85,8 @@ def get_flight_inspection_run_detail(
 async def create_processing_job(
     video: UploadFile = File(..., description="Raw drone footage file (.mp4, .mov, .avi)"),
     srt: Optional[UploadFile] = File(None, description="Optional DJI SRT flight telemetry subtitle file (.srt)"),
-    zone_id: Optional[str] = Form(None, description="Optional surveillance zone identifier (e.g. EC-01)"),
+    zone_id: Optional[str] = Form(None, description="Optional surveillance zone identifier (e.g. EC-01 or OTHER)"),
+    custom_zone_name: Optional[str] = Form(None, description="Custom operational zone name when zone is OTHER"),
     drone_id: Optional[str] = Form(None, description="Optional drone swarm ID (e.g. DRONE-ALPHA-1)"),
 ):
     """
@@ -97,6 +98,25 @@ async def create_processing_job(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Uploaded video file missing filename.",
         )
+
+    clean_custom_name = custom_zone_name.strip() if custom_zone_name else None
+    if clean_custom_name and len(clean_custom_name) > 128:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Custom zone name cannot exceed 128 characters.",
+        )
+
+    if zone_id and zone_id.strip().upper() == "OTHER":
+        if not clean_custom_name:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Custom zone name is required when 'Other' zone is selected.",
+            )
+        eff_zone_id = None
+        eff_custom_name = clean_custom_name
+    else:
+        eff_zone_id = zone_id.strip() if zone_id else None
+        eff_custom_name = clean_custom_name
 
     try:
         video_content = await video.read()
@@ -112,7 +132,8 @@ async def create_processing_job(
             video_content=video_content,
             srt_filename=srt_filename,
             srt_content=srt_content,
-            zone_id=zone_id,
+            zone_id=eff_zone_id,
+            custom_zone_name=eff_custom_name,
             drone_id=drone_id,
         )
 

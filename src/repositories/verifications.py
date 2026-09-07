@@ -32,13 +32,19 @@ def create_verification(
     annotated_video_url: Optional[str] = None,
     telemetry_path: Optional[str] = None,
     zone_id: Optional[Union[UUID, str]] = None,
+    custom_zone_name: Optional[str] = None,
     drone_id: Optional[str] = None,
     ai_hazard_count: int = 0,
 ) -> VideoVerification:
     """Creates a new VideoVerification record for an aerial flight."""
     resolved_zone = None
-    if zone_id:
+    custom_name = None
+    if zone_id and str(zone_id).strip().upper() != "OTHER":
         resolved_zone = get_zone(db, zone_id)
+        if not resolved_zone and not isinstance(zone_id, UUID):
+            custom_name = str(zone_id).strip()[:128]
+    if custom_zone_name:
+        custom_name = custom_zone_name.strip()[:128]
 
     verification = VideoVerification(
         job_id=job_id,
@@ -47,6 +53,7 @@ def create_verification(
         annotated_video_url=annotated_video_url,
         telemetry_path=telemetry_path,
         zone_id=resolved_zone.id if resolved_zone else None,
+        custom_zone_name=custom_name if not resolved_zone else None,
         drone_id=drone_id,
         ai_hazard_count=ai_hazard_count,
         status=VerificationStatus.PENDING_REVIEW,
@@ -90,9 +97,14 @@ def list_verifications(
         stmt = stmt.where(VideoVerification.status == status)
 
     if zone_id is not None:
-        zone = get_zone(db, zone_id)
-        if zone:
-            stmt = stmt.where(VideoVerification.zone_id == zone.id)
+        if str(zone_id).strip().upper() == "OTHER":
+            stmt = stmt.where(VideoVerification.zone_id.is_(None))
+        else:
+            zone = get_zone(db, zone_id)
+            if zone:
+                stmt = stmt.where(VideoVerification.zone_id == zone.id)
+            else:
+                stmt = stmt.where(VideoVerification.zone_id.is_(None))
 
     stmt = stmt.order_by(desc(VideoVerification.created_at)).offset(skip).limit(limit)
     return list(db.execute(stmt).scalars().all())
@@ -110,9 +122,14 @@ def count_verifications(
         stmt = stmt.where(VideoVerification.status == status)
 
     if zone_id is not None:
-        zone = get_zone(db, zone_id)
-        if zone:
-            stmt = stmt.where(VideoVerification.zone_id == zone.id)
+        if str(zone_id).strip().upper() == "OTHER":
+            stmt = stmt.where(VideoVerification.zone_id.is_(None))
+        else:
+            zone = get_zone(db, zone_id)
+            if zone:
+                stmt = stmt.where(VideoVerification.zone_id == zone.id)
+            else:
+                stmt = stmt.where(VideoVerification.zone_id.is_(None))
 
     return db.execute(stmt).scalar_one()
 
@@ -153,6 +170,7 @@ def report_verification_anomaly(
     timestamp_sec: Optional[float] = None,
     frame_number: Optional[int] = None,
     zone_id: Optional[Union[UUID, str]] = None,
+    custom_zone_name: Optional[str] = None,
     reviewer_id: Optional[UUID] = None,
 ) -> Tuple[VideoVerification, Incident]:
     """
@@ -185,19 +203,21 @@ def report_verification_anomaly(
 
     # 2. Resolve Operational Zone
     effective_zone = None
-    if zone_id:
+    effective_custom_name = None
+
+    if zone_id and str(zone_id).strip().upper() == "OTHER":
+        effective_zone = None
+        effective_custom_name = custom_zone_name.strip()[:128] if custom_zone_name else (verification.custom_zone_name or "Custom Zone")
+    elif zone_id:
         effective_zone = get_zone(db, zone_id)
+        if not effective_zone:
+            effective_custom_name = custom_zone_name.strip()[:128] if custom_zone_name else str(zone_id).strip()[:128]
     elif verification.zone_id:
         effective_zone = get_zone(db, verification.zone_id)
-
-    if not effective_zone:
-        # Fallback to first available zone
-        all_zones = list_zones(db)
-        if all_zones:
-            effective_zone = all_zones[0]
-
-    if not effective_zone:
-        raise ValueError("No operational zone available in database for incident creation.")
+    elif verification.custom_zone_name:
+        effective_custom_name = verification.custom_zone_name
+    elif custom_zone_name:
+        effective_custom_name = custom_zone_name.strip()[:128]
 
     # 3. Create Unique Incident Code
     job_prefix = verification.job_id.replace("-", "")[:8].upper()
@@ -221,7 +241,8 @@ def report_verification_anomaly(
         confidence=1.0,  # Human verified
         severity_score=severity_score,
         priority=priority,
-        zone_id=effective_zone.id,
+        zone_id=effective_zone.id if effective_zone else None,
+        custom_zone_name=effective_custom_name if not effective_zone else None,
         status=IncidentStatus.DETECTED,
         started_at=datetime.now(timezone.utc),
         duration_seconds=0.0,

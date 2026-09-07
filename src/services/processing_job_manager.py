@@ -30,6 +30,7 @@ class JobRecord:
         uploaded_srt: Optional[str],
         output_dir: str,
         zone_id: Optional[str] = None,
+        custom_zone_name: Optional[str] = None,
         drone_id: Optional[str] = None,
     ):
         self.job_id = job_id
@@ -44,6 +45,7 @@ class JobRecord:
         self.uploaded_srt = uploaded_srt
         self.output_dir = output_dir
         self.zone_id = zone_id
+        self.custom_zone_name = custom_zone_name
         self.drone_id = drone_id
         self.hazards_detected: int = 0
         self.evidence_count: int = 0
@@ -127,6 +129,7 @@ class ProcessingJobManager:
         srt_filename: Optional[str] = None,
         srt_content: Optional[bytes] = None,
         zone_id: Optional[str] = None,
+        custom_zone_name: Optional[str] = None,
         drone_id: Optional[str] = None,
         max_size: int = DEFAULT_MAX_UPLOAD_SIZE_BYTES,
     ) -> JobRecord:
@@ -167,6 +170,7 @@ class ProcessingJobManager:
             uploaded_srt=str(srt_save_path) if srt_save_path else None,
             output_dir=str(output_dir),
             zone_id=zone_id,
+            custom_zone_name=custom_zone_name,
             drone_id=drone_id,
         )
 
@@ -301,7 +305,8 @@ class ProcessingJobManager:
                     db = SessionLocal()
                     try:
                         effective_zone_id = job.zone_id
-                        if not effective_zone_id and job.uploaded_srt and Path(job.uploaded_srt).exists():
+                        effective_custom_name = job.custom_zone_name
+                        if not effective_zone_id and not effective_custom_name and job.uploaded_srt and Path(job.uploaded_srt).exists():
                             try:
                                 from src.repositories.zones import resolve_zone_from_telemetry
                                 with open(job.uploaded_srt, "r", encoding="utf-8", errors="replace") as srt_f:
@@ -316,6 +321,7 @@ class ProcessingJobManager:
                             job_id=job.job_id,
                             output_dir=job.output_dir,
                             zone_id=effective_zone_id,
+                            custom_zone_name=effective_custom_name,
                         )
                         if job.results and isinstance(job.results.get("summary"), dict):
                             job.results["summary"]["incidents_created"] = ingestion_summary["incidents_created"]

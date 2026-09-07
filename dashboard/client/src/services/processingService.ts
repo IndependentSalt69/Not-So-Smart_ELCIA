@@ -169,7 +169,8 @@ export const processingService = {
     videoFile: File,
     srtFile?: File | null,
     zoneId?: string,
-    droneId?: string
+    droneId?: string,
+    customZoneName?: string
   ): Promise<ProcessJobResponse> {
     const formData = new FormData();
     formData.append('video', videoFile);
@@ -178,6 +179,9 @@ export const processingService = {
     }
     if (zoneId) {
       formData.append('zone_id', zoneId);
+    }
+    if (customZoneName) {
+      formData.append('custom_zone_name', customZoneName);
     }
     if (droneId) {
       formData.append('drone_id', droneId);

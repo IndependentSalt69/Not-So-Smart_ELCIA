@@ -18,7 +18,8 @@ class IncidentBase(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0)
     severity_score: float = Field(..., ge=0.0, le=10.0)
     priority: PriorityLevel
-    zone_id: UUID
+    zone_id: Optional[UUID] = None
+    custom_zone_name: Optional[str] = Field(None, max_length=128, description="Custom zone name if outside predefined zones")
     status: IncidentStatus = Field(default=IncidentStatus.DETECTED)
     started_at: Optional[datetime] = None
     ended_at: Optional[datetime] = None
@@ -26,6 +27,16 @@ class IncidentBase(BaseModel):
     recommended_action: Optional[str] = None
     location: Optional[GeoJSONPoint] = Field(None, description="GeoJSON point coordinates [longitude, latitude]")
     source: str = Field(default="AI_VISION", description="Incident detection source: AI_VISION or HUMAN_REPORTED")
+
+    @field_validator("custom_zone_name", mode="before")
+    @classmethod
+    def clean_custom_zone_name(cls, v: Any) -> Optional[str]:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            s = v.strip()
+            return s if s else None
+        return v
 
 
 class IncidentCreate(IncidentBase):
@@ -38,11 +49,22 @@ class IncidentUpdate(BaseModel):
     severity_score: Optional[float] = Field(None, ge=0.0, le=10.0)
     priority: Optional[PriorityLevel] = None
     zone_id: Optional[UUID] = None
+    custom_zone_name: Optional[str] = Field(None, max_length=128)
     status: Optional[IncidentStatus] = None
     ended_at: Optional[datetime] = None
     duration_seconds: Optional[float] = None
     recommended_action: Optional[str] = None
     location: Optional[GeoJSONPoint] = None
+
+    @field_validator("custom_zone_name", mode="before")
+    @classmethod
+    def clean_custom_zone_name(cls, v: Any) -> Optional[str]:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            s = v.strip()
+            return s if s else None
+        return v
 
 
 class IncidentStatusUpdate(BaseModel):

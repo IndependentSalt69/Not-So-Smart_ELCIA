@@ -20,6 +20,7 @@ export interface FlightInspectionRunSummary {
   job_prefix: string;
   zone_id?: string | null;
   zone_code?: string | null;
+  custom_zone_name?: string | null;
   total_hazards: number;
   class_counts: Record<string, number>;
   priority_counts: Record<string, number>;

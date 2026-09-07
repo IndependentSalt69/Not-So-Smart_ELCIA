@@ -99,11 +99,16 @@ class Incident(Base):
         Text,
         nullable=True,
     )
-    zone_id: Mapped[uuid.UUID] = mapped_column(
+    zone_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("zones.id", ondelete="RESTRICT"),
-        nullable=False,
+        ForeignKey("zones.id", ondelete="SET NULL"),
+        nullable=True,
         index=True,
+    )
+    custom_zone_name: Mapped[Optional[str]] = mapped_column(
+        String(128),
+        nullable=True,
+        doc="User-provided custom zone name when outside EC-01..EC-04",
     )
     location: Mapped[Optional[bytes]] = mapped_column(
         Geometry(geometry_type="POINT", srid=4326, spatial_index=True),
@@ -124,7 +129,7 @@ class Incident(Base):
     )
 
     # Relationships
-    zone: Mapped["Zone"] = relationship(
+    zone: Mapped[Optional["Zone"]] = relationship(
         "Zone",
         back_populates="incidents",
     )
@@ -167,13 +172,21 @@ class Incident(Base):
 
     @property
     def zone_code(self) -> Optional[str]:
-        """Human-readable zone code e.g. EC-01, EC-04."""
-        return self.zone.code if hasattr(self, "zone") and self.zone else None
+        """Human-readable zone code e.g. EC-01, EC-04 or OTHER."""
+        if hasattr(self, "zone") and self.zone:
+            return self.zone.code
+        if self.custom_zone_name:
+            return "OTHER"
+        return None
 
     @property
     def zone_name(self) -> Optional[str]:
         """Human-readable zone operational name."""
-        return self.zone.name if hasattr(self, "zone") and self.zone else None
+        if hasattr(self, "zone") and self.zone:
+            return self.zone.name
+        if self.custom_zone_name:
+            return self.custom_zone_name
+        return None
 
     def __repr__(self) -> str:
         return f"<Incident(code='{self.incident_code}', type='{self.incident_type}', status='{self.status}', priority='{self.priority}')>"

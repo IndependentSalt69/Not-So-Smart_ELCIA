@@ -81,4 +81,5 @@ def test_alembic_migration_lifecycle(alembic_config):
     # Verify head revision matches latest migration
     from alembic.script import ScriptDirectory
     script_dir = ScriptDirectory.from_config(alembic_config)
-    assert script_dir.get_current_head() == "20260907_004"
+    assert script_dir.get_current_head() == "20260907_005"
+    assert "custom_zone_name" in columns

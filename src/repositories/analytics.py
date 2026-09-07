@@ -182,4 +182,28 @@ def get_analytics_zones(db: Session) -> List[ZoneAnalyticsResponse]:
                 p3_count=row.p3_count or 0,
             )
         )
+
+    # Aggregate Custom / Other Zones (Incidents where zone_id is NULL)
+    other_stmt = select(
+        func.count(case((active_cond, 1))).label("active_incidents"),
+        func.count(case(((active_cond) & (Incident.priority == PriorityLevel.P1), 1))).label("p1_count"),
+        func.count(case(((active_cond) & (Incident.priority == PriorityLevel.P2), 1))).label("p2_count"),
+        func.count(case(((active_cond) & (Incident.priority == PriorityLevel.P3), 1))).label("p3_count"),
+    ).where(Incident.zone_id.is_(None))
+
+    other_row = db.execute(other_stmt).one_or_none()
+    if other_row and (other_row.active_incidents or 0) > 0:
+        results.append(
+            ZoneAnalyticsResponse(
+                zone_id=None,
+                zone_code="OTHER",
+                zone_name="Other / Custom Zones",
+                active_incidents=other_row.active_incidents or 0,
+                waterlogged_area_sqm=None,
+                p1_count=other_row.p1_count or 0,
+                p2_count=other_row.p2_count or 0,
+                p3_count=other_row.p3_count or 0,
+            )
+        )
+
     return results

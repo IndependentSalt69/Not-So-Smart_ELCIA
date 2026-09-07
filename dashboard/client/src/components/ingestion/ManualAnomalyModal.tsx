@@ -80,6 +80,7 @@ export const ManualAnomalyModal: React.FC<ManualAnomalyModalProps> = ({
   const [severityScore, setSeverityScore] = useState<number>(6.5);
   const [timestampSec, setTimestampSec] = useState<number>(videoPlaybackTime);
   const [selectedZone, setSelectedZone] = useState<string>(zoneId || 'EC-01');
+  const [customZoneName, setCustomZoneName] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   
   // GPS Location Fields (GPS Safety Guarantee)
@@ -102,6 +103,7 @@ export const ManualAnomalyModal: React.FC<ManualAnomalyModalProps> = ({
         setLongitude('');
       }
       setSelectedZone(zoneId || 'EC-01');
+      setCustomZoneName('');
     }
   }, [isOpen, videoPlaybackTime, flightGpsPoint, zoneId]);
 
@@ -119,6 +121,18 @@ export const ManualAnomalyModal: React.FC<ManualAnomalyModalProps> = ({
       return;
     }
 
+    if (selectedZone === 'OTHER') {
+      const trimmedCustom = customZoneName.trim();
+      if (!trimmedCustom) {
+        toast.error('Please enter a custom zone name when "Other" is selected.');
+        return;
+      }
+      if (trimmedCustom.length > 128) {
+        toast.error('Custom zone name cannot exceed 128 characters.');
+        return;
+      }
+    }
+
     try {
       setLoading(true);
       const payload = {
@@ -127,7 +141,8 @@ export const ManualAnomalyModal: React.FC<ManualAnomalyModalProps> = ({
         severity_score: severityScore,
         description: notes.trim() || `Manual ${hazardType} incident reported by operator from flight ${jobId.slice(0, 8)}`,
         timestamp_sec: timestampSec,
-        zone_id: selectedZone,
+        zone_id: selectedZone === 'OTHER' ? 'OTHER' : selectedZone,
+        custom_zone_name: selectedZone === 'OTHER' ? customZoneName.trim() : undefined,
         location: {
           type: 'Point' as const,
           coordinates: [lngNum, latNum] as [number, number],
@@ -293,9 +308,28 @@ export const ManualAnomalyModal: React.FC<ManualAnomalyModalProps> = ({
                 <option value="EC-02">EC-02 (Phase 1 - East)</option>
                 <option value="EC-03">EC-03 (Phase 2 - North)</option>
                 <option value="EC-04">EC-04 (Main Junction Corridor)</option>
+                <option value="OTHER">Other (Custom Zone)</option>
               </select>
             </div>
           </div>
+
+          {/* Custom Zone Name input when OTHER is selected */}
+          {selectedZone === 'OTHER' && (
+            <div className="space-y-1.5 p-3 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 animate-in fade-in slide-in-from-top-1 duration-200">
+              <label className="text-xs font-bold text-emerald-700 dark:text-emerald-400 block">
+                Custom Operational Zone Name <span className="text-rose-500">*</span>:
+              </label>
+              <Input
+                type="text"
+                placeholder="Enter custom zone name (max 128 chars)"
+                value={customZoneName}
+                onChange={(e) => setCustomZoneName(e.target.value.slice(0, 128))}
+                maxLength={128}
+                required
+                className="rounded-xl h-10 text-xs bg-white dark:bg-zinc-900 border-emerald-300 dark:border-emerald-700"
+              />
+            </div>
+          )}
 
           {/* GPS Coordinates & Safety Check */}
           <div className="space-y-2 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-700">

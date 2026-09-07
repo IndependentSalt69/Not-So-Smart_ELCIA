@@ -27,9 +27,10 @@ export interface BackendIncidentItem {
   confidence: number;
   severity_score: number;
   priority: 'P1' | 'P2' | 'P3';
-  zone_id: string;
+  zone_id?: string | null;
   zone_code?: string | null;
   zone_name?: string | null;
+  custom_zone_name?: string | null;
   status: IncidentStatus;
   started_at?: string | null;
   ended_at?: string | null;
@@ -95,7 +96,7 @@ export type IncidentStatus =
   | 'RE_INSPECTION'
   | 'CLOSED';
 
-export type ZoneId = 'EC-01' | 'EC-02' | 'EC-03' | 'EC-04';
+export type ZoneId = 'EC-01' | 'EC-02' | 'EC-03' | 'EC-04' | 'OTHER';
 
 export interface SeverityFactors {
   waterExtent: number; // 0.0 - 10.0 or percentage (e.g. 78%)
@@ -210,8 +211,9 @@ export interface Incident {
   severity: number; // 0.0 to 10.0
   priority: PriorityLevel;
   timestamp: string; // ISO String or relative format
-  zone: string; // "Phase 1 - Hosur Arterial"
+  zone: string; // "Phase 1 - Hosur Arterial" or custom zone name
   zoneId?: ZoneId | string | null;
+  customZoneName?: string | null;
   locationDescription: string;
   coordinates: {
     lat: number;

@@ -245,6 +245,7 @@ export const IncidentMapView: React.FC<IncidentMapViewProps> = ({
     { id: 'EC-02', label: 'EC-02: Phase 1 East', badge: incidents.filter((i) => i.zoneId === 'EC-02').length },
     { id: 'EC-03', label: 'EC-03: Phase 2 Tech Park', badge: incidents.filter((i) => i.zoneId === 'EC-03').length },
     { id: 'EC-04', label: 'EC-04: Main Junction', badge: incidents.filter((i) => i.zoneId === 'EC-04').length },
+    { id: 'OTHER', label: 'Other / Custom Zones', badge: incidents.filter((i) => i.zoneId === 'OTHER').length },
   ];
 
   const layerItems: { id: 'hybrid' | 'roadmap'; label: string }[] = [
