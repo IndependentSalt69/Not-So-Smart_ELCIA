@@ -255,7 +255,7 @@ class HazardVideoPipeline:
                     # Save Evidence Snapshot
                     evidence_filename = f"hazard_{track_id}_{metrics['risk_level']}.jpg"
                     evidence_filepath = self.evidence_dir / evidence_filename
-                    cv2.imwrite(str(evidence_filepath), frame)
+                    cv2.imwrite(str(evidence_filepath), annotated_frame)
 
                     # Lookup GPS Coordinates
                     gps_loc = self._get_gps_for_time(current_time_sec)

@@ -81,12 +81,44 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
   }, [incident.id]);
 
   const primaryEvidence = evidenceList.find((e) => e.isPrimary) || evidenceList[0];
+  const primaryDetection = detectionsList[0];
+  const rawTimestamp = primaryDetection?.detectionMetadata?.timestamp_sec;
+  const detectionTimestampSec: number | null =
+    typeof rawTimestamp === 'number' && !isNaN(rawTimestamp)
+      ? rawTimestamp
+      : typeof rawTimestamp === 'string' && !isNaN(parseFloat(rawTimestamp))
+        ? parseFloat(rawTimestamp)
+        : null;
 
   // Reset image and video error states on incident or evidence asset switch
   useEffect(() => {
     setImageLoadError(false);
     setVideoLoadError(false);
   }, [incident.id, primaryEvidence?.id, primaryEvidence?.filePath]);
+
+  // Synchronize video seeking to detection timestamp when switching to video mode
+  useEffect(() => {
+    if (viewMode === 'video' && videoRef.current && detectionTimestampSec !== null && detectionTimestampSec >= 0) {
+      if (videoRef.current.readyState >= 1) {
+        try {
+          videoRef.current.currentTime = detectionTimestampSec;
+        } catch (err) {
+          console.warn('Failed to seek video to detection timestamp:', err);
+        }
+      }
+    }
+  }, [viewMode, detectionTimestampSec]);
+
+  const handleVideoLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const videoEl = e.currentTarget;
+    if (detectionTimestampSec !== null && detectionTimestampSec >= 0) {
+      try {
+        videoEl.currentTime = detectionTimestampSec;
+      } catch (err) {
+        console.warn('Failed to seek video to detection timestamp on metadata load:', err);
+      }
+    }
+  };
 
   // Playback timer simulation for frame stepping (when no real video is active)
   useEffect(() => {
@@ -294,6 +326,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
                 src={derivedVideoUrl}
                 controls
                 playsInline
+                onLoadedMetadata={handleVideoLoadedMetadata}
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 onEnded={() => setIsPlaying(false)}
