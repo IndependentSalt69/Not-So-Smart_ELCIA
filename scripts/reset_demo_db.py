@@ -45,6 +45,7 @@ ALLOW_RESET_ENV_VAR: str = "CIVICPULSE_ALLOW_DEMO_RESET"
 # Exact child-to-parent deletion order for operational activity records
 # Operational setup (users, zones) and schema/migrations are strictly preserved.
 APPLICATION_TABLES_IN_ORDER: List[str] = [
+    "video_verifications",
     "inspections",
     "incident_status_history",
     "assignments",
