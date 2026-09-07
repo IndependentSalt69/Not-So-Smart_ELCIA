@@ -21,6 +21,13 @@ echo -e "${CYAN}============================================${NC}"
 echo ""
 
 # ------------------------------------------------------------
+# Determine Project Root (working-directory independent)
+# ------------------------------------------------------------
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$REPO_ROOT"
+
+# ------------------------------------------------------------
 # 1. OS & Architecture Detection
 # ------------------------------------------------------------
 echo -e "${YELLOW}[1/10] Checking Operating System & Architecture...${NC}"
@@ -28,7 +35,7 @@ echo -e "${YELLOW}[1/10] Checking Operating System & Architecture...${NC}"
 OS_NAME="$(uname -s)"
 if [ "$OS_NAME" != "Darwin" ]; then
     echo -e "${RED}Error: This setup script is for macOS only (detected: $OS_NAME).${NC}"
-    echo "For Windows, run .\\setup_gpu.ps1 instead."
+    echo "For Windows, run .\\setup\\windows\\setup_gpu.ps1 instead."
     exit 1
 fi
 
@@ -55,11 +62,22 @@ echo -e "${YELLOW}[2/10] Checking required CLI tools...${NC}"
 
 MISSING_TOOLS=()
 
-for tool in git python3 node npm ffmpeg; do
+for tool in git node npm ffmpeg; do
     if ! command -v "$tool" >/dev/null 2>&1; then
         MISSING_TOOLS+=("$tool")
     fi
 done
+
+# Check if at least one Python interpreter command is available
+if ! command -v python3.11 >/dev/null 2>&1 && \
+   ! command -v python3.10 >/dev/null 2>&1 && \
+   ! command -v python3.12 >/dev/null 2>&1 && \
+   ! command -v python3.13 >/dev/null 2>&1 && \
+   ! command -v python3.14 >/dev/null 2>&1 && \
+   ! command -v python3 >/dev/null 2>&1 && \
+   ! command -v python >/dev/null 2>&1; then
+    MISSING_TOOLS+=("python3")
+fi
 
 if [ ${#MISSING_TOOLS[@]} -ne 0 ]; then
     echo -e "${RED}Error: Missing required tools: ${MISSING_TOOLS[*]}${NC}"
@@ -73,7 +91,7 @@ if [ ${#MISSING_TOOLS[@]} -ne 0 ]; then
             git)
                 echo "  - brew install git"
                 ;;
-            python3)
+            python*|python3*|python3.11)
                 echo "  - brew install python@3.11"
                 ;;
             node|npm)
@@ -88,39 +106,79 @@ if [ ${#MISSING_TOOLS[@]} -ne 0 ]; then
     exit 1
 fi
 
-echo -e "      CLI Tools:    ${GREEN}git, python3, node, npm, ffmpeg found${NC}"
+echo -e "      CLI Tools:    ${GREEN}git, node, npm, ffmpeg found${NC}"
 
 # ------------------------------------------------------------
 # 3. Python Version Compatibility Check
 # ------------------------------------------------------------
-echo -e "${YELLOW}[3/10] Checking Python version compatibility...${NC}"
+echo -e "${YELLOW}[3/10] Checking Python interpreter & version compatibility...${NC}"
 
-PYTHON_SYS_VER="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")')"
-PYTHON_COMPAT="$(python3 -c 'import sys; print("1" if sys.version_info >= (3, 10) else "0")')"
+PYTHON_BIN=""
+PYTHON_SYS_VER=""
 
-if [ "$PYTHON_COMPAT" != "1" ]; then
-    echo -e "${RED}Error: Python 3.10+ required. Found Python $PYTHON_SYS_VER.${NC}"
-    echo "Install a compatible Python version via Homebrew: brew install python@3.11"
+# Check candidate Python interpreters in priority order (preferring Python 3.11, then 3.10, 3.12, 3.13, 3.14, python3, python)
+for candidate in python3.11 python3.10 python3.12 python3.13 python3.14 python3 python; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+        CANDIDATE_VER="$("$candidate" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")' 2>/dev/null || true)"
+        CANDIDATE_COMPAT="$("$candidate" -c 'import sys; print("1" if sys.version_info >= (3, 10) else "0")' 2>/dev/null || true)"
+        if [ "$CANDIDATE_COMPAT" = "1" ]; then
+            PYTHON_BIN="$candidate"
+            PYTHON_SYS_VER="$CANDIDATE_VER"
+            break
+        fi
+    fi
+done
+
+if [ -z "$PYTHON_BIN" ]; then
+    # Detect what system python version was found for actionable error reporting
+    DETECTED_VER="not found"
+    if command -v python3 >/dev/null 2>&1; then
+        DETECTED_VER="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")' 2>/dev/null || echo 'unknown')"
+    elif command -v python >/dev/null 2>&1; then
+        DETECTED_VER="$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")' 2>/dev/null || echo 'unknown')"
+    fi
+
+    echo -e "${RED}Error: Python 3.10+ required (detected: Python $DETECTED_VER).${NC}"
+    echo "CivicPulse requires Python 3.10 or higher (Python 3.11 recommended)."
+    echo ""
+    echo "Please install Python 3.11 using Homebrew:"
+    echo "  brew install python@3.11"
+    echo ""
+    echo "Then rerun setup:"
+    echo "  ./setup/macOS/setup_mac.sh"
+    echo ""
     exit 1
 fi
 
-echo -e "      Python:       ${GREEN}Python $PYTHON_SYS_VER${NC}"
+echo -e "      Python Binary:  ${GREEN}$(command -v "$PYTHON_BIN")${NC}"
+echo -e "      Python Version: ${GREEN}Python $PYTHON_SYS_VER${NC}"
+if [ "$PYTHON_BIN" = "python3.11" ]; then
+    echo -e "      Status:         ${GREEN}Using recommended Python 3.11 interpreter${NC}"
+else
+    echo -e "      Note:           ${GRAY}Python 3.11 is recommended; proceeding with detected Python $PYTHON_SYS_VER${NC}"
+fi
 
 # ------------------------------------------------------------
 # 4. Determine Project Root & Virtual Environment
 # ------------------------------------------------------------
 echo -e "${YELLOW}[4/10] Setting up Python virtual environment...${NC}"
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$ROOT_DIR"
-
-VENV_DIR="$ROOT_DIR/.venv"
+VENV_DIR="$REPO_ROOT/.venv"
 PYTHON="$VENV_DIR/bin/python"
 PIP="$VENV_DIR/bin/pip"
 
+if [ -f "$PYTHON" ]; then
+    # Verify existing virtual environment was created with a compatible Python version
+    VENV_COMPAT="$("$PYTHON" -c 'import sys; print("1" if sys.version_info >= (3, 10) else "0")' 2>/dev/null || echo "0")"
+    if [ "$VENV_COMPAT" != "1" ]; then
+        echo -e "      Existing .venv uses an incompatible Python version. Recreating .venv with $PYTHON_BIN..."
+        rm -rf "$VENV_DIR"
+    fi
+fi
+
 if [ ! -f "$PYTHON" ]; then
-    echo -e "      Creating .venv..."
-    python3 -m venv "$VENV_DIR"
+    echo -e "      Creating .venv using $PYTHON_BIN at $VENV_DIR..."
+    "$PYTHON_BIN" -m venv "$VENV_DIR"
 fi
 
 if [ ! -f "$PYTHON" ]; then
@@ -128,22 +186,36 @@ if [ ! -f "$PYTHON" ]; then
     exit 1
 fi
 
-echo -e "      .venv:        ${GREEN}$VENV_DIR (Ready)${NC}"
+echo -e "      .venv:          ${GREEN}$VENV_DIR (Ready)${NC}"
 
 # ------------------------------------------------------------
 # 5. Install Common Dependencies (requirements.txt)
 # ------------------------------------------------------------
 echo -e "${YELLOW}[5/10] Installing Python dependencies from requirements.txt...${NC}"
 
+if [ ! -f "$REPO_ROOT/requirements.txt" ]; then
+    echo -e "${RED}Error: requirements.txt not found at $REPO_ROOT/requirements.txt${NC}"
+    exit 1
+fi
+
 "$PIP" install --upgrade pip
-"$PIP" install -r requirements.txt
+
+if ! "$PIP" install -r "$REPO_ROOT/requirements.txt"; then
+    echo ""
+    echo -e "${RED}Error: Failed to install Python dependencies using Python $PYTHON_SYS_VER ($PYTHON_BIN).${NC}"
+    echo "If package compilation or binary wheel resolution failed on Python $PYTHON_SYS_VER,"
+    echo "we recommend installing and running with Python 3.11:"
+    echo "  brew install python@3.11"
+    echo ""
+    exit 1
+fi
 
 # ------------------------------------------------------------
 # 6. Verify PyTorch, Accelerators & ML Libraries
 # ------------------------------------------------------------
 echo -e "${YELLOW}[6/10] Verifying PyTorch and machine learning modules...${NC}"
 
-"$PYTHON" -c "
+if ! "$PYTHON" -c "
 import sys
 import torch
 import torchvision
@@ -160,7 +232,15 @@ print(f'      Ultralytics:  {ultralytics.__version__}')
 print(f'      OpenCV:       {cv2.__version__}')
 print(f'      Supervision:  {supervision.__version__}')
 print(f'      timm:         {timm.__version__}')
-"
+"; then
+    echo ""
+    echo -e "${RED}Error: Machine learning module import verification failed using Python $PYTHON_SYS_VER ($PYTHON).${NC}"
+    echo "If precompiled binary wheels for PyTorch or computer vision libraries are unavailable for Python $PYTHON_SYS_VER,"
+    echo "please install and use Python 3.11:"
+    echo "  brew install python@3.11"
+    echo ""
+    exit 1
+fi
 
 # ------------------------------------------------------------
 # 7. Verify PyTorch Hardware Device Support
@@ -177,12 +257,12 @@ else:
 
 if [ "$ARCH" = "arm64" ]; then
     if [ "$MPS_STATUS" = "available" ]; then
-        echo -e "      Device:       ${GREEN}Apple Silicon Metal Performance Shaders (MPS) Available${NC}"
+        echo -e "      Device:         ${GREEN}Apple Silicon Metal Performance Shaders (MPS) Available${NC}"
     else
-        echo -e "      Device:       ${YELLOW}MPS Unavailable (falling back to CPU execution)${NC}"
+        echo -e "      Device:         ${YELLOW}MPS Unavailable (falling back to CPU execution)${NC}"
     fi
 else
-    echo -e "      Device:       ${GREEN}CPU Execution (Intel x86_64)${NC}"
+    echo -e "      Device:         ${GREEN}CPU Execution (Intel x86_64)${NC}"
 fi
 
 # ------------------------------------------------------------
@@ -190,18 +270,18 @@ fi
 # ------------------------------------------------------------
 echo -e "${YELLOW}[8/10] Validating project configuration & database...${NC}"
 
-if [ ! -f "$ROOT_DIR/.env" ]; then
-    echo -e "${RED}Error: .env not found in project root. Please create it with your database credentials.${NC}"
+if [ ! -f "$REPO_ROOT/.env" ]; then
+    echo -e "${RED}Error: .env not found in project root ($REPO_ROOT/.env). Please create it with your database credentials.${NC}"
     exit 1
 fi
 
-if [ ! -f "$ROOT_DIR/models/production/best.pt" ]; then
-    echo -e "${RED}Error: Production model not found at models/production/best.pt.${NC}"
+if [ ! -f "$REPO_ROOT/models/production/best.pt" ]; then
+    echo -e "${RED}Error: Production model not found at $REPO_ROOT/models/production/best.pt.${NC}"
     exit 1
 fi
 
-if [ ! -f "$ROOT_DIR/dashboard/.env" ]; then
-    echo -e "${RED}Error: dashboard/.env not found. Add VITE_API_BASE_URL and VITE_GOOGLE_MAPS_API_KEY.${NC}"
+if [ ! -f "$REPO_ROOT/dashboard/.env" ]; then
+    echo -e "${RED}Error: dashboard/.env not found ($REPO_ROOT/dashboard/.env). Add VITE_API_BASE_URL and VITE_GOOGLE_MAPS_API_KEY.${NC}"
     exit 1
 fi
 
@@ -237,7 +317,7 @@ print('      Backend API:      OK (FastAPI application imported successfully)')
 echo -e "${YELLOW}[9/10] Verifying FFmpeg installation...${NC}"
 
 FFMPEG_VER="$(ffmpeg -version | head -n 1)"
-echo -e "      FFmpeg:       ${GREEN}$FFMPEG_VER${NC}"
+echo -e "      FFmpeg:         ${GREEN}$FFMPEG_VER${NC}"
 
 # ------------------------------------------------------------
 # 10. Dashboard Frontend Dependencies
@@ -246,17 +326,17 @@ echo -e "${YELLOW}[10/10] Setting up Dashboard frontend dependencies...${NC}"
 
 NODE_VER="$(node --version)"
 NPM_VER="$(npm --version)"
-echo -e "      Node:         ${GREEN}$NODE_VER${NC}"
-echo -e "      npm:          ${GREEN}$NPM_VER${NC}"
+echo -e "      Node:           ${GREEN}$NODE_VER${NC}"
+echo -e "      npm:            ${GREEN}$NPM_VER${NC}"
 
-cd "$ROOT_DIR/dashboard"
-if [ ! -d "node_modules" ]; then
+cd "$REPO_ROOT/dashboard"
+if [ ! -d "$REPO_ROOT/dashboard/node_modules" ]; then
     echo -e "      Installing npm packages..."
     npm install --legacy-peer-deps
 else
-    echo -e "      node_modules: ${GREEN}Already installed${NC}"
+    echo -e "      node_modules:   ${GREEN}Already installed${NC}"
 fi
-cd "$ROOT_DIR"
+cd "$REPO_ROOT"
 
 # ------------------------------------------------------------
 # Final Summary Banner
@@ -279,8 +359,9 @@ fi
 echo -e "FFmpeg:                 $FFMPEG_VER"
 echo -e "Node.js:                $NODE_VER"
 echo -e "Frontend Dependencies:  installed"
-echo -e "Production Model:       found (models/production/best.pt)"
+echo -e "Production Model:       found ($REPO_ROOT/models/production/best.pt)"
 echo ""
 echo -e "${CYAN}Run:${NC}"
-echo -e "    ./start_mac.sh"
+echo -e "    ./setup/macOS/start_mac.sh"
+echo -e "    (or from setup/macOS: ./start_mac.sh)"
 echo ""
