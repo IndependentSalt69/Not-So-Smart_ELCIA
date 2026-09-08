@@ -4,7 +4,7 @@ Pydantic schemas for VideoVerification entity serialization, validation, and hum
 """
 
 from datetime import datetime
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Any
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
