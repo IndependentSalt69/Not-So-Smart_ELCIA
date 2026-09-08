@@ -76,5 +76,19 @@ describe('EvidenceViewer Component', () => {
     const html = renderToStaticMarkup(<EvidenceViewer incident={mockIncident} />);
     expect(html).toContain('Photos &amp; Evidence');
     expect(html).toContain('Show Detected Issues');
+    expect(html).toContain('GPS: 12.8452°N, 77.6631°E');
+    // Verify that hardcoded 120 and 1080p 60FPS are not present
+    expect(html).not.toContain('/ 120</span>');
+    expect(html).not.toContain('1080p 60FPS');
+  });
+
+  it('calculates total frames dynamically from duration and derived fps without hardcoded 120', () => {
+    const mockIncident = createMockIncident('inc-uuid-2', 'INC-57923255-2');
+    mockIncident.durationSeconds = 10.0; // 10s * 30fps = 300 frames
+
+    const html = renderToStaticMarkup(<EvidenceViewer incident={mockIncident} />);
+    expect(html).toContain('FRAME: #1 / 300');
+    expect(html).toContain('30 FPS');
   });
 });
+

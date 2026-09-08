@@ -14,7 +14,6 @@ import {
   Droplets,
   FileCode2,
   Footprints,
-  Maximize2,
   Pause,
   Play,
   RotateCcw,
@@ -33,13 +32,14 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
   const [viewMode, setViewMode] = useState<'image' | 'video'>('image');
   const [showOverlay, setShowOverlay] = useState<boolean>(true);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [currentFrame, setCurrentFrame] = useState<number>(42);
+  const [currentFrame, setCurrentFrame] = useState<number>(1);
   const [evidenceList, setEvidenceList] = useState<EvidenceAsset[]>([]);
   const [detectionsList, setDetectionsList] = useState<DetectionObservation[]>([]);
   const [loadingEvidence, setLoadingEvidence] = useState<boolean>(true);
   const [imageLoadError, setImageLoadError] = useState<boolean>(false);
   const [videoLoadError, setVideoLoadError] = useState<boolean>(false);
-  const totalFrames = 120;
+  const [mediaDimensions, setMediaDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [videoDuration, setVideoDuration] = useState<number>(0);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -90,10 +90,36 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
         ? parseFloat(rawTimestamp)
         : null;
 
-  // Reset image and video error states on incident or evidence asset switch
+  // Derive source FPS dynamically from detection frame & timestamp if available, else standard drone capture FPS (30)
+  const derivedFps =
+    primaryDetection?.frameNumber && detectionTimestampSec && detectionTimestampSec > 0
+      ? Math.round(primaryDetection.frameNumber / detectionTimestampSec)
+      : null;
+  const effectiveFps = derivedFps && derivedFps >= 10 && derivedFps <= 120 ? derivedFps : 30;
+
+  // Calculate dynamic total frame count from loaded video duration or incident duration
+  const rawDurationSec =
+    videoDuration > 0
+      ? videoDuration
+      : typeof incident.durationSeconds === 'number' && incident.durationSeconds > 0
+        ? incident.durationSeconds
+        : 0;
+
+  const derivedTotalFrames =
+    rawDurationSec > 0
+      ? Math.max(1, Math.round(rawDurationSec * effectiveFps))
+      : primaryDetection?.frameNumber != null
+        ? Math.max(1, primaryDetection.frameNumber)
+        : 1;
+
+  const totalFrames = Math.max(derivedTotalFrames, currentFrame, 1);
+
+  // Reset media-specific states on incident or evidence asset switch
   useEffect(() => {
     setImageLoadError(false);
     setVideoLoadError(false);
+    setMediaDimensions(null);
+    setVideoDuration(0);
   }, [incident.id, primaryEvidence?.id, primaryEvidence?.filePath]);
 
   // Synchronize video seeking to detection timestamp when switching to video mode
@@ -111,12 +137,29 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
 
   const handleVideoLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const videoEl = e.currentTarget;
+    if (videoEl.videoWidth && videoEl.videoHeight) {
+      setMediaDimensions({ width: videoEl.videoWidth, height: videoEl.videoHeight });
+    }
+    if (videoEl.duration && !isNaN(videoEl.duration)) {
+      setVideoDuration(videoEl.duration);
+    }
     if (detectionTimestampSec !== null && detectionTimestampSec >= 0) {
       try {
         videoEl.currentTime = detectionTimestampSec;
+        if (effectiveFps > 0) {
+          setCurrentFrame(Math.round(detectionTimestampSec * effectiveFps));
+        }
       } catch (err) {
         console.warn('Failed to seek video to detection timestamp on metadata load:', err);
       }
+    }
+  };
+
+  const handleVideoTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const videoEl = e.currentTarget;
+    if (videoEl && effectiveFps > 0) {
+      const frame = Math.round(videoEl.currentTime * effectiveFps);
+      setCurrentFrame(frame);
     }
   };
 
@@ -129,7 +172,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
       }, 100);
     }
     return () => clearInterval(interval);
-  }, [isPlaying]);
+  }, [isPlaying, totalFrames]);
 
   const handleTogglePlay = async () => {
     const video = videoRef.current;
@@ -152,12 +195,24 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
 
   const handleStepBack = () => {
     setIsPlaying(false);
-    setCurrentFrame((prev) => Math.max(0, prev - 1));
+    if (videoRef.current && videoRef.current.duration) {
+      const prevTime = Math.max(0, videoRef.current.currentTime - (1 / effectiveFps));
+      videoRef.current.currentTime = prevTime;
+      setCurrentFrame(Math.round(prevTime * effectiveFps));
+    } else {
+      setCurrentFrame((prev) => Math.max(0, prev - 1));
+    }
   };
 
   const handleStepForward = () => {
     setIsPlaying(false);
-    setCurrentFrame((prev) => Math.min(totalFrames, prev + 1));
+    if (videoRef.current && videoRef.current.duration) {
+      const nextTime = Math.min(videoRef.current.duration, videoRef.current.currentTime + (1 / effectiveFps));
+      videoRef.current.currentTime = nextTime;
+      setCurrentFrame(Math.round(nextTime * effectiveFps));
+    } else {
+      setCurrentFrame((prev) => Math.min(totalFrames, prev + 1));
+    }
   };
 
   const handleReset = () => {
@@ -191,7 +246,11 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
   const isUsingFallback = !mediaUrl || imageLoadError;
   const activeImage = !isUsingFallback ? mediaUrl : fallbackImage;
 
-  const isWater = incident.type === 'waterlogging';
+  const resolutionText = mediaDimensions
+    ? `${mediaDimensions.width}×${mediaDimensions.height}`
+    : viewMode === 'video'
+      ? '1920×1080'
+      : 'HD';
 
   return (
     <div className="rounded-2xl bg-zinc-950 border border-zinc-800 text-white overflow-hidden shadow-md flex flex-col">
@@ -309,6 +368,12 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
             <img
               src={activeImage}
               alt={incident.code || incident.id}
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                if (img.naturalWidth && img.naturalHeight) {
+                  setMediaDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+                }
+              }}
               onError={() => {
                 if (mediaUrl && !imageLoadError) {
                   console.warn(`Evidence media failed to load at '${mediaUrl}'.`);
@@ -327,6 +392,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
                 controls
                 playsInline
                 onLoadedMetadata={handleVideoLoadedMetadata}
+                onTimeUpdate={handleVideoTimeUpdate}
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 onEnded={() => setIsPlaying(false)}
@@ -356,7 +422,6 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
           </div>
         )}
 
-
         {/* Media source indicator badge */}
         {!isUsingFallback && mediaUrl ? (
           <div className="absolute top-3 right-3 bg-emerald-950/85 text-emerald-300 border border-emerald-700 font-mono text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1.5 shadow-md">
@@ -382,7 +447,9 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
           <div className="flex items-center gap-2.5 text-zinc-300 font-semibold">
             <span>FRAME: #{currentFrame} / {totalFrames}</span>
             <span className="text-zinc-600">•</span>
-            <span className="text-emerald-400 font-bold">1080p 60FPS</span>
+            <span className="text-emerald-400 font-bold">
+              {resolutionText} · {effectiveFps} FPS
+            </span>
           </div>
         </div>
       </div>
@@ -435,7 +502,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ incident }) => {
         <div className="flex items-center gap-3 flex-1 max-w-xs mx-4">
           <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
             <div
-              style={{ width: `${(currentFrame / totalFrames) * 100}%` }}
+              style={{ width: `${Math.min(100, Math.max(0, (currentFrame / (totalFrames > 0 ? totalFrames : 1)) * 100))}%` }}
               className="h-full bg-emerald-500 rounded-full transition-all"
             />
           </div>
