@@ -37,6 +37,7 @@ runs/
 models/checkpoints/*.pt
 models/checkpoints/
 models/production/*.pt
+models/challenge/*.pt
 
 # Ignore all generated outputs
 outputs/*
