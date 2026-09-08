@@ -6,6 +6,7 @@ import {
   BackendZoneAnalyticsItem,
   KpiMetrics,
   PriorityDistribution,
+  ResolutionDistribution,
   StatusDistribution,
   TrendDataPoint,
   ZoneMetric,
@@ -30,6 +31,12 @@ const STATUS_COLOR_MAP: Record<string, string> = {
   Resolved: '#64748B',
   REJECTED: '#EF4444',
   Rejected: '#EF4444',
+};
+
+const RESOLUTION_COLOR_MAP: Record<string, string> = {
+  Solved: '#10B981',
+  Verified: '#3B82F6',
+  Pending: '#F59E0B',
 };
 
 const formatStatusLabel = (rawStatus: string): string => {
@@ -90,6 +97,20 @@ export const analyticsService = {
       color: item.priority === 'P1' ? '#EF4444' : item.priority === 'P2' ? '#F97316' : '#F59E0B',
     }));
 
+    const resolutionDistribution: ResolutionDistribution[] = (
+      summaryRes.resolution_distribution && summaryRes.resolution_distribution.length > 0
+        ? summaryRes.resolution_distribution
+        : [
+            { category: 'Solved', count: 0 },
+            { category: 'Verified', count: 0 },
+            { category: 'Pending', count: 0 },
+          ]
+    ).map((item) => ({
+      category: item.category,
+      count: item.count,
+      color: RESOLUTION_COLOR_MAP[item.category] || '#64748B',
+    }));
+
     const trend: TrendDataPoint[] = (trendsRes || []).map((item) => ({
       date: item.date,
       waterlogging: item.waterlogging,
@@ -132,6 +153,7 @@ export const analyticsService = {
       statusDistribution,
       priorityDistribution,
       typeDistribution,
+      resolutionDistribution,
     };
   },
 

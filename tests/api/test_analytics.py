@@ -27,7 +27,13 @@ def test_analytics_endpoints_empty_db(client: TestClient):
     assert "kpis" in data_sum
     assert "status_distribution" in data_sum
     assert "priority_distribution" in data_sum
+    assert "resolution_distribution" in data_sum
     assert data_sum["kpis"]["waterlogged_area_sqm"] is None
+
+    res_map = {item["category"]: item["count"] for item in data_sum["resolution_distribution"]}
+    assert res_map["Solved"] == 0
+    assert res_map["Verified"] == 0
+    assert res_map["Pending"] == 0
 
     # 2. Trends default 7 days
     resp_trends = client.get("/api/v1/analytics/trends")
@@ -131,12 +137,14 @@ def test_analytics_summary_with_known_fixtures(client: TestClient, db_session: S
         data = resp.json()
 
         kpis = data["kpis"]
+        # inc1 (P1, DETECTED - active), inc2 (P2, VERIFIED - active), inc3 (P3, DETECTED - active)
+        # inc4 (P1, CLOSED - inactive)
         assert kpis["total_active_incidents"] == 3
-        assert kpis["critical_p1_count"] == 2
+        assert kpis["critical_p1_count"] == 1  # only active inc1, inc4 is CLOSED
         assert kpis["high_p2_count"] == 1
         assert kpis["routine_p3_count"] == 1
-        assert kpis["pending_verification_count"] == 2
-        assert kpis["pothole_clusters_count"] == 2
+        assert kpis["pending_verification_count"] == 2  # inc1, inc3 (DETECTED)
+        assert kpis["pothole_clusters_count"] == 2  # inc2, inc3 (both active potholes)
         assert kpis["mean_time_to_resolution_hours"] == 2.0
         assert kpis["waterlogged_area_sqm"] is None
 
@@ -149,11 +157,102 @@ def test_analytics_summary_with_known_fixtures(client: TestClient, db_session: S
         assert priority_map["P1"] == 2
         assert priority_map["P2"] == 1
         assert priority_map["P3"] == 1
+
+        resolution_map = {item["category"]: item["count"] for item in data["resolution_distribution"]}
+        assert resolution_map["Solved"] == 1    # inc4 (CLOSED)
+        assert resolution_map["Verified"] == 1  # inc2 (VERIFIED)
+        assert resolution_map["Pending"] == 2   # inc1, inc3 (DETECTED)
     finally:
         db_session.delete(inc1)
         db_session.delete(inc2)
         db_session.delete(inc3)
         db_session.delete(inc4)
+        db_session.delete(zone)
+        db_session.commit()
+
+
+def test_kpi_counts_and_resolution_distribution_lifecycle(client: TestClient, db_session: Session):
+    """
+    Test full lifecycle transitions:
+    - DETECTED: active increases, p1 increases, pending increases, resolution=Pending
+    - VERIFIED: active unchanged, pending decreases, resolution=Verified
+    - IN_PROGRESS / ASSIGNED / RE_INSPECTION: active unchanged, resolution=Pending
+    - CLOSED: active decreases, p1 decreases, resolution=Solved
+    """
+    zone = Zone(
+        id=uuid.uuid4(),
+        code=f"TST-LC-{uuid.uuid4().hex[:6]}",
+        name="Lifecycle Test Zone",
+    )
+    db_session.add(zone)
+    db_session.commit()
+
+    now = datetime.now(timezone.utc)
+    inc = Incident(
+        incident_code=f"LC-INC-{uuid.uuid4().hex[:6]}",
+        incident_type=IncidentType.POTHOLE,
+        confidence=0.9,
+        severity_score=9.0,
+        priority=PriorityLevel.P1,
+        status=IncidentStatus.DETECTED,
+        zone_id=zone.id,
+        started_at=now,
+    )
+    db_session.add(inc)
+    db_session.commit()
+
+    try:
+        # 1. State: DETECTED
+        resp1 = client.get("/api/v1/analytics/summary").json()
+        assert resp1["kpis"]["total_active_incidents"] >= 1
+        assert resp1["kpis"]["critical_p1_count"] >= 1
+        assert resp1["kpis"]["pending_verification_count"] >= 1
+        res1 = {i["category"]: i["count"] for i in resp1["resolution_distribution"]}
+        assert res1["Pending"] >= 1
+
+        # 2. State: VERIFIED
+        inc.status = IncidentStatus.VERIFIED
+        db_session.commit()
+
+        resp2 = client.get("/api/v1/analytics/summary").json()
+        assert resp2["kpis"]["total_active_incidents"] == resp1["kpis"]["total_active_incidents"]
+        assert resp2["kpis"]["critical_p1_count"] == resp1["kpis"]["critical_p1_count"]
+        assert resp2["kpis"]["pending_verification_count"] == resp1["kpis"]["pending_verification_count"] - 1
+        res2 = {i["category"]: i["count"] for i in resp2["resolution_distribution"]}
+        assert res2["Verified"] >= 1
+
+        # 3. State: IN_PROGRESS
+        inc.status = IncidentStatus.IN_PROGRESS
+        db_session.commit()
+
+        resp3 = client.get("/api/v1/analytics/summary").json()
+        assert resp3["kpis"]["total_active_incidents"] == resp1["kpis"]["total_active_incidents"]
+        assert resp3["kpis"]["critical_p1_count"] == resp1["kpis"]["critical_p1_count"]
+        res3 = {i["category"]: i["count"] for i in resp3["resolution_distribution"]}
+        assert res3["Pending"] >= 1
+
+        # 4. State: RE_INSPECTION
+        inc.status = IncidentStatus.RE_INSPECTION
+        db_session.commit()
+
+        resp4 = client.get("/api/v1/analytics/summary").json()
+        assert resp4["kpis"]["total_active_incidents"] == resp1["kpis"]["total_active_incidents"]
+        res4 = {i["category"]: i["count"] for i in resp4["resolution_distribution"]}
+        assert res4["Pending"] >= 1
+
+        # 5. State: CLOSED (Resolved)
+        inc.status = IncidentStatus.CLOSED
+        inc.duration_seconds = 3600.0
+        db_session.commit()
+
+        resp5 = client.get("/api/v1/analytics/summary").json()
+        assert resp5["kpis"]["total_active_incidents"] == resp1["kpis"]["total_active_incidents"] - 1
+        assert resp5["kpis"]["critical_p1_count"] == resp1["kpis"]["critical_p1_count"] - 1
+        res5 = {i["category"]: i["count"] for i in resp5["resolution_distribution"]}
+        assert res5["Solved"] >= 1
+
+    finally:
+        db_session.delete(inc)
         db_session.delete(zone)
         db_session.commit()
 

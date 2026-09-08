@@ -95,6 +95,48 @@ describe('Analytics Service', () => {
     const manhole = summary.typeDistribution.find((t) => t.type === 'open_manhole');
     expect(manhole?.count).toBe(10); // 6 + 4
 
+    // Verify resolutionDistribution mapping fallback (Solved, Verified, Pending)
+    expect(summary.resolutionDistribution).toBeDefined();
+    expect(summary.resolutionDistribution).toHaveLength(3);
+    const solved = summary.resolutionDistribution.find((r) => r.category === 'Solved');
+    expect(solved).toBeDefined();
+    expect(solved?.color).toBe('#10B981');
+
+    vi.restoreAllMocks();
+  });
+
+  it('correctly parses backend resolution_distribution when provided', async () => {
+    vi.spyOn(api, 'get').mockImplementation(async (endpoint: string) => {
+      if (endpoint === '/analytics/summary') {
+        return {
+          kpis: {
+            total_active_incidents: 5,
+            critical_p1_count: 2,
+            high_p2_count: 2,
+            routine_p3_count: 1,
+            waterlogged_area_sqm: null,
+            pothole_clusters_count: 3,
+            pending_verification_count: 1,
+            mean_time_to_resolution_hours: 2.0,
+          },
+          status_distribution: [],
+          priority_distribution: [],
+          resolution_distribution: [
+            { category: 'Solved', count: 8 },
+            { category: 'Verified', count: 3 },
+            { category: 'Pending', count: 2 },
+          ],
+        };
+      }
+      return [];
+    });
+
+    const summary = await analyticsService.getAnalyticsSummary();
+    expect(summary.resolutionDistribution).toHaveLength(3);
+    expect(summary.resolutionDistribution.find((r) => r.category === 'Solved')?.count).toBe(8);
+    expect(summary.resolutionDistribution.find((r) => r.category === 'Verified')?.count).toBe(3);
+    expect(summary.resolutionDistribution.find((r) => r.category === 'Pending')?.count).toBe(2);
+
     vi.restoreAllMocks();
   });
 });

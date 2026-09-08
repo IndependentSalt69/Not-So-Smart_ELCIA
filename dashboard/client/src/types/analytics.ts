@@ -44,6 +44,12 @@ export interface PriorityDistribution {
   color?: string;
 }
 
+export interface ResolutionDistribution {
+  category: 'Solved' | 'Verified' | 'Pending' | string;
+  count: number;
+  color?: string;
+}
+
 export interface TypeDistribution {
   type: IncidentType;
   name: string;
@@ -58,6 +64,7 @@ export interface AnalyticsSummary {
   statusDistribution: StatusDistribution[];
   priorityDistribution: PriorityDistribution[];
   typeDistribution: TypeDistribution[];
+  resolutionDistribution: ResolutionDistribution[];
 }
 
 // Backend Response Schemas (snake_case)
@@ -82,10 +89,16 @@ export interface BackendPriorityDistributionItem {
   count: number;
 }
 
+export interface BackendResolutionDistributionItem {
+  category: string;
+  count: number;
+}
+
 export interface BackendAnalyticsSummary {
   kpis: BackendAnalyticsKPI;
   status_distribution: BackendStatusDistributionItem[];
   priority_distribution: BackendPriorityDistributionItem[];
+  resolution_distribution?: BackendResolutionDistributionItem[];
 }
 
 export interface BackendAnalyticsTrendItem {

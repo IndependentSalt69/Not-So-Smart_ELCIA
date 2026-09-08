@@ -14,6 +14,7 @@ from src.db.models.enums import IncidentType, PriorityLevel, IncidentStatus
 from src.schemas.analytics import (
     StatusDistributionItem,
     PriorityDistributionItem,
+    ResolutionDistributionItem,
     AnalyticsKPI,
     AnalyticsSummaryResponse,
     AnalyticsTrendItem,
@@ -30,10 +31,10 @@ def get_analytics_summary(db: Session) -> AnalyticsSummaryResponse:
 
     kpi_stmt = select(
         func.count(case((active_condition, 1))).label("total_active_incidents"),
-        func.count(case((Incident.priority == PriorityLevel.P1, 1))).label("critical_p1_count"),
-        func.count(case((Incident.priority == PriorityLevel.P2, 1))).label("high_p2_count"),
-        func.count(case((Incident.priority == PriorityLevel.P3, 1))).label("routine_p3_count"),
-        func.count(case((Incident.incident_type == IncidentType.POTHOLE, 1))).label("pothole_clusters_count"),
+        func.count(case(((active_condition) & (Incident.priority == PriorityLevel.P1), 1))).label("critical_p1_count"),
+        func.count(case(((active_condition) & (Incident.priority == PriorityLevel.P2), 1))).label("high_p2_count"),
+        func.count(case(((active_condition) & (Incident.priority == PriorityLevel.P3), 1))).label("routine_p3_count"),
+        func.count(case(((active_condition) & (Incident.incident_type == IncidentType.POTHOLE), 1))).label("pothole_clusters_count"),
         func.count(case((Incident.status == IncidentStatus.DETECTED, 1))).label("pending_verification_count"),
         func.avg(
             case(
@@ -71,10 +72,28 @@ def get_analytics_summary(db: Session) -> AnalyticsSummaryResponse:
     priority_rows = db.execute(priority_stmt).all()
     priority_dist = [PriorityDistributionItem(priority=row.priority, count=row.count) for row in priority_rows]
 
+    # Operational Resolution Distribution (Solved, Verified, Pending)
+    status_counts = {row.status: row.count for row in status_rows}
+    solved_count = status_counts.get(IncidentStatus.CLOSED, 0)
+    verified_count = status_counts.get(IncidentStatus.VERIFIED, 0)
+    pending_count = (
+        status_counts.get(IncidentStatus.DETECTED, 0)
+        + status_counts.get(IncidentStatus.ASSIGNED, 0)
+        + status_counts.get(IncidentStatus.IN_PROGRESS, 0)
+        + status_counts.get(IncidentStatus.RE_INSPECTION, 0)
+    )
+
+    resolution_dist = [
+        ResolutionDistributionItem(category="Solved", count=solved_count),
+        ResolutionDistributionItem(category="Verified", count=verified_count),
+        ResolutionDistributionItem(category="Pending", count=pending_count),
+    ]
+
     return AnalyticsSummaryResponse(
         kpis=kpis,
         status_distribution=status_dist,
         priority_distribution=priority_dist,
+        resolution_distribution=resolution_dist,
     )
 
 

@@ -37,14 +37,15 @@ interface AnalyticsDashboardProps {
 const CustomDonutTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0];
+    const categoryName = data.name || data.payload?.category || data.payload?.status || 'Count';
     return (
       <div className="bg-slate-950/95 border border-slate-700/80 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-md text-white text-sm space-y-1.5 z-50">
         <div className="flex items-center gap-2.5 font-bold">
           <span
             className="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs"
-            style={{ backgroundColor: data.payload.fill || data.color }}
+            style={{ backgroundColor: data.payload?.fill || data.color }}
           />
-          <span className="text-slate-200 font-bold">{data.name || data.payload.status}:</span>
+          <span className="text-slate-200 font-bold">{categoryName}:</span>
           <span className="font-mono font-black text-emerald-400 text-base ml-auto">
             {data.value}
           </span>
@@ -154,10 +155,14 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
     );
   }
 
-  const { kpis, trend, zoneMetrics, statusDistribution, typeDistribution } = analytics;
+  const { kpis, trend, zoneMetrics, statusDistribution, typeDistribution, resolutionDistribution } = analytics;
 
   const STATUS_COLORS = ['#E11D48', '#0D9488', '#D97706', '#059669', '#0891B2', '#64748B', '#EF4444'];
   const totalStatusCount = statusDistribution.reduce((acc, curr) => acc + curr.count, 0);
+
+  const totalResolutionCount = (resolutionDistribution || []).reduce((acc, curr) => acc + curr.count, 0);
+  const solvedCount = resolutionDistribution?.find((item) => item.category === 'Solved')?.count ?? 0;
+  const resolutionRate = totalResolutionCount > 0 ? ((solvedCount / totalResolutionCount) * 100).toFixed(1) : '0.0';
 
   const waterloggedDisplay =
     kpis.waterloggedAreaSqm !== null && kpis.waterloggedAreaSqm !== undefined
@@ -388,55 +393,118 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ analytic
         </div>
       </div>
 
-      {/* Row 3: Operational Status Breakdown */}
-      <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 xl:p-8 shadow-xs space-y-4">
-        <div>
-          <h3 className="text-base xl:text-lg font-bold text-zinc-900 dark:text-white tracking-tight">
-            Operational Status Breakdown
-          </h3>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
-            Current resolution lifecycle distribution of reported issues.
-          </p>
-        </div>
-
-        <div className="relative h-72 xl:h-80 w-full flex items-center justify-center">
-          <div className="absolute top-[37%] left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center pointer-events-none z-10 select-none">
-            <span className="text-zinc-900 dark:text-white font-black font-mono text-3xl xl:text-4xl leading-none">
-              {totalStatusCount}
-            </span>
-            <span className="text-zinc-500 dark:text-zinc-400 font-bold uppercase text-[11px] xl:text-xs tracking-wider mt-1">
-              Total Issues
-            </span>
+      {/* Row 3: Incident Resolution Overview + Operational Status Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Incident Resolution Overview */}
+        <div className="lg:col-span-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 xl:p-8 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 className="text-base xl:text-lg font-bold text-zinc-900 dark:text-white tracking-tight">
+                Incident Resolution Overview
+              </h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+                Current distribution by operational resolution state.
+              </p>
+            </div>
+            {totalResolutionCount > 0 && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 text-xs font-bold text-emerald-700 dark:text-emerald-300 self-start sm:self-auto">
+                <span>Resolution Rate:</span>
+                <span className="font-mono font-black">{resolutionRate}%</span>
+              </div>
+            )}
           </div>
 
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={statusDistribution}
-                cx="50%"
-                cy="42%"
-                innerRadius={72}
-                outerRadius={108}
-                paddingAngle={5}
-                dataKey="count"
-                nameKey="status"
-              >
-                {statusDistribution.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={entry.color || STATUS_COLORS[index % STATUS_COLORS.length]}
-                    stroke="transparent"
-                  />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomDonutTooltip />} />
-              <Legend
-                wrapperStyle={{ fontSize: '13px', fontWeight: 600, paddingTop: '12px' }}
-                iconType="circle"
-                formatter={(value) => <span className="text-zinc-800 dark:text-zinc-200 font-semibold">{value}</span>}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="relative h-72 xl:h-80 w-full flex items-center justify-center">
+            <div className="absolute top-[37%] left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center pointer-events-none z-10 select-none">
+              <span className="text-zinc-900 dark:text-white font-black font-mono text-3xl xl:text-4xl leading-none">
+                {totalResolutionCount}
+              </span>
+              <span className="text-zinc-500 dark:text-zinc-400 font-bold uppercase text-[11px] xl:text-xs tracking-wider mt-1">
+                Total Incidents
+              </span>
+            </div>
+
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={resolutionDistribution || []}
+                  cx="50%"
+                  cy="42%"
+                  innerRadius={72}
+                  outerRadius={108}
+                  paddingAngle={5}
+                  dataKey="count"
+                  nameKey="category"
+                >
+                  {(resolutionDistribution || []).map((entry, index) => (
+                    <Cell
+                      key={`res-cell-${index}`}
+                      fill={entry.color || '#64748B'}
+                      stroke="transparent"
+                    />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomDonutTooltip />} />
+                <Legend
+                  wrapperStyle={{ fontSize: '13px', fontWeight: 600, paddingTop: '12px' }}
+                  iconType="circle"
+                  formatter={(value) => <span className="text-zinc-800 dark:text-zinc-200 font-semibold">{value}</span>}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Operational Status Breakdown */}
+        <div className="lg:col-span-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 xl:p-8 shadow-xs space-y-4">
+          <div>
+            <h3 className="text-base xl:text-lg font-bold text-zinc-900 dark:text-white tracking-tight">
+              Operational Status Breakdown
+            </h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+              Current resolution lifecycle distribution of reported issues.
+            </p>
+          </div>
+
+          <div className="relative h-72 xl:h-80 w-full flex items-center justify-center">
+            <div className="absolute top-[37%] left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center pointer-events-none z-10 select-none">
+              <span className="text-zinc-900 dark:text-white font-black font-mono text-3xl xl:text-4xl leading-none">
+                {totalStatusCount}
+              </span>
+              <span className="text-zinc-500 dark:text-zinc-400 font-bold uppercase text-[11px] xl:text-xs tracking-wider mt-1">
+                Total Issues
+              </span>
+            </div>
+
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={statusDistribution}
+                  cx="50%"
+                  cy="42%"
+                  innerRadius={72}
+                  outerRadius={108}
+                  paddingAngle={5}
+                  dataKey="count"
+                  nameKey="status"
+                >
+                  {statusDistribution.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.color || STATUS_COLORS[index % STATUS_COLORS.length]}
+                      stroke="transparent"
+                    />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomDonutTooltip />} />
+                <Legend
+                  wrapperStyle={{ fontSize: '13px', fontWeight: 600, paddingTop: '12px' }}
+                  iconType="circle"
+                  formatter={(value) => <span className="text-zinc-800 dark:text-zinc-200 font-semibold">{value}</span>}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
     </div>

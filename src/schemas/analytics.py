@@ -24,6 +24,13 @@ class PriorityDistributionItem(BaseModel):
     count: int = Field(..., ge=0, description="Number of incidents in this priority")
 
 
+class ResolutionDistributionItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    category: str = Field(..., description="Operational resolution category: Solved, Verified, Pending")
+    count: int = Field(..., ge=0, description="Count of incidents in this category")
+
+
 class AnalyticsKPI(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -50,6 +57,10 @@ class AnalyticsSummaryResponse(BaseModel):
     kpis: AnalyticsKPI
     status_distribution: List[StatusDistributionItem]
     priority_distribution: List[PriorityDistributionItem]
+    resolution_distribution: Optional[List[ResolutionDistributionItem]] = Field(
+        default_factory=list,
+        description="Distribution of incidents across operational resolution states (Solved, Verified, Pending)",
+    )
 
 
 class AnalyticsTrendItem(BaseModel):
