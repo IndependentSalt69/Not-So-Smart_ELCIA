@@ -9,6 +9,7 @@ export interface IncidentNotification {
   locationDescription?: string;
   timestamp: string;
   isRead: boolean;
+  isDismissed?: boolean;
   actor?: string;
   notes?: string;
 }

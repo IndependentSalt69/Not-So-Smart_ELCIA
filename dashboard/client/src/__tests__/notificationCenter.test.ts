@@ -213,4 +213,84 @@ describe('Notification Center - Operations Verification & Dispatch', () => {
     expect(notificationService.getNotifications().length).toBe(0);
     expect(notificationService.getUnreadCount()).toBe(0);
   });
+
+  // 11. READ ≠ RESOLVED: Reading a notification marks it read without changing incident status
+  it('11. opening/reading a notification marks it read but does NOT resolve or modify incident status', async () => {
+    const verified = await incidentService.verifyIncident('EC-0142');
+    expect(verified.status).toBe('VERIFIED');
+
+    const notifs = notificationService.getNotifications();
+    expect(notifs.length).toBe(1);
+    expect(notifs[0].isRead).toBe(false);
+
+    // Mark as read
+    notificationService.markAsRead(notifs[0].id);
+
+    // Notification is now read
+    expect(notificationService.getNotifications()[0].isRead).toBe(true);
+    expect(notificationService.getUnreadCount()).toBe(0);
+
+    // Incident status MUST still be VERIFIED (not resolved or altered)
+    const incidentAfterRead = await incidentService.getIncidentById('EC-0142');
+    expect(incidentAfterRead?.status).toBe('VERIFIED');
+  });
+
+  // 12. Resolving incident removes notification from active list and updates unread count
+  it('12. resolving an incident to CLOSED automatically clears/dismisses active notification', async () => {
+    await incidentService.verifyIncident('EC-0142');
+    await incidentService.assignIncident('EC-0142', 'Drainage Crew', 'Clear blockage');
+    await incidentService.updateIncidentStatus('EC-0142', 'IN_PROGRESS');
+    await incidentService.updateIncidentStatus('EC-0142', 'RE_INSPECTION');
+
+    expect(notificationService.getNotifications().length).toBe(1);
+    expect(notificationService.getUnreadCount()).toBe(1);
+
+    // Advance Stage 6: Mark as Resolved (CLOSED)
+    const resolved = await incidentService.updateIncidentStatus('EC-0142', 'CLOSED');
+    expect(resolved.status).toBe('CLOSED');
+
+    // Active notifications and badge count are automatically cleared
+    expect(notificationService.getNotifications().length).toBe(0);
+    expect(notificationService.getUnreadCount()).toBe(0);
+  });
+
+  // 13. Historical notification data is preserved after resolution
+  it('13. historical notification records are preserved in getAllNotifications() after resolution for audit', async () => {
+    await incidentService.verifyIncident('EC-0142');
+    expect(notificationService.getNotifications().length).toBe(1);
+
+    await incidentService.assignIncident('EC-0142', 'Crew', 'Action');
+    await incidentService.updateIncidentStatus('EC-0142', 'IN_PROGRESS');
+    await incidentService.updateIncidentStatus('EC-0142', 'RE_INSPECTION');
+    await incidentService.updateIncidentStatus('EC-0142', 'CLOSED');
+
+    // Active list is empty
+    expect(notificationService.getNotifications().length).toBe(0);
+
+    // Full historical audit log retains the record marked as isDismissed
+    const allRecords = notificationService.getAllNotifications();
+    expect(allRecords.length).toBe(1);
+    expect(allRecords[0].incidentCode).toBe('EC-0142');
+    expect(allRecords[0].isDismissed).toBe(true);
+  });
+
+  // 14. Existing resolved incident in completed history does not appear in active notifications
+  it('14. resolved incidents appear in completed history archive and never in active notifications', async () => {
+    await incidentService.verifyIncident('EC-0142');
+    await incidentService.assignIncident('EC-0142', 'Crew', 'Action');
+    await incidentService.updateIncidentStatus('EC-0142', 'IN_PROGRESS');
+    await incidentService.updateIncidentStatus('EC-0142', 'RE_INSPECTION');
+    await incidentService.updateIncidentStatus('EC-0142', 'CLOSED');
+
+    // Active notifications empty
+    expect(notificationService.getNotifications().length).toBe(0);
+
+    // Available in Completed queue history
+    const completedIncidents = await incidentService.getIncidents({ queueTab: 'completed' });
+    expect(completedIncidents.some((i) => (i.code === 'EC-0142' || i.id === 'EC-0142') && i.status === 'CLOSED')).toBe(true);
+
+    // Excluded from Active queue
+    const activeIncidents = await incidentService.getIncidents({ queueTab: 'active' });
+    expect(activeIncidents.some((i) => i.code === 'EC-0142' || i.id === 'EC-0142')).toBe(false);
+  });
 });

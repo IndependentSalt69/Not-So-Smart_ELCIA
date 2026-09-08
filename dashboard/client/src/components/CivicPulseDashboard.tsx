@@ -133,9 +133,16 @@ export default function CivicPulseDashboard() {
     try {
       const updated = await updateStatus(id, nextStatus, 'Operations Control', notes);
       setSelectedIncident(updated);
-      toast.success(`Incident ${updated.code || updated.id} advanced to ${nextStatus}`, {
-        description: notes,
-      });
+      if (nextStatus === 'CLOSED') {
+        toast.success('Incident Resolved', {
+          description: 'Fix confirmed by aerial drone surveillance.',
+        });
+        setIsDrawerOpen(false);
+      } else {
+        toast.success(`Incident ${updated.code || updated.id} advanced to ${nextStatus}`, {
+          description: notes,
+        });
+      }
     } catch (err: any) {
       toast.error(err.message || 'Failed to update incident status');
     }

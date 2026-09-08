@@ -43,19 +43,30 @@ export const notificationService = {
   },
 
   /**
-   * Get all notifications sorted with newest first
+   * Get active notifications (excluding dismissed/resolved ones) sorted with newest first
    */
   getNotifications(): IncidentNotification[] {
+    return [...notificationsState]
+      .filter((n) => !n.isDismissed)
+      .sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+  },
+
+  /**
+   * Get all notifications including historical/dismissed ones (for audit/history)
+   */
+  getAllNotifications(): IncidentNotification[] {
     return [...notificationsState].sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
   },
 
   /**
-   * Get count of unread notifications
+   * Get count of active unread notifications
    */
   getUnreadCount(): number {
-    return notificationsState.filter((n) => !n.isRead).length;
+    return notificationsState.filter((n) => !n.isRead && !n.isDismissed).length;
   },
 
   /**
@@ -75,6 +86,7 @@ export const notificationService = {
       locationDescription: incident.locationDescription,
       timestamp: new Date().toISOString(),
       isRead: false,
+      isDismissed: false,
       actor,
       notes,
     };
@@ -85,7 +97,7 @@ export const notificationService = {
   },
 
   /**
-   * Mark a specific notification as read
+   * Mark a specific notification as read (does NOT dismiss or resolve the incident)
    */
   markAsRead(notificationId: string): void {
     const index = notificationsState.findIndex((n) => n.id === notificationId);
@@ -107,6 +119,27 @@ export const notificationService = {
       isRead: true,
     }));
     persist(true);
+  },
+
+  /**
+   * Automatically dismiss/clear notifications associated with a resolved incident
+   * Preserves notification in history (isDismissed = true) while removing from active list/badge
+   */
+  dismissByIncidentId(incidentId: string): void {
+    let changed = false;
+    notificationsState = notificationsState.map((n) => {
+      if ((n.incidentId === incidentId || n.incidentCode === incidentId) && !n.isDismissed) {
+        changed = true;
+        return {
+          ...n,
+          isDismissed: true,
+        };
+      }
+      return n;
+    });
+    if (changed) {
+      persist(true);
+    }
   },
 
   /**

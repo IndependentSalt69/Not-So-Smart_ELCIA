@@ -1218,6 +1218,13 @@ export const incidentService = {
         notificationService.addVerifiedNotification(updated, actor, notes);
       }
 
+      if (nextStatus === 'CLOSED' || nextStatus === 'REJECTED') {
+        notificationService.dismissByIncidentId(updated.id);
+        if (updated.code) {
+          notificationService.dismissByIncidentId(updated.code);
+        }
+      }
+
       return updated;
     }
 
@@ -1238,6 +1245,13 @@ export const incidentService = {
 
       if ((!prevStatus || prevStatus === 'DETECTED') && nextStatus === 'VERIFIED') {
         notificationService.addVerifiedNotification(updated, actor, notes);
+      }
+
+      if (nextStatus === 'CLOSED' || nextStatus === 'REJECTED') {
+        notificationService.dismissByIncidentId(updated.id);
+        if (updated.code) {
+          notificationService.dismissByIncidentId(updated.code);
+        }
       }
 
       return updated;
