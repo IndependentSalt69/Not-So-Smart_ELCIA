@@ -105,50 +105,11 @@ CivicPulse is configured with 5 standardized, mutually exclusive civic hazard cl
 
 ## End-to-End System Architecture
 
+![CivicPulse System Architecture](images/Architecture.png)
+
 ### Core Data Pipeline
 
-```text
-                     Raw Drone Flight Input
-                 ┌─────────────────────────────┐
-                 │  • Raw Aerial MP4 Video     │
-                 │  • Synchronized SRT Log     │
-                 └──────────────┬──────────────┘
-                                │
-                                ▼
-                 ┌─────────────────────────────┐
-                 │  FastAPI Ingestion Endpoint │
-                 │  POST /api/v1/process       │
-                 └──────────────┬──────────────┘
-                                │ (Asynchronous Job Queue)
-                                ▼
-    ┌────────────────────────────────────────────────────────┐
-    │              AI Vision & Telemetry Engine              │
-    │                                                        │
-    │  1. GPS Parser: Extract Lat, Lon, Alt, Time per frame  │
-    │  2. YOLOv11m: Instance segmentation masks & class ID   │
-    │  3. ByteTrack: Multi-frame tracking & persistence (s)  │
-    │  4. MiDaS Depth: Monocular road depression profiling   │
-    │  5. Severity Engine: Area m², depth, urgency scoring   │
-    │  6. Evidence Extraction: High-res JPEG crops & frames  │
-    │  7. FFmpeg Transcoder: Web-ready H.264 progressive MP4 │
-    └───────────────────────────┬────────────────────────────┘
-                                │
-                                ▼
-    ┌────────────────────────────────────────────────────────┐
-    │             PostgreSQL + PostGIS Database              │
-    │  • Zones (Polygons)    • Detections (Metadata & Box)   │
-    │  • Incidents (Points)  • EvidenceMedia (Frame paths)   │
-    │  • VideoVerifications  • IncidentStatusHistory (Audit) │
-    └───────────────────────────┬────────────────────────────┘
-                                │
-                                ▼
-    ┌────────────────────────────────────────────────────────┐
-    │               React 18 + Vite Dashboard                │
-    │  • Flight-First Queue  • Interactive Geospatial Map    │
-    │  • Incident Drawer     • Video Transcode Player        │
-    │  • Municipal Triage    • 4-Question Analytics Studio   │
-    └────────────────────────────────────────────────────────┘
-```
+![CivicPulse ML & Video Processing Pipeline](images/Pipeline.png)
 
 ### Flight-First Inspection Hierarchy
 
@@ -519,40 +480,7 @@ npm run dev
 
 ### Core Relational Models
 
-```text
-┌─────────────────┐       ┌─────────────────┐       ┌────────────────────────┐
-│     Zone        │1     *│    Incident     │1     *│       Detection        │
-│─────────────────│───────│─────────────────│───────│────────────────────────│
-│ id (UUID)       │       │ id (UUID)       │       │ id (UUID)              │
-│ name (VARCHAR)  │       │ incident_code   │       │ incident_id (FK)       │
-│ code (VARCHAR)  │       │ zone_id (FK)    │       │ class_id (INTEGER)     │
-│ boundary (POLYG)│       │ incident_type   │       │ confidence (FLOAT)     │
-└─────────────────┘       │ status (ENUM)   │       │ bbox (JSONB)           │
-                          │ priority (ENUM) │       │ detection_metadata     │
-                          │ severity_score  │       └────────────────────────┘
-                          │ location (POINT)│
-                          │ started_at      │       ┌────────────────────────┐
-                          │ ended_at        │1     *│     EvidenceMedia      │
-                          └────────┬────────│───────│────────────────────────│
-                                   │        │       │ id (UUID)              │
-                                   │        │       │ incident_id (FK)       │
-                                   │        │       │ media_type (ENUM)      │
-                                   │        │       │ file_path (VARCHAR)    │
-                                   │        │       │ is_primary (BOOLEAN)   │
-                                   │        │       └────────────────────────┘
-                                   │
-                                   │        ┌────────────────────────┐
-                                   │1      *│ IncidentStatusHistory  │
-                                   └────────│────────────────────────│
-                                            │ id (UUID)              │
-                                            │ incident_id (FK)       │
-                                            │ old_status (ENUM)      │
-                                            │ new_status (ENUM)      │
-                                            │ changed_by (VARCHAR)   │
-                                            │ comment (TEXT)         │
-                                            │ changed_at (TIMESTAMP) │
-                                            └────────────────────────┘
-```
+![CivicPulse PostgreSQL & PostGIS Database Schema](images/DB%20Schema.png)
 
 ### Database Maintenance Scripts
 
