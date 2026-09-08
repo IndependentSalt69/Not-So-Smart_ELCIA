@@ -1,14 +1,11 @@
-import { PriorityBadge } from '@/components/common/PriorityBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { inferenceService, SAMPLE_PRESETS } from '@/services/inferenceService';
 import { incidentService } from '@/services/incidentService';
 import { processingService } from '@/services/processingService';
 import { inspectionService } from '@/services/inspectionService';
-import { DroneTelemetry, InferenceResult, ProcessJobStatusResponse, SampleFootagePreset } from '@/types/ingestion';
+import { DroneTelemetry, ProcessJobStatusResponse } from '@/types/ingestion';
 import { ZoneId } from '@/types/incident';
 import { FlightInspectionRunDetailParsed } from '@/types/inspection';
 import { getMediaBaseUrl } from '@/services/api';
@@ -23,27 +20,13 @@ import {
 import {
   AlertTriangle,
   Camera,
-  CheckCircle2,
-  CircleDot,
-  Compass,
   Cpu,
   Download,
-  Droplets,
   FileCode,
   FileVideo,
-  Footprints,
-  History,
-  ImageIcon,
-  Play,
   RefreshCw,
-  Send,
-  ShieldAlert,
-  ShieldCheck,
-  Sparkles,
   UploadCloud,
   Video,
-  Waves,
-  Zap,
   XCircle,
 } from 'lucide-react';
 
@@ -57,31 +40,29 @@ interface DroneIngestionStudioProps {
 export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
   onIncidentPublished,
 }) => {
-  const [selectedPreset, setSelectedPreset] = useState<SampleFootagePreset | null>(SAMPLE_PRESETS[0]);
-  const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string>(SAMPLE_PRESETS[0].mediaUrl);
-  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
+  const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string>('');
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('video');
 
-  // Real ML Upload File States (Phase 11D)
+  // Real ML Upload File States
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [srtFile, setSrtFile] = useState<File | null>(null);
   const [isRealProcessing, setIsRealProcessing] = useState<boolean>(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [realJobStatus, setRealJobStatus] = useState<ProcessJobStatusResponse | null>(null);
   const [realJobError, setRealJobError] = useState<string | null>(null);
-  const [videoLoadError, setVideoLoadError] = useState<boolean>(false);
 
-  // Flight Inspection States (Phase 4)
+  // Flight Inspection States
   const [flightInspection, setFlightInspection] = useState<FlightInspectionRunDetailParsed | null>(null);
   const [isFlightInspectionLoading, setIsFlightInspectionLoading] = useState<boolean>(false);
   const [flightInspectionError, setFlightInspectionError] = useState<string | null>(null);
   const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState<boolean>(false);
 
-  // No-Incident Human Verification State (Phase 14)
+  // No-Incident Human Verification State
   const [isManualModalOpen, setIsManualModalOpen] = useState<boolean>(false);
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
   const [isConfirmingClear, setIsConfirmingClear] = useState<boolean>(false);
 
-  // SRT Automatic Zone Detection State (Section 11)
+  // SRT Automatic Zone Detection State
   const [zoneDetection, setZoneDetection] = useState<{
     status: 'IDLE' | 'AUTO_DETECTED' | 'MULTI_ZONE' | 'NO_MATCH' | 'NO_GPS';
     message?: string;
@@ -95,15 +76,16 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
   });
 
   // Telemetry Configuration State
-  const [telemetry, setTelemetry] = useState<DroneTelemetry>(SAMPLE_PRESETS[0].defaultTelemetry);
-
-  // Simulated inference execution states (for fallback demo presets)
-  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
-  const [currentStage, setCurrentStage] = useState<string>('');
-  const [analysisProgress, setAnalysisProgress] = useState<number>(0);
-  const [inferenceResult, setInferenceResult] = useState<InferenceResult | null>(null);
-  const [showOverlay, setShowOverlay] = useState<boolean>(true);
-  const [isPublishing, setIsPublishing] = useState<boolean>(false);
+  const [telemetry, setTelemetry] = useState<DroneTelemetry>({
+    droneId: 'DRONE-SWARM-01',
+    cameraModel: '4K Aerial Sensor',
+    altitudeMeters: 45,
+    speedMps: 10,
+    coordinates: { lat: 12.8452, lng: 77.6632 },
+    zoneId: 'EC-01',
+    locationDescription: 'Electronics City Phase 1 - Hosur Road Corridor',
+    timestamp: new Date().toISOString(),
+  });
 
   const videoInputRef = useRef<HTMLInputElement>(null);
   const srtInputRef = useRef<HTMLInputElement>(null);
@@ -123,7 +105,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
     };
   }, [stopPolling]);
 
-  // Load authoritative Flight Inspection detail from Phase 2 backend aggregation API
+  // Load authoritative Flight Inspection detail from backend aggregation API
   const loadFlightInspection = async (jobId: string) => {
     try {
       setIsFlightInspectionLoading(true);
@@ -143,24 +125,6 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
     }
   };
 
-  // Handle Preset selection
-  const handleSelectPreset = (preset: SampleFootagePreset) => {
-    setSelectedPreset(preset);
-    setVideoFile(null);
-    setSrtFile(null);
-    setMediaPreviewUrl(preset.mediaUrl);
-    setMediaType(preset.mediaType);
-    setTelemetry(preset.defaultTelemetry);
-    setZoneDetection({ status: 'IDLE', isManualOverride: false });
-    setInferenceResult(null);
-    setRealJobStatus(null);
-    setRealJobError(null);
-    setActiveJobId(null);
-    setFlightInspection(null);
-    setFlightInspectionError(null);
-    setIsFlightInspectionLoading(false);
-  };
-
   // Handle Video file upload
   const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -171,11 +135,9 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
         return;
       }
       setVideoFile(file);
-      setSelectedPreset(null);
       const url = URL.createObjectURL(file);
       setMediaPreviewUrl(url);
       setMediaType('video');
-      setInferenceResult(null);
       setRealJobStatus(null);
       setRealJobError(null);
       setActiveJobId(null);
@@ -231,7 +193,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
   const handleBrowseVideo = () => videoInputRef.current?.click();
   const handleBrowseSrt = () => srtInputRef.current?.click();
 
-  // Run REAL ML Pipeline via FastAPI Backend (Phase 11D + Phase 4)
+  // Run REAL ML Pipeline via FastAPI Backend
   const handleRunRealProcessing = async () => {
     if (!videoFile) {
       toast.error('Real ML processing requires a video file (.mp4, .mov, .avi).');
@@ -255,7 +217,6 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
       setIsRealProcessing(true);
       setRealJobError(null);
       setRealJobStatus(null);
-      setInferenceResult(null);
       setFlightInspection(null);
       setFlightInspectionError(null);
       setIsFlightInspectionLoading(false);
@@ -324,7 +285,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
               incidentService.notifySubscribers();
             }
 
-            // Phase 4: Fetch authoritative Flight Inspection detail from backend aggregation API
+            // Fetch authoritative Flight Inspection detail from backend aggregation API
             await loadFlightInspection(initialRes.job_id);
           } else if (statusRes.status === 'FAILED') {
             stopPolling();
@@ -345,7 +306,7 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
     }
   };
 
-  // Human Verification Confirmation Handlers (Phase 14 & Phase 4)
+  // Human Verification Confirmation Handlers
   const handleConfirmNoAnomaly = async () => {
     const targetJobId = flightInspection?.summary.job_id || activeJobId;
     if (!targetJobId) return;
@@ -383,72 +344,21 @@ export const DroneIngestionStudio: React.FC<DroneIngestionStudioProps> = ({
     setActiveJobId(jobId);
     setIsHistoryDrawerOpen(false);
     setRealJobError(null);
-    setInferenceResult(null);
     await loadFlightInspection(jobId);
-  };
-
-  // Run Simulated AI Inference (Fallback for Demo Presets)
-  const handleRunDemoInference = async () => {
-    try {
-      setIsAnalyzing(true);
-      setInferenceResult(null);
-      setAnalysisProgress(0);
-
-      const presetType = selectedPreset?.type || 'waterlogging';
-
-      const result = await inferenceService.analyzeMedia({
-        mediaUrl: mediaPreviewUrl,
-        mediaType,
-        telemetry,
-        presetType,
-        onProgress: (stage, progress) => {
-          setCurrentStage(stage);
-          setAnalysisProgress(progress);
-        },
-      });
-
-      setInferenceResult(result);
-      toast.success('Simulated Demo Vision AI Complete!', {
-        description: `Detection: ${result.type.toUpperCase()} • Priority: ${result.priority}`,
-      });
-    } catch (err: any) {
-      toast.error(err.message || 'Demo Inference failed');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  // Publish Demo Incident to Operations Queue
-  const handlePublishIncident = async () => {
-    if (!inferenceResult) return;
-    try {
-      setIsPublishing(true);
-      const incident = await inferenceService.publishAsIncident(inferenceResult);
-      toast.success(`Incident ${incident.id} Published to Live Operations Queue!`, {
-        description: 'Operators can now triage, verify, and dispatch crews.',
-      });
-      onIncidentPublished(incident.id);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to publish incident');
-    } finally {
-      setIsPublishing(false);
-    }
   };
 
   // Export GeoJSON / Report
   const handleExportJson = () => {
-    if (!inferenceResult && !flightInspection && !realJobStatus?.results) return;
+    if (!flightInspection && !realJobStatus?.results) return;
     const exportData = flightInspection
       ? flightInspection
-      : realJobStatus?.results
-      ? realJobStatus.results
-      : inferenceResult;
+      : realJobStatus?.results;
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `CivicPulse_AI_Processing_${activeJobId || flightInspection?.summary.job_id || inferenceResult?.id}.json`;
-a.click();
+    a.download = `CivicPulse_AI_Processing_${activeJobId || flightInspection?.summary.job_id}.json`;
+    a.click();
     toast.success('GeoJSON report downloaded');
   };
 
@@ -488,86 +398,6 @@ a.click();
               Flight History
             </Button>
           </div>
-        </div>
-      </div>
-
-      {/* Preset Fast-Picker */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs xl:text-sm font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
-            Quick-Select Sample Drone Feeds (Demo Presets / Fallback)
-          </h3>
-          <span className="text-xs text-zinc-500 font-medium">Or upload custom drone video + SRT telemetry below for Real ML Processing</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-3.5">
-          {SAMPLE_PRESETS.map((preset) => {
-            const isSelected = selectedPreset?.id === preset.id && !videoFile;
-            return (
-              <div
-                key={preset.id}
-                onClick={() => handleSelectPreset(preset)}
-                className={cn(
-                  'p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-3.5 relative shadow-xs',
-                  isSelected
-                    ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-500 ring-2 ring-emerald-500/20'
-                    : 'bg-white dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300'
-                )}
-              >
-                <div
-                  className={cn(
-                    'w-11 h-11 rounded-xl flex items-center justify-center shrink-0 text-base',
-                    preset.type === 'waterlogging'
-                      ? 'bg-teal-100 dark:bg-teal-900/60 text-teal-600'
-                      : preset.type === 'drainage_overflow'
-                      ? 'bg-cyan-100 dark:bg-cyan-900/60 text-cyan-600'
-                      : preset.type === 'damaged_footpath'
-                      ? 'bg-orange-100 dark:bg-orange-900/60 text-orange-600'
-                      : preset.type === 'open_manhole'
-                      ? 'bg-purple-100 dark:bg-purple-900/60 text-purple-600'
-                      : preset.type === 'pothole'
-                      ? 'bg-red-100 dark:bg-red-900/60 text-red-600'
-                      : 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600'
-                  )}
-                >
-                  {preset.type === 'waterlogging' ? (
-                    <Droplets className="w-5 h-5 text-teal-600 dark:text-teal-400" />
-                  ) : preset.type === 'drainage_overflow' ? (
-                    <Waves className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-                  ) : preset.type === 'damaged_footpath' ? (
-                    <Footprints className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                  ) : preset.type === 'open_manhole' ? (
-                    <CircleDot className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                  ) : preset.type === 'pothole' ? (
-                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
-                  ) : (
-                    <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-zinc-900 dark:text-white truncate">
-                      {preset.title}
-                    </h4>
-                    {isSelected && (
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                    )}
-                  </div>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 line-clamp-1">
-                    {preset.description}
-                  </p>
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <span className="text-[10px] font-mono font-semibold text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
-                      {preset.defaultTelemetry.zoneId}
-                    </span>
-                    <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                      {preset.type.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
         </div>
       </div>
 
@@ -808,8 +638,6 @@ a.click();
                 <span className="text-xs xl:text-sm font-bold text-zinc-200">
                   {realJobStatus?.status === 'COMPLETED' || flightInspection
                     ? 'PROCESSED ML OUTPUT (Annotated Track Video)'
-                    : inferenceResult
-                    ? 'Inference Output & Mask Overlay'
                     : 'Raw Drone Sensor Feed Preview'}
                 </span>
               </div>
@@ -818,16 +646,6 @@ a.click();
                 <div className="flex items-center gap-1.5 bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-xl text-xs font-mono font-bold">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   <span>PROCESSED ML OUTPUT</span>
-                </div>
-              ) : inferenceResult ? (
-                <div className="flex items-center gap-2 bg-zinc-800/90 px-3 py-1 rounded-xl border border-zinc-700/80">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-xs font-semibold text-zinc-300">AI Overlay</span>
-                  <Switch
-                    checked={showOverlay}
-                    onCheckedChange={setShowOverlay}
-                    className="scale-75 data-[state=checked]:bg-emerald-600"
-                  />
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 bg-zinc-800/80 text-zinc-400 border border-zinc-700/60 px-2.5 py-1 rounded-xl text-xs font-mono">
@@ -838,24 +656,34 @@ a.click();
 
             {/* Screen Image / Video Preview */}
             <div className="relative aspect-video w-full bg-black flex items-center justify-center overflow-hidden">
-              {mediaType === 'video' ? (
-                <video
-                  key={mediaPreviewUrl}
-                  src={mediaPreviewUrl}
-                  controls
-                  playsInline
-                  className="w-full h-full object-contain"
-                />
+              {mediaPreviewUrl ? (
+                mediaType === 'video' ? (
+                  <video
+                    key={mediaPreviewUrl}
+                    src={mediaPreviewUrl}
+                    controls
+                    playsInline
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <img
+                    src={mediaPreviewUrl}
+                    alt="Drone Feed"
+                    className="w-full h-full object-contain select-none"
+                  />
+                )
               ) : (
-                <img
-                  src={
-                    inferenceResult && showOverlay
-                      ? inferenceResult.overlayMediaUrl
-                      : mediaPreviewUrl
-                  }
-                  alt="Drone Feed"
-                  className="w-full h-full object-contain select-none"
-                />
+                <div className="flex flex-col items-center justify-center text-center p-8 space-y-3">
+                  <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500">
+                    <Video className="w-8 h-8" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-zinc-300">No Drone Video Loaded</p>
+                    <p className="text-xs text-zinc-500 max-w-xs">
+                      Select or drop an aerial flight video (.mp4, .mov, .avi) to preview footage and run AI processing.
+                    </p>
+                  </div>
+                </div>
               )}
 
               {/* In-Flight Telemetry Stamp Overlay */}
@@ -987,7 +815,7 @@ a.click();
                     </div>
                   )}
 
-                  {/* Authoritative Flight Inspection Results (Phase 4) */}
+                  {/* Authoritative Flight Inspection Results */}
                   {flightInspection && !isFlightInspectionLoading && (
                     <div className="space-y-4 animate-in fade-in">
                       <FlightInspectionCard
@@ -1045,162 +873,10 @@ a.click();
               </p>
             </div>
           )}
-
-          {/* Simulated AI Inference Progress Visualizer (Demo Presets) */}
-          {isAnalyzing && (
-            <div className="p-5 rounded-3xl bg-zinc-900 border border-zinc-800 text-white shadow-md space-y-3 animate-in fade-in">
-              <div className="flex items-center justify-between text-xs xl:text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                  <span className="font-bold text-emerald-400">{currentStage}</span>
-                </div>
-                <span className="font-mono font-bold text-zinc-300">{analysisProgress}%</span>
-              </div>
-
-              <div className="w-full bg-zinc-800 h-2.5 rounded-full overflow-hidden">
-                <div
-                  style={{ width: `${analysisProgress}%` }}
-                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-300 shadow-sm shadow-emerald-500/50"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Simulated AI Inference Results Card (Demo Presets) */}
-          {inferenceResult && (
-            <div className="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-md space-y-5 animate-in fade-in slide-in-from-bottom-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-100 dark:border-zinc-800/60">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={cn(
-                      'w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0',
-                      inferenceResult.type === 'waterlogging'
-                        ? 'bg-teal-50 dark:bg-teal-950 text-teal-600'
-                        : inferenceResult.type === 'drainage_overflow'
-                        ? 'bg-cyan-50 dark:bg-cyan-950 text-cyan-600'
-                        : inferenceResult.type === 'damaged_footpath'
-                        ? 'bg-orange-50 dark:bg-orange-950 text-orange-600'
-                        : inferenceResult.type === 'open_manhole'
-                        ? 'bg-purple-50 dark:bg-purple-950 text-purple-600'
-                        : inferenceResult.type === 'pothole'
-                        ? 'bg-red-50 dark:bg-red-950 text-red-600'
-                        : 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600'
-                    )}
-                  >
-                    {inferenceResult.type === 'waterlogging' ? (
-                      <Droplets className="w-6 h-6 text-teal-600 dark:text-teal-400" />
-                    ) : inferenceResult.type === 'drainage_overflow' ? (
-                      <Waves className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
-                    ) : inferenceResult.type === 'damaged_footpath' ? (
-                      <Footprints className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-                    ) : inferenceResult.type === 'open_manhole' ? (
-                      <CircleDot className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                    ) : inferenceResult.type === 'pothole' ? (
-                      <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
-                    ) : (
-                      <ShieldCheck className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                    )}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-base font-black text-zinc-900 dark:text-white uppercase tracking-wide">
-                        {inferenceResult.type === 'waterlogging'
-                          ? 'Waterlogging Hazard Detected'
-                          : inferenceResult.type === 'drainage_overflow'
-                          ? 'Drainage Overflow Detected'
-                          : inferenceResult.type === 'damaged_footpath'
-                          ? 'Damaged Footpath Detected'
-                          : inferenceResult.type === 'open_manhole'
-                          ? 'Open Manhole Hazard Detected'
-                          : inferenceResult.type === 'pothole'
-                          ? 'Structural Pothole Detected'
-                          : 'Clear Road Surface Verified'}
-                      </h4>
-                    </div>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                      Simulated Inference Time: {inferenceResult.analysisDurationMs}ms • Demo Preset ID: {inferenceResult.id}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <div className="text-xs font-mono text-zinc-400 font-bold">AI Confidence</div>
-                    <div className="text-xl font-black font-mono text-zinc-900 dark:text-white">
-                      {Math.round(inferenceResult.confidence * 100)}%
-                    </div>
-                  </div>
-                  <PriorityBadge priority={inferenceResult.priority} />
-                </div>
-              </div>
-
-              {/* Metrics Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/50">
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400 font-semibold block">Severity Score</span>
-                  <span className="text-xl font-black font-mono text-zinc-900 dark:text-white">
-                    {inferenceResult.severity.toFixed(1)} / 10
-                  </span>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/50">
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400 font-semibold block">Inundation Area</span>
-                  <span className="text-xl font-black font-mono text-teal-600 dark:text-teal-400">
-                    {inferenceResult.waterAreaSqm ? `${inferenceResult.waterAreaSqm} m²` : 'N/A'}
-                  </span>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/50">
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400 font-semibold block">Lane Obstruction</span>
-                  <span className="text-xl font-black font-mono text-red-600 dark:text-red-400">
-                    {inferenceResult.severityFactors.roadObstruction.toFixed(1)} / 10
-                  </span>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/50">
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400 font-semibold block">Assigned Zone</span>
-                  <span className="text-xl font-black font-mono text-zinc-900 dark:text-white">
-                    {inferenceResult.telemetry.zoneId}
-                  </span>
-                </div>
-              </div>
-
-              {/* Recommended Action */}
-              <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/60 text-xs xl:text-sm">
-                <span className="font-bold text-emerald-900 dark:text-emerald-200 block mb-1">
-                  Recommended Mitigation Protocol:
-                </span>
-                <p className="text-zinc-700 dark:text-zinc-300 font-medium leading-relaxed">
-                  {inferenceResult.recommendedAction}
-                </p>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExportJson}
-                  className="w-full sm:w-auto h-10 text-xs xl:text-sm font-semibold rounded-xl border-zinc-300 dark:border-zinc-700 cursor-pointer"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  <span>Download GeoJSON Report</span>
-                </Button>
-
-                {inferenceResult.type !== 'clear' && (
-                  <Button
-                    onClick={handlePublishIncident}
-                    disabled={isPublishing}
-                    className="w-full sm:w-auto h-11 px-6 text-xs xl:text-sm font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/25 cursor-pointer"
-                  >
-                    <Send className="w-4 h-4 mr-2" />
-                    <span>Publish Demo Incident to Operations Queue</span>
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Manual Anomaly Reporting Modal (Phase 14) */}
+      {/* Manual Anomaly Reporting Modal */}
       <ManualAnomalyModal
         isOpen={isManualModalOpen}
         onClose={() => setIsManualModalOpen(false)}
@@ -1211,7 +887,7 @@ a.click();
         onAnomalyCreated={handleAnomalyCreated}
       />
 
-      {/* Historical Flight Run History Drawer (Phase 4) */}
+      {/* Historical Flight Run History Drawer */}
       <FlightRunHistoryDrawer
         isOpen={isHistoryDrawerOpen}
         onClose={() => setIsHistoryDrawerOpen(false)}

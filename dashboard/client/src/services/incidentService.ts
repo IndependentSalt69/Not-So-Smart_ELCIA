@@ -132,6 +132,7 @@ import {
   InspectionResult,
   mapBackendTypeToFrontend,
   mapFrontendTypeToBackend,
+  BackendIncidentItem,
   PriorityLevel,
   REJECTED_STATUSES,
   SortDirection,
@@ -139,30 +140,6 @@ import {
   User,
   ZoneId,
 } from '@/types/incident';
-
-export interface BackendIncidentItem {
-  id: string;
-  incident_code: string;
-  incident_type: BackendIncidentType;
-  confidence: number;
-  severity_score: number;
-  priority: 'P1' | 'P2' | 'P3';
-  zone_id: string;
-  zone_code?: string | null;
-  zone_name?: string | null;
-  status: IncidentStatus;
-  started_at?: string | null;
-  ended_at?: string | null;
-  duration_seconds?: number | null;
-  recommended_action?: string | null;
-  location?: {
-    type: 'Point';
-    coordinates: [number, number];
-  } | null;
-  source?: 'AI_VISION' | 'HUMAN_REPORTED' | string;
-  created_at: string;
-  updated_at: string;
-}
 
 export const KNOWN_ZONE_UUID_MAP: Record<string, { code: string; name: string }> = {
   'ade35080-dbe8-4989-b158-f844f383562f': {
