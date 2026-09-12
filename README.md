@@ -21,28 +21,33 @@
 1. [Executive Summary](#executive-summary)
 2. [Live Demo](#live-demo)
 3. [5 Canonical Hazard Classes](#5-canonical-hazard-classes)
-4. [End-to-End System Architecture](#end-to-end-system-architecture)
+4. [Model Performance](#model-performance)
+   - [Validation Results](#validation-results)
+   - [Training Configuration](#training-configuration)
+   - [Dataset Composition](#dataset-composition)
+5. [End-to-End System Architecture](#end-to-end-system-architecture)
    - [Core Data Pipeline](#core-data-pipeline)
    - [Flight-First Inspection Hierarchy](#flight-first-inspection-hierarchy)
    - [Hazard Lifecycle State Machine](#hazard-lifecycle-state-machine)
-5. [Technology Stack](#technology-stack)
-6. [System Prerequisites](#system-prerequisites)
-7. [Automated Quick Start](#automated-quick-start)
+6. [Technology Stack](#technology-stack)
+7. [System Prerequisites](#system-prerequisites)
+8. [Automated Quick Start](#automated-quick-start)
    - [Windows (NVIDIA CUDA GPU)](#windows-nvidia-cuda-gpu)
    - [macOS (Apple Silicon MPS / Intel CPU)](#macos-apple-silicon-mps--intel-cpu)
-8. [Manual Step-by-Step Setup](#manual-step-by-step-setup)
+9. [Manual Step-by-Step Setup](#manual-step-by-step-setup)
    - [Step 1: Clone Repository](#step-1-clone-repository)
    - [Step 2: Backend Environment & Dependencies](#step-2-backend-environment--dependencies)
    - [Step 3: Environment Variables Configuration](#step-3-environment-variables-configuration)
    - [Step 4: Database Migrations & Seeding](#step-4-database-migrations--seeding)
    - [Step 5: Frontend Dashboard Setup](#step-5-frontend-dashboard-setup)
    - [Step 6: Running the Services](#step-6-running-the-services)
-9. [Operational Workflows & Dashboard Guide](#operational-workflows--dashboard-guide)
-10. [Database Schema & Maintenance Utilities](#database-schema--maintenance-utilities)
-11. [REST API Reference](#rest-api-reference)
-12. [Testing & Quality Verification](#testing--quality-verification)
-13. [Troubleshooting & FAQ](#troubleshooting--faq)
-14. [License & Acknowledgments](#license--acknowledgments)
+10. [Operational Workflows & Dashboard Guide](#operational-workflows--dashboard-guide)
+11. [Database Schema & Maintenance Utilities](#database-schema--maintenance-utilities)
+12. [REST API Reference](#rest-api-reference)
+13. [Testing & Quality Verification](#testing--quality-verification)
+14. [Troubleshooting & FAQ](#troubleshooting--faq)
+15. [Known Limitations](#known-limitations)
+16. [License & Acknowledgments](#license--acknowledgments)
 
 ---
 
@@ -100,6 +105,74 @@ CivicPulse is configured with 5 standardized, mutually exclusive civic hazard cl
 3. **`OPEN_MANHOLE` (Class 2)**: Missing or displaced utility chamber, storm drain, or sewer access covers. Auto-assigned **High Urgency** with safety escalation.
 4. **`DRAINAGE_OVERFLOW` (Class 1)**: Silted culverts, roadside stormwater drain blockages, and active runoff backflow over roads.
 5. **`DAMAGED_FOOTPATH` (Class 0)**: Broken walkway pavers, eroded pedestrian sidewalks, and displaced concrete slabs.
+
+---
+
+## Model Performance
+
+The production model is **YOLO11m-seg** (22.3M parameters, 113.0 GFLOPs), trained
+for 150 scheduled epochs on a merged 8,063-image dataset. Early stopping
+(`patience=30`) selected **epoch 75**; training halted at epoch 105.
+
+### Validation Results
+
+Measured on the held-out validation split — 1,608 images, 4,328 instances,
+365 background (hazard-free) images — at `imgsz=640`:
+
+| Class | Mask mAP@50 | Mask mAP@50-95 | Precision | Recall | Val Instances |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| `OPEN_MANHOLE` | **0.896** | **0.657** | 0.839 | 0.911 | 79 |
+| `DRAINAGE_OVERFLOW` | **0.861** | 0.429 | 0.828 | 0.889 | 36 |
+| `POTHOLE` | 0.636 | 0.293 | 0.712 | 0.604 | 2,818 |
+| `WATERLOGGING` | 0.507 | 0.273 | 0.556 | 0.536 | 1,290 |
+| `DAMAGED_FOOTPATH` | 0.216 | 0.076 | 0.686 | 0.104 | 105 |
+| **All classes** | **0.623** | **0.346** | 0.724 | 0.609 | 4,328 |
+
+Reproduce with:
+
+```bash
+yolo segment val model=models/production/best.pt \
+  data=<path>/final_dataset/data.yaml \
+  imgsz=640 split=val max_det=100 batch=4 conf=0.001
+```
+
+> [!NOTE]
+> `max_det=100` matters. At the Ultralytics default of 300, non-maximum
+> suppression exceeds its time limit on images dense with pothole instances and
+> silently truncates detections, depressing reported mAP@50 from 0.623 to 0.554.
+
+### Training Configuration
+
+| Parameter | Value | Rationale |
+| :--- | :--- | :--- |
+| Base model | `yolo11m-seg.pt` | YOLO11 reaches higher mAP than YOLOv8 at comparable parameter count |
+| Image size | 640 | Measured: 640 outperformed 1024 on this data (0.607 vs 0.552 mask mAP@50 in an earlier run) |
+| Batch size | 16 | Batch 4 produced noisy BatchNorm statistics in an earlier run |
+| `degrees` | 30.0 | Drone yaw is arbitrary at 5–6 m; the Ultralytics default of 0 leaves the model rotation-naive |
+| `perspective` / `shear` | 0.0006 / 2.0 | Gimbal tilt variation |
+| Augmentation | mosaic 1.0, mixup 0.1, copy_paste 0.1, erasing 0.2, HSV-S 0.9 | High saturation jitter: wet and dry tarmac differ mostly in saturation |
+
+### Dataset Composition
+
+8,063 images assembled from two independently-built Roboflow sources, one
+street-level and one aerial, then deduplicated and split group-aware:
+
+| Class | Annotations | Primary source |
+| :--- | ---: | :--- |
+| `POTHOLE` | 14,343 | Both |
+| `WATERLOGGING` | 6,500 (capped) | Both |
+| `DAMAGED_FOOTPATH` | 624 | Aerial |
+| `OPEN_MANHOLE` | 432 | Aerial |
+| `DRAINAGE_OVERFLOW` | 200 | Both |
+
+- **Splits**: 5,652 train / 1,608 val / 803 test (70/20/10)
+- **Negatives**: 1,560 hazard-free images (12%) — intact kerbs, covered manholes,
+  non-hazard water — to suppress false positives
+- **Deduplication**: 334 byte-identical duplicates removed; 2,116 near-duplicates
+  (920 perceptual-hash clusters) retained but bound to a single split each, so
+  visually similar frames cannot straddle train and validation
+- **Mask geometry**: 12,683 traced polygons, 9,416 axis-aligned rectangles
+  derived from box-annotated sources
 
 ---
 
@@ -454,7 +527,7 @@ npm run dev
 2. Drag and drop a drone `.mp4` video file along with its matching `.srt` telemetry file.
 3. Select the operational zone (e.g. `EC-01 Phase 1 Core`).
 4. Click **"Start AI Pipeline"**:
-   - The UI displays live processing progress through 6 stages: Uploading $\rightarrow$ Telemetry Parsing $\rightarrow$ YOLOv11m Inference $\rightarrow$ ByteTrack Tracking $\rightarrow$ MiDaS Depth Scoring $\rightarrow$ H.264 Video Encoding.
+   - The UI displays live processing progress through 6 stages: Uploading → Telemetry Parsing → YOLOv11m Inference → ByteTrack Tracking → MiDaS Depth Scoring → H.264 Video Encoding.
 5. Once complete, the operator receives the processing summary and the identified Flight Inspection Run. The operator can click **"View Flight Inspection"** to inspect the flight run and review its individual constituent hazards. Individual hazards remain distinct and separate (the first incident is not automatically opened).
 
 ### 2. Flight-First Queue & Human Verification
@@ -465,14 +538,14 @@ npm run dev
 
 ### 3. Incident Management & Evidence Viewer
 - Click any incident card within a flight run or the incident list to open the detailed **Incident Drawer**.
-- **Real Evidence Viewer**: Displays the high-resolution video frame crop highlighting the bounding box mask, detection confidence (e.g. `89.4%`), estimated surface area in $m^2$, and tracked duration in seconds.
-- **Status Lifecycle Transitions**: Authorized operators can advance the status from `New` $\rightarrow$ `Verified` $\rightarrow$ `Assigned` $\rightarrow$ `In Progress` $\rightarrow$ `Re-Inspection` $\rightarrow$ `Closed`.
+- **Real Evidence Viewer**: Displays the high-resolution video frame crop highlighting the bounding box mask, detection confidence (e.g. `89.4%`), estimated surface area in m², and tracked duration in seconds.
+- **Status Lifecycle Transitions**: Authorized operators can advance the status from `New` → `Verified` → `Assigned` → `In Progress` → `Re-Inspection` → `Closed`.
 
 ### 4. Analytics Studio ("4 Operational Questions")
-- **WHAT?** $\rightarrow$ **Issues by Type**: Horizontal breakdown of the 5 canonical hazard classes.
-- **WHERE?** $\rightarrow$ **Issue Map & Geospatial Zones**: Interactive Google Map displaying clusters and individual markers color-coded by urgency.
-- **WHEN?** $\rightarrow$ **7-Day Trend Analysis**: Rolling multi-series line chart tracking new vs resolved incidents across monsoon days.
-- **HOW SERIOUS?** $\rightarrow$ **Urgency Distribution**: Priority breakdown (High, Medium, Low) ensuring urgent safety hazards (such as open manholes) receive immediate attention.
+- **WHAT?** → **Issues by Type**: Horizontal breakdown of the 5 canonical hazard classes.
+- **WHERE?** → **Issue Map & Geospatial Zones**: Interactive Google Map displaying clusters and individual markers color-coded by urgency.
+- **WHEN?** → **7-Day Trend Analysis**: Rolling multi-series line chart tracking new vs resolved incidents across monsoon days.
+- **HOW SERIOUS?** → **Urgency Distribution**: Priority breakdown (High, Medium, Low) ensuring urgent safety hazards (such as open manholes) receive immediate attention.
 
 ---
 
@@ -654,6 +727,91 @@ npm install --legacy-peer-deps
 **Symptom:** Output video shows audio icon or fails to decode in Google Chrome / Safari.
 **Resolution:**
 CivicPulse automatically encodes videos using progressive H.264 (`libx264`), `yuv420p` pixel format, and `+faststart` moov atom. Ensure FFmpeg is installed and accessible to enable this background transcoding pipeline.
+
+### 6. Validation mAP Lower Than Expected
+**Symptom:** `yolo segment val` reports mask mAP@50 around 0.55 with repeated
+`WARNING ⚠️ NMS time limit 2.800s exceeded` messages.
+**Resolution:**
+Non-maximum suppression is timing out and silently truncating detections on
+images with many instances. Lower the detection cap and batch size:
+```bash
+yolo segment val model=models/production/best.pt \
+  data=<path>/final_dataset/data.yaml \
+  imgsz=640 split=val max_det=100 batch=4 conf=0.001
+```
+This restores the true value of 0.623. The effect is most pronounced on Apple
+Silicon MPS; if warnings persist, add `device=cpu`.
+
+---
+
+## Known Limitations
+
+Stated explicitly, with measurements, so results are interpreted correctly.
+
+### 1. `DAMAGED_FOOTPATH` recall is 0.10
+
+The model detects roughly one in ten footpath defects. Precision is acceptable
+(0.686) — when it fires it is usually right — but it misses most instances.
+
+Root cause is annotation consistency, not model capacity. An earlier
+street-level source labelled **kerb edges** rather than surface damage, so the
+class boundary between "damaged" and "intact kerb" is not visually separable in
+that data. It was excluded from the final merge, leaving only 624 annotations.
+This is a data-definition problem and more training will not fix it.
+
+### 2. `WATERLOGGING` regressed during the dataset merge
+
+An earlier model trained only on street-level traced masks reached **0.879**
+mask mAP@50 for this class. After merging a much larger aerial source
+(13,219 annotations, capped to 6,500) against 1,467 traced annotations, the
+class fell to **0.507** — the majority-rectangle data diluted the precise masks.
+
+This is the most significant open issue, because waterlogging is the primary
+hazard class in the problem statement. The intended fix is a harder cap on the
+box-annotated share, raising the traced-mask proportion.
+
+### 3. `DRAINAGE_OVERFLOW` is evaluated on 36 instances
+
+mAP@50 of 0.861 is encouraging but rests on 36 validation instances from 200
+total annotations. Treat it as indicative, not established. The class also
+competes with `WATERLOGGING` on the same wet-surface regions — raising the
+drainage confidence threshold was observed to reassign detections to
+waterlogging, indicating the two are not cleanly separated.
+
+### 4. Severity is a relative index, not a physical measurement
+
+`src/detection/severity_analyzer.py` computes:
+
+- **Area** as a percentage of frame pixels (`cv2.contourArea / frame_area`)
+- **Depth** as MiDaS relative depth normalised to 0–1 (`mean(depth) / 255.0`)
+
+Neither is converted to real-world units. Metric conversion requires ground
+sample distance from altitude and camera intrinsics; altitude is present in the
+SRT telemetry but GSD conversion is not yet implemented. Severity scores are
+therefore comparable **between detections in the same flight**, not absolute
+physical dimensions.
+
+### 5. Rectangular masks inflate area for box-sourced classes
+
+9,416 of 22,099 annotations are axis-aligned rectangles from box-annotated
+sources. A rectangle fills 100% of its bounding box; a traced hazard mask fills
+roughly 65%. `DAMAGED_FOOTPATH`, `DRAINAGE_OVERFLOW` and `OPEN_MANHOLE` are
+100% rectangular, so they systematically report larger area — and therefore
+higher severity — than traced classes for the same physical hazard.
+`OPEN_MANHOLE` compounds this with a 1.3× severity multiplier.
+
+### 6. Detection thresholds are empirical
+
+Per-class `conf` values in `configs/config.yaml` were tuned against challenge
+footage, not derived from the F1-optimal point of the validation curves. They
+are operating points chosen for demonstration conditions and should be
+re-tuned for any new deployment.
+
+### 7. Zones are specific to Electronics City
+
+Zone definitions `EC-01` to `EC-04` and their spatial boundaries are hardcoded
+to the ELCIA industrial township. Deployment elsewhere requires new zone
+polygons via `scripts/restore_operational_zones.py`.
 
 ---
 
