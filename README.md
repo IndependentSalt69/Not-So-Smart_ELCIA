@@ -61,7 +61,7 @@ Trained and deployed for Electronics City, Bengaluru (**ELCIA Zones EC-01 throug
 - **Flight-First Grouping & Ingestion**: Processes multi-minute drone survey flights, grouping detected anomalies under parent flight inspection runs without merging distinct physical hazards (`1 Physical Hazard = 1 Incident`).
 - **Telemetry-Synchronized Geolocation**: Correlates video timestamps with synchronized drone GPS telemetry (`Latitude`, `Longitude`, `Altitude`, `ISO Timestamp`) when available to geolocate detected hazards across operational corridors.
 - **Multi-Stage Computer Vision**:
-  - **YOLOv11m Segmentation**: Pixel-level instance mask detection across 5 canonical civic hazard classes.
+  - **YOLO11m Segmentation**: Pixel-level instance mask detection across 5 canonical civic hazard classes.
   - **ByteTrack Multi-Object Tracking**: Trajectory tracking across consecutive frames to prevent duplicate counting and extract true physical persistence duration.
   - **MiDaS / DPT Monocular Depth Estimation**: Quantitative road depression depth scoring for severe pothole profiling.
 - **Progressive H.264 Video Transcoding**: Automated background FFmpeg pipeline transcoding aerial footage with `yuv420p` pixel format and `+faststart` atom placement for seamless, buffer-free in-browser playback.
@@ -243,7 +243,7 @@ Every incident transitions through an audited, deterministic state machine with 
 │ Layer                     │ Technologies & Frameworks                                        │
 ├───────────────────────────┼──────────────────────────────────────────────────────────────────┤
 │ Backend API               │ Python 3.11+, FastAPI, Uvicorn, Pydantic v2, AnyIO               │
-│ Computer Vision & AI      │ PyTorch 2.x, Ultralytics YOLOv11m, ByteTrack, MiDaS / DPT, CV2   │
+│ Computer Vision & AI      │ PyTorch 2.x, Ultralytics YOLO11m, ByteTrack, MiDaS / DPT, CV2   │
 │ Video Transcoding         │ FFmpeg (H.264 / AVC1, yuv420p, +faststart, 30fps progressive)   │
 │ Database & Spatial Engine │ PostgreSQL 15+, PostGIS 3+, SQLAlchemy 2.0 (async/sync), Alembic │
 │ Cloud Database Provider   │ Supabase (AWS Mumbai / ap-south-1 pooler / session direct)       │
@@ -527,7 +527,7 @@ npm run dev
 2. Drag and drop a drone `.mp4` video file along with its matching `.srt` telemetry file.
 3. Select the operational zone (e.g. `EC-01 Phase 1 Core`).
 4. Click **"Start AI Pipeline"**:
-   - The UI displays live processing progress through 6 stages: Uploading → Telemetry Parsing → YOLOv11m Inference → ByteTrack Tracking → MiDaS Depth Scoring → H.264 Video Encoding.
+   - The UI displays live processing progress through 6 stages: Uploading → Telemetry Parsing → YOLO11m Inference → ByteTrack Tracking → MiDaS Depth Scoring → H.264 Video Encoding.
 5. Once complete, the operator receives the processing summary and the identified Flight Inspection Run. The operator can click **"View Flight Inspection"** to inspect the flight run and review its individual constituent hazards. Individual hazards remain distinct and separate (the first incident is not automatically opened).
 
 ### 2. Flight-First Queue & Human Verification
