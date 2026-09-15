@@ -84,7 +84,7 @@ Trained and deployed for Electronics City, Bengaluru (**ELCIA Zones EC-01 throug
 
 ## 5 Canonical Hazard Classes
 
-CivicPulse is configured with 5 standardized, mutually exclusive civic hazard classes defined in [`configs/config.yaml`](file:///d:/Not-So-Smart_ELCIA/configs/config.yaml):
+CivicPulse is configured with 5 standardized, mutually exclusive civic hazard classes defined in [`configs/config.yaml`](file:///d:/CivicPulse/configs/config.yaml):
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -282,9 +282,9 @@ CivicPulse includes hardened, automated setup and startup scripts organized by o
 
 | Platform | Setup Script | Start Script | Acceleration Mode |
 | :--- | :--- | :--- | :--- |
-| **Windows** | [`setup/windows/setup_gpu.ps1`](file:///d:/Not-So-Smart_ELCIA/setup/windows/setup_gpu.ps1) | [`setup/windows/start.ps1`](file:///d:/Not-So-Smart_ELCIA/setup/windows/start.ps1) | NVIDIA CUDA GPU Acceleration |
-| **macOS (Apple Silicon)** | [`setup/macOS/setup_mac.sh`](file:///d:/Not-So-Smart_ELCIA/setup/macOS/setup_mac.sh) | [`setup/macOS/start_mac.sh`](file:///d:/Not-So-Smart_ELCIA/setup/macOS/start_mac.sh) | Apple Metal Performance Shaders (MPS) |
-| **macOS (Intel)** | [`setup/macOS/setup_mac.sh`](file:///d:/Not-So-Smart_ELCIA/setup/macOS/setup_mac.sh) | [`setup/macOS/start_mac.sh`](file:///d:/Not-So-Smart_ELCIA/setup/macOS/start_mac.sh) | Optimized CPU Multi-Threading |
+| **Windows** | [`setup/windows/setup_gpu.ps1`](file:///d:/CivicPulse/setup/windows/setup_gpu.ps1) | [`setup/windows/start.ps1`](file:///d:/CivicPulse/setup/windows/start.ps1) | NVIDIA CUDA GPU Acceleration |
+| **macOS (Apple Silicon)** | [`setup/macOS/setup_mac.sh`](file:///d:/CivicPulse/setup/macOS/setup_mac.sh) | [`setup/macOS/start_mac.sh`](file:///d:/CivicPulse/setup/macOS/start_mac.sh) | Apple Metal Performance Shaders (MPS) |
+| **macOS (Intel)** | [`setup/macOS/setup_mac.sh`](file:///d:/CivicPulse/setup/macOS/setup_mac.sh) | [`setup/macOS/start_mac.sh`](file:///d:/CivicPulse/setup/macOS/start_mac.sh) | Optimized CPU Multi-Threading |
 
 ---
 
@@ -363,8 +363,8 @@ If you prefer complete manual control over your development environment, follow 
 ### Step 1: Clone Repository
 
 ```bash
-git clone https://github.com/IndependentSalt69/Not-So-Smart_ELCIA.git
-cd Not-So-Smart_ELCIA
+git clone https://github.com/IndependentSalt69/CivicPulse.git
+cd CivicPulse
 ```
 
 ---
@@ -557,7 +557,7 @@ npm run dev
 
 ### Database Maintenance Scripts
 
-All maintenance utilities are located in [`scripts/`](file:///d:/Not-So-Smart_ELCIA/scripts/):
+All maintenance utilities are located in [`scripts/`](file:///d:/CivicPulse/scripts/):
 
 #### 1. Safe Test Data Cleanup (`cleanup_test_data.py`)
 Removes test, demo, and E2E evaluation records without corrupting production or baseline data:
