@@ -6,6 +6,9 @@
 *Track: Monsoon, Roads & Civic Infrastructure Intelligence*  
 *Context: Electronics City (EC-01 to EC-04), Bengaluru & Urban Corridors*
 
+> 🏆 **First Runner-Up — ELCIA Next-Gen Innovative Tech Hackathon 2026**  
+> *Smart City Drone-AI Challenge*
+
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React 18](https://img.shields.io/badge/Frontend-React%2018%20%7C%20TypeScript-61DAFB.svg?logo=react&logoColor=black)](https://react.dev)
 [![PyTorch](https://img.shields.io/badge/AI%2FML-PyTorch%20%7C%20YOLOv11m-EE4C2C.svg?logo=pytorch&logoColor=white)](https://pytorch.org)
